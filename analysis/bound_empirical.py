@@ -11,10 +11,14 @@ w = kappa/q, P = target K-DPP, Z = normalizer):
 u_c is the inclusion ratio of the note; Var(u_c) equals chi2(pi_c || q^c) for
 the normalized c-point marginal pi_c, which is why the variables below are named
 chi2_*. Corollaries (formulas in bound_formulas.py):
-  - the leading term a_1 Var(u_1), exact, from the K-DPP marginal formula;
+  - lower bounds on Var(Zhat)/Z^2: PRIMARY (K^2/N) Var(u_1) (Hoeffding 1948,
+    Thm 5.2: Var(u_c)/c is nondecreasing in c), SECONDARY the exact leading
+    term a_1 Var(u_1), from the K-DPP marginal formula;
   - PRIMARY, second-moment bound. With m_1 = E_q[u_1^2] = 1 + Var_q(u_1),
       KL <= log(1 + a_1 Var(u_1) + sum_{c>=2} a_c ((K^c/(K)_c)^2 m_1^c - 1))
-    (hybrid) and KL <= K^2 m_1/(N-K+1) (closed form);
+         = log sum_{c=0}^K a_c (K^c/(K)_c)^2 m_1^c          (hybrid, Cor. 5.6)
+    and, with theta = K^2 m_1/(N-K+1) and a_0 = C(N-K,K)/C(N,K),
+      KL <= log(e^theta - 1 + a_0) <= theta            (closed form, Thm. 5.5);
   - SECONDARY, sup bound (the paper keeps it in a footnote). With
     r_1 = sup_y u_1(y),
       KL <= log(1 + a_1 Var(u_1) + sum_{c>=2} a_c (K^c/(K)_c r_1^c - 1))
@@ -33,21 +37,30 @@ Per-prompt row keys (bound_raw_{task}.json, analyze stage):
   chi2_1               Var_q(u_1) = E_q[u_1^2] - 1 = sum_y pi_1^2/q - 1
   m1                   E_q[u_1^2] = 1 + chi2_1                       (new)
   r1                   sup_y u_1(y)                                  (secondary)
-  a1, leading          a_1(N), exact leading term a_1 chi2_1
+  lower_hoeffding      (K^2/N) chi2_1, lower bound on Var(Zhat)/Z^2   (new, primary)
+  a1, leading          a_1(N), exact leading term a_1 chi2_1          (secondary lower bound)
   na_tail_m1           sum_{c>=2} a_c ((K^c/(K)_c)^2 m_1^c - 1)        (new)
   bound_hybrid_m1_KL   log(1 + leading + na_tail_m1)                 (new, primary)
-  bound_simple_m1_KL   K^2 m_1/(N-K+1)                               (new, primary)
+  bound_simple_m1_KL   log(e^theta - 1 + a_0), theta = K^2 m_1/(N-K+1) (new, primary;
+                       the first commit of this change stored theta here)
+  bound_theta_m1       theta = K^2 m_1/(N-K+1)                       (new)
   na_tail              sum_{c>=2} a_c (K^c/(K)_c r_1^c - 1)            (secondary)
   cert_hybrid_KL       log(1 + leading + na_tail)                    (secondary)
   cert_simple_KL       K^2 r_1/(N-K+1)                               (secondary)
-  pred_leading_by_m    {m: a_1(m) chi2_1}, exact lower bound on Var(Zhat)/Z^2
+  pred_lower_hoeffding_by_m  {m: (K^2/m) chi2_1}, lower bound on Var(Zhat)/Z^2 (new, primary)
+  pred_leading_by_m    {m: a_1(m) chi2_1}, exact lower bound on Var(Zhat)/Z^2 (secondary)
   pred_upper_m1_by_m   {m: second-moment upper bound on Var(Zhat)/Z^2}   (new)
   pred_upper_by_m      {m: r_1 upper bound on Var(Zhat)/Z^2}         (secondary)
   others (mc_*, measured_relvar, sub_*, iid, ...) unchanged.
 Summary keys (bound_empirical_{task}_{stage}.json, "{task}|summary"): the
-medians of the above (median_m1, median_bound_hybrid_m1_KL,
-median_bound_simple_m1_KL are new; median_r1, median_cert_* are the r_1
-versions), predicted_upper_m1_by_m (new) next to predicted_upper_by_m (r_1),
+medians of the above (median_m1, median_lower_hoeffding,
+median_bound_hybrid_m1_KL, median_bound_simple_m1_KL, median_bound_theta_m1
+are new; median_r1, median_cert_* are the r_1 versions),
+median_lower_hoeffding_over_mc (new) next to median_leading_over_mc,
+predicted_lower_hoeffding_by_m (new) next to predicted_leading_by_m (a_1),
+predicted_upper_m1_by_m (new) next to predicted_upper_by_m (r_1),
+frac_below_hoeffding_lower_bound (new) next to frac_below_exact_lower_bound
+(a_1; both should be 0 up to block-estimate noise),
 frac_hybrid_m1_above_r1 (new: fraction of prompts where bound_hybrid_m1_KL >
 cert_hybrid_KL), and frac_above_upper_m1_bound (new: fraction of prompts whose
 block relvar at m exceeds the second-moment upper bound; nonzero values come
@@ -57,8 +70,9 @@ Three tests, all on the real caches at the experimental K, D and pool size:
 
   T1  Exactness on real data. Small real sub-instances (real embeddings, real
       LM weights) where all |Y|^M sketch realizations are enumerable: compare
-      the exact Var(Zhat)/Z^2 to the identity RHS computed term by term, and
-      check log(1 + exact) against both hybrids and both closed forms.
+      the exact Var(Zhat)/Z^2 to the identity RHS computed term by term,
+      check log(1 + exact) against both hybrids and both closed forms, and
+      check Hoeffding's bracket (K^2/M) Var(u_1) <= Var/Z^2 <= (K/M) Var(u_K).
 
   T2  Experimental scale. Ground set = the pooled distinct strings of one
       prompt across all pools (q = empirical frequency, w = the real importance
@@ -545,9 +559,17 @@ def t1_enumeration(task, pooled, rng, cases):
         bounds = dict(
             bound_hybrid_m1_KL=bf.kl_hybrid_m1(M, K, chi2_1_mk),
             bound_simple_m1_KL=bf.kl_closed_m1(M, K, m1),
+            bound_theta_m1=bf.kl_theta_m1(M, K, m1),
             cert_hybrid_KL=bf.kl_hybrid_r1(M, K, chi2_1_mk, r1),
             cert_simple_KL=bf.kl_closed_r1(M, K, r1),
         )
+        # Hoeffding's bracket on Var(Zhat)/Z^2: (K^2/M) Var(u_1) <= . <= (K/M) Var(u_K).
+        # The 1e-9 relative slack absorbs rounding in the enumeration only.
+        rv_exact = var_exact / (Zc ** 2)
+        lower_h = bf.lower_hoeffding(M, K, chi2_1_mk)
+        upper_h = K / M * chi2s[K - 1]
+        hoeff_hold = bool(lower_h <= rv_exact * (1 + 1e-9) + 1e-15
+                          and rv_exact <= upper_h * (1 + 1e-9) + 1e-15)
         res.append(dict(
             nY=nY, K=K, M=M, D=Phi.shape[1],
             Z=Zc, Z_from_eK=Z, logZ_relerr=abs(Z - Zc) / Zc,
@@ -561,6 +583,8 @@ def t1_enumeration(task, pooled, rng, cases):
             sumP1=tgt["sumP1"],
             m1=m1, r1=r1, log1p_var_exact=log1p_exact, **bounds,
             bounds_hold=bool(all(log1p_exact <= b for b in bounds.values())),
+            lower_hoeffding=lower_h, upper_hoeffding=upper_h,
+            hoeffding_bracket_hold=hoeff_hold,
         ))
         r = res[-1]
         print(f"[T1] nY={nY} K={K} M={M} D={r['D']}: "
@@ -572,12 +596,18 @@ def t1_enumeration(task, pooled, rng, cases):
               f"sum P1={r['sumP1']:.10f} (=K)", flush=True)
         print(f"[T1]   log(1+exact)={log1p_exact:.6g} <= bound on the KL: "
               f"m1 hybrid={bounds['bound_hybrid_m1_KL']:.6g} "
-              f"m1 closed={bounds['bound_simple_m1_KL']:.6g} | "
+              f"m1 closed={bounds['bound_simple_m1_KL']:.6g} "
+              f"theta={bounds['bound_theta_m1']:.6g} | "
               f"r1 (secondary) hybrid={bounds['cert_hybrid_KL']:.6g} "
               f"closed={bounds['cert_simple_KL']:.6g}  "
               f"holds={r['bounds_hold']}", flush=True)
+        print(f"[T1]   Hoeffding: {lower_h:.6g} <= exact Var/Z^2={rv_exact:.6g} "
+              f"<= {upper_h:.6g}  holds={hoeff_hold}", flush=True)
         if not r["bounds_hold"]:
             raise RuntimeError(f"[T1] a bound is below log(1 + exact Var/Z^2) "
+                               f"on sub-instance {r}")
+        if not hoeff_hold:
+            raise RuntimeError(f"[T1] exact Var/Z^2 is outside Hoeffding's bracket "
                                f"on sub-instance {r}")
     return res
 
@@ -616,7 +646,8 @@ def analyze(task, max_prompts, R_mc, n_sub_rep, seed=0):
             r1 = float((pi1 / q).max())            # sup u_1, secondary
 
             ac = a_coeffs(M_exp, K)
-            lead = bf.leading(M_exp, K, chi2_1)
+            lead = bf.leading(M_exp, K, chi2_1)                 # lower, secondary
+            lower_h = bf.lower_hoeffding(M_exp, K, chi2_1)      # lower, primary
             # NA bounds on the c>=2 remainder (bound_formulas.py):
             #   primary   a_c ((K^c/(K)_c)^2 m1^c - 1)   (second moment)
             #   secondary a_c (K^c/(K)_c r1^c - 1)       (sup)
@@ -624,6 +655,7 @@ def analyze(task, max_prompts, R_mc, n_sub_rep, seed=0):
             tail = bf.na_tail_r1(M_exp, K, chi2_1, r1)
             bound_hybrid_m1 = bf.kl_hybrid_m1(M_exp, K, chi2_1)
             bound_simple_m1 = bf.kl_closed_m1(M_exp, K, m1)
+            bound_theta_m1 = bf.kl_theta_m1(M_exp, K, m1)
             cert_hybrid = bf.kl_hybrid_r1(M_exp, K, chi2_1, r1)
             cert_simple = bf.kl_closed_r1(M_exp, K, r1)
 
@@ -636,13 +668,14 @@ def analyze(task, max_prompts, R_mc, n_sub_rep, seed=0):
 
             # T3: disjoint within-pool blocks -> true-instance relvar at each m,
             # plus the identity's prediction for the same m on this instance
-            sub, sub_n, pred, pred_hi, pred_hi_m1 = {}, {}, {}, {}, {}
+            sub, sub_n, pred, pred_lo_h, pred_hi, pred_hi_m1 = {}, {}, {}, {}, {}, {}
             for m in cfg["M_grid"]:
                 rv, nb = block_relvar(Phi, rho, Cnt, K, m)
                 if rv is not None:
                     sub[m] = rv
                     sub_n[m] = nb
-                pred[m] = bf.leading(m, K, chi2_1)                  # exact lower bound
+                pred_lo_h[m] = bf.lower_hoeffding(m, K, chi2_1)     # lower, primary
+                pred[m] = bf.leading(m, K, chi2_1)                  # lower, secondary
                 pred_hi_m1[m] = bf.relvar_bound_m1(m, K, chi2_1)    # upper, primary
                 pred_hi[m] = bf.relvar_bound_r1(m, K, chi2_1, r1)   # upper, secondary
 
@@ -654,15 +687,18 @@ def analyze(task, max_prompts, R_mc, n_sub_rep, seed=0):
                 prompt_hash=abs(hash(pt)) % 10**8, n_uniq=int(rec["n_uniq"]),
                 N_total=int(tot.sum()), missing_mass=miss,
                 logZ=logZ, sumP1=tgt["sumP1"], chi2_1=chi2_1, m1=m1, r1=r1,
+                lower_hoeffding=lower_h,
                 a1=float(ac[0]), leading=lead,
                 na_tail_m1=tail_m1,
                 bound_hybrid_m1_KL=bound_hybrid_m1,
                 bound_simple_m1_KL=bound_simple_m1,
+                bound_theta_m1=bound_theta_m1,
                 na_tail=tail,
                 cert_hybrid_KL=cert_hybrid, cert_simple_KL=cert_simple,
                 mc_relvar=mc["relvar"], mc_se=mc["se_relvar"],
                 mc_mean_ratio=mc["mean_ratio"],
                 measured_relvar=meas, sub_relvar=sub, sub_nblocks=sub_n,
+                pred_lower_hoeffding_by_m=pred_lo_h,
                 pred_leading_by_m=pred, pred_upper_m1_by_m=pred_hi_m1,
                 pred_upper_by_m=pred_hi,
                 iid=iid_diagnostics(Cnt, rec["logps"]),
@@ -723,6 +759,8 @@ def summarize(per_setting):
         leads = [r["leading"] for r in rows]
         ratio = [r["leading"] / r["mc_relvar"] for r in rows
                  if r["mc_relvar"] and np.isfinite(r["mc_relvar"]) and r["mc_relvar"] > 0]
+        ratio_h = [r["lower_hoeffding"] / r["mc_relvar"] for r in rows
+                   if r["mc_relvar"] and np.isfinite(r["mc_relvar"]) and r["mc_relvar"] > 0]
         Ms = sorted({m for r in rows for m in r["sub_relvar"]})
         sub_med = {m: float(np.median([r["sub_relvar"][m] for r in rows
                                        if m in r["sub_relvar"]]))
@@ -731,6 +769,9 @@ def summarize(per_setting):
         pred_med = {m: float(np.median([r["pred_leading_by_m"][m] for r in rows
                                         if m in r["pred_leading_by_m"]]))
                     for m in allm}
+        pred_lo_h_med = {m: float(np.median([r["pred_lower_hoeffding_by_m"][m] for r in rows
+                                             if m in r["pred_lower_hoeffding_by_m"]]))
+                         for m in allm}
         pred_hi_med = {m: float(np.median([r["pred_upper_by_m"][m] for r in rows
                                            if m in r["pred_upper_by_m"]]))
                        for m in allm}
@@ -742,6 +783,10 @@ def summarize(per_setting):
         below = {m: float(np.mean([r["sub_relvar"][m] < r["pred_leading_by_m"][m]
                                    for r in rows if m in r["sub_relvar"]]))
                  for m in sub_med}
+        # same for the (larger) Hoeffding lower bound (K^2/m) chi2_1
+        below_h = {m: float(np.mean([r["sub_relvar"][m] < r["pred_lower_hoeffding_by_m"][m]
+                                     for r in rows if m in r["sub_relvar"]]))
+                   for m in sub_med}
         # ... and above the second-moment UPPER bound (impossible for the true
         # value; nonzero means block-estimate noise or a broken bound)
         above_m1 = {m: float(np.mean([r["sub_relvar"][m] > r["pred_upper_m1_by_m"][m]
@@ -765,13 +810,16 @@ def summarize(per_setting):
             median_chi2_1=med(lambda r: r["chi2_1"]),
             median_m1=med(lambda r: r["m1"]),
             median_r1=med(lambda r: r["r1"]),
+            median_lower_hoeffding=med(lambda r: r["lower_hoeffding"]),
             median_leading=float(np.median(leads)),
             median_mc_relvar=float(np.median(mcs)) if mcs else None,
             median_mc_mean_ratio=med(lambda r: r["mc_mean_ratio"]),
+            median_lower_hoeffding_over_mc=float(np.median(ratio_h)) if ratio_h else None,
             median_leading_over_mc=float(np.median(ratio)) if ratio else None,
             median_measured_relvar=med(lambda r: r["measured_relvar"]),
             median_bound_hybrid_m1_KL=med(lambda r: r["bound_hybrid_m1_KL"]),
             median_bound_simple_m1_KL=med(lambda r: r["bound_simple_m1_KL"]),
+            median_bound_theta_m1=med(lambda r: r["bound_theta_m1"]),
             median_cert_hybrid_KL=med(lambda r: r["cert_hybrid_KL"]),
             median_cert_simple_KL=med(lambda r: r["cert_simple_KL"]),
             frac_hybrid_m1_above_r1=frac_m1_above,
@@ -779,9 +827,11 @@ def summarize(per_setting):
             block_nblocks=({m: int(np.median([r["sub_nblocks"][m] for r in rows
                                               if m in r["sub_nblocks"]]))
                             for m in sub_med} if sub_med else {}),
+            predicted_lower_hoeffding_by_m=pred_lo_h_med,
             predicted_leading_by_m=pred_med,
             predicted_upper_m1_by_m=pred_hi_m1_med,
             predicted_upper_by_m=pred_hi_med,
+            frac_below_hoeffding_lower_bound=below_h,
             frac_below_exact_lower_bound=below,
             frac_above_upper_m1_bound=above_m1,
             median_mc_se=med(lambda r: r["mc_se"]),
@@ -796,13 +846,16 @@ def summarize(per_setting):
         print(f"  chi2(pi_1||q)={g(s['median_chi2_1'])}  "
               f"m1=E_q[u_1^2]={g(s['median_m1'])}  "
               f"r1=sup u_1 (secondary)={g(s['median_r1'])}")
-        print(f"  identity leading a_1 chi2_1 = {g(s['median_leading'])}")
+        print(f"  lower bound (K^2/N) chi2_1 (Hoeffding) = {g(s['median_lower_hoeffding'])}"
+              f"  (a_1 chi2_1, secondary: {g(s['median_leading'])})")
         print(f"  MC Var(Zhat)/Z^2 (= full RHS) = {g(s['median_mc_relvar'])}"
               f" +- {g(s['median_mc_se'], '.3g')}")
-        print(f"  leading/MC = {g(s['median_leading_over_mc'])}")
+        print(f"  Hoeffding lower/MC = {g(s['median_lower_hoeffding_over_mc'])}  "
+              f"(leading/MC = {g(s['median_leading_over_mc'])})")
         print(f"  measured across-pool relvar   = {g(s['median_measured_relvar'])}")
         print(f"  bound on the KL (m1): hybrid={g(s['median_bound_hybrid_m1_KL'])}  "
-              f"closed form K^2 m1/(M-K+1)={g(s['median_bound_simple_m1_KL'])}")
+              f"closed form log(e^theta-1+a_0)={g(s['median_bound_simple_m1_KL'])}  "
+              f"theta=K^2 m1/(M-K+1)={g(s['median_bound_theta_m1'])}")
         print(f"  bound on the KL (r1, secondary): hybrid={g(s['median_cert_hybrid_KL'])}  "
               f"closed form K^2 r1/(M-K+1)={g(s['median_cert_simple_KL'])}")
         print(f"  fraction of prompts with m1 hybrid > r1 hybrid: "
@@ -813,15 +866,17 @@ def summarize(per_setting):
               f"cross-pool shared strings obs={g(iid_med.get('obs_shared_pairwise'), '.3g')} "
               f"pred(LM logps)={g(iid_med.get('pred_shared_pairwise'), '.3g')} "
               f"pred(empirical q)={g(iid_med.get('pred_shared_pairwise_emp'), '.3g')}")
-        print("  true-instance relvar from disjoint blocks vs identity bracket "
-              "[exact lower, m1 upper] (r1 upper, secondary):")
+        print("  true-instance relvar from disjoint blocks vs bracket "
+              "[Hoeffding lower, m1 upper] (a1 lower, r1 upper: secondary):")
         for m in sub_med:
             print(f"    m={m:>4}: obs={g(sub_med[m])} "
                   f"(n_blocks={s['block_nblocks'][m]})  "
-                  f"identity in [{g(pred_med.get(m))}, "
-                  f"{g(pred_hi_m1_med.get(m))}] (r1: {g(pred_hi_med.get(m))})  "
+                  f"in [{g(pred_lo_h_med.get(m))}, "
+                  f"{g(pred_hi_m1_med.get(m))}] (a1: {g(pred_med.get(m))}, "
+                  f"r1: {g(pred_hi_med.get(m))})  "
                   f"obs*m={g(sub_med[m]*m, '.3g')}  "
-                  f"frac prompts below exact lower bd={g(below[m], '.2f')}  "
+                  f"frac prompts below Hoeffding lower bd={g(below_h[m], '.2f')} "
+                  f"(a1: {g(below[m], '.2f')})  "
                   f"above m1 upper bd={g(above_m1[m], '.2f')}")
     return summ
 
