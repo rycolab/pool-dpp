@@ -12,9 +12,9 @@ Tables for the Z-free bound test (tab:zfree-certificates, reads bound_raw_*.json
 Two bounds on the KL (formulas in bound_formulas.py):
   primary, second moment, m_1 = E_q[u_1^2] = 1 + chi2_1:
       hybrid log(1 + a_1 chi2_1 + sum_{c>=2} a_c ((K^c/(K)_c)^2 m_1^c - 1))
-          (= log sum_{c=0}^K a_c (K^c/(K)_c)^2 m_1^c, Corollary 5.6),
+          (= log sum_{c=0}^K a_c (K^c/(K)_c)^2 m_1^c, cor:kl-sum),
       closed form log(e^theta - 1 + a_0) <= theta = K^2 m_1/(N-K+1)
-          (Theorem 5.5; a_0 = C(N-K,K)/C(N,K));
+          (thm:zfree; a_0 = C(N-K,K)/C(N,K));
   secondary (the paper's footnote), r_1 = sup u_1:
       hybrid log(1 + a_1 chi2_1 + sum_{c>=2} a_c (K^c/(K)_c r_1^c - 1)),
       closed form K^2 r_1/(N-K+1).

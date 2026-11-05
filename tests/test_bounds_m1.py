@@ -16,8 +16,8 @@ enumerating ordered c-tuples (u_c = 0 on tuples with a repeated string, since a
 pool K-subset with a repeat has determinant 0).
 
 Checked against the exact values: the Z-free identity; both hybrids and both
-closed forms, including the paper's Theorem 5.5 form log(e^theta - 1 + a_0) <= theta
-and its Corollary 5.6 form log sum_{c=0}^K a_c alpha_c^2 m_1^c (equal to
+closed forms, including the paper's thm:zfree form log(e^theta - 1 + a_0) <= theta
+and its cor:kl-sum form log sum_{c=0}^K a_c alpha_c^2 m_1^c (equal to
 kl_hybrid_m1); and Hoeffding's (1948, Thm 5.2) monotonicity of Var(u_c)/c, with
 its consequences (K^2/N) Var(u_1) <= Var(Zhat)/Z^2 <= (K/N) Var(u_K).
 """
@@ -114,7 +114,7 @@ def a0(N, K):
 
 
 def cor56_m1(N, K, m1):
-    """The paper's Corollary 5.6 form: log sum_{c=0}^K a_c alpha_c^2 m_1^c."""
+    """The paper's cor:kl-sum form: log sum_{c=0}^K a_c alpha_c^2 m_1^c."""
     a = bf.a_coeffs(N, K)
     return math.log(a0(N, K) + sum(float(a[c - 1]) * bf.alpha(K, c) ** 2 * m1 ** c
                                    for c in range(1, K + 1)))

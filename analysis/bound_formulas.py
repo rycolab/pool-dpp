@@ -25,10 +25,10 @@ and the two routes from it to Var(u_c) are:
       At c = 1, alpha_1^2 m_1 - 1 = Var_q(u_1), so this is the same as using
       the squared pointwise bound for every c: it depends on the instance only
       through Var_q(u_1). Since sum_{c=0}^K a_c = 1 (a_0 = C(N-K,K)/C(N,K),
-      no overlap) and alpha_0 = 1, the hybrid equals the paper's Corollary 5.6,
+      no overlap) and alpha_0 = 1, the hybrid equals the paper's cor:kl-sum,
           KL <= log sum_{c=0}^K a_c alpha_c^2 m_1^c,
       exactly (kl_hybrid_m1; tests/test_bounds_m1.py checks the equality).
-      Closed form (the paper's Theorem 5.5), theta = K^2 m_1 / (N - K + 1):
+      Closed form (the paper's thm:zfree), theta = K^2 m_1 / (N - K + 1):
           KL <= log(e^theta - 1 + a_0) <= theta.
       kl_closed_m1 returns the middle expression and kl_theta_m1 returns theta.
       The first commit of this change returned theta from kl_closed_m1 (key
@@ -41,7 +41,7 @@ and the two routes from it to Var(u_c) are:
       Closed form:  KL <= K^2 r_1 / (N - K + 1)   (no a_0 refinement).
 
 Each closed form is at least its hybrid, at every N >= K. Proof:
-a_c alpha_c^2 m_1^c <= theta^c / c! for c >= 1, so the Corollary 5.6 sum is at
+a_c alpha_c^2 m_1^c <= theta^c / c! for c >= 1, so the cor:kl-sum sum is at
 most a_0 + e^theta - 1 <= e^theta; and the r_1 sum is at most
 (1 + K r_1/(N-K+1))^K <= e^{K^2 r_1/(N-K+1)}. tests/test_bounds_m1.py checks
 this on a grid.
@@ -207,7 +207,7 @@ def na_tail_r1(N, K, chi2_1, r1):
 def kl_hybrid_m1(N, K, chi2_1):
     """Primary bound: KL <= log(1 + relvar_bound_m1).
 
-    Equal to the paper's Corollary 5.6, log sum_{c=0}^K a_c alpha_c^2 m_1^c
+    Equal to the paper's cor:kl-sum, log sum_{c=0}^K a_c alpha_c^2 m_1^c
     (a_0 = C(N-K,K)/C(N,K), alpha_0 = 1), because sum_{c=0}^K a_c = 1.
     """
     return math.log1p(relvar_bound_m1(N, K, chi2_1))
@@ -237,7 +237,7 @@ def _expm1_minus_x(x):
 
 
 def kl_closed_m1(N, K, m1):
-    """Primary closed form (the paper's Theorem 5.5):
+    """Primary closed form (the paper's thm:zfree):
     KL <= log(e^theta - 1 + a_0),  theta = K^2 m_1/(N-K+1),  a_0 = C(N-K,K)/C(N,K).
 
     Evaluation, accurate to rounding at every N and m_1 (checked against

@@ -16,9 +16,9 @@ chi2_*. Corollaries (formulas in bound_formulas.py):
     term a_1 Var(u_1), from the K-DPP marginal formula;
   - PRIMARY, second-moment bound. With m_1 = E_q[u_1^2] = 1 + Var_q(u_1),
       KL <= log(1 + a_1 Var(u_1) + sum_{c>=2} a_c ((K^c/(K)_c)^2 m_1^c - 1))
-         = log sum_{c=0}^K a_c (K^c/(K)_c)^2 m_1^c          (hybrid, Cor. 5.6)
+         = log sum_{c=0}^K a_c (K^c/(K)_c)^2 m_1^c          (hybrid, cor:kl-sum)
     and, with theta = K^2 m_1/(N-K+1) and a_0 = C(N-K,K)/C(N,K),
-      KL <= log(e^theta - 1 + a_0) <= theta            (closed form, Thm. 5.5);
+      KL <= log(e^theta - 1 + a_0) <= theta            (closed form, thm:zfree);
   - SECONDARY, sup bound (the paper keeps it in a footnote). With
     r_1 = sup_y u_1(y),
       KL <= log(1 + a_1 Var(u_1) + sum_{c>=2} a_c (K^c/(K)_c r_1^c - 1))
