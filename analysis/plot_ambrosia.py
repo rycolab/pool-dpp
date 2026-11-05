@@ -254,8 +254,8 @@ def main(n_pools, ci_mode, out=None, points_out=None, knob="T"):
     for name in ("PoolDPP-Samp", "PoolDPP-MAP"):
         plot_curve(ax, name, curves[name], label_fn=lambda t: f"{t:.2g}")
 
-    ax.set_xlabel("Recall: Golden Query Coverage")
-    ax.set_ylabel("Precision: Golden Accuracy")
+    ax.set_xlabel(r"Recall: Golden Query Coverage $\longrightarrow$")
+    ax.set_ylabel(r"Precision: Golden Accuracy $\longrightarrow$")
     ax.grid(True, alpha=0.3)
     ax.legend(loc="lower left", frameon=True, framealpha=0.9)
     fig.tight_layout(pad=0.4)

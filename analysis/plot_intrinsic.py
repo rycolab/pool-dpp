@@ -239,8 +239,8 @@ def main(est_dirs=None, ci_mode=None, out=None, points_out=None, knob="T"):
     plot_curve(ax, "PoolDPP-MAP", curves["PoolDPP-MAP"],
                label_fn=lambda t: f"{t:.2g}" if t < 10 else f"{t:g}")
 
-    ax.set_xlabel("Diversity (log-determinant of Gram matrix)")
-    ax.set_ylabel("Quality (mean log-probability)")
+    ax.set_xlabel(r"Diversity (log-determinant of Gram matrix) $\longrightarrow$")
+    ax.set_ylabel(r"Quality (mean log-probability) $\longrightarrow$")
     ax.grid(True, alpha=0.3)
     ax.legend(loc="lower left", frameon=True, framealpha=0.9)
     fig.tight_layout(pad=0.4)

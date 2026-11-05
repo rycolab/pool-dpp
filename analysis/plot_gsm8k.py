@@ -242,11 +242,12 @@ def main(n_pools, ci_mode, kernel, knob, out=None, points_out=None):
     for name in ("PoolDPP-Samp", "PoolDPP-MAP"):
         plot_curve(ax, name, curves[name], label_fn=lambda t: f"{t:.3g}")
 
-    ax.set_xlabel("Diversity (log-determinant of Gram matrix)")
+    arrow = r" $\longrightarrow$"
+    ax.set_xlabel("Diversity (log-determinant of Gram matrix)" + arrow)
     if PASSK_TARGET is None:
-        ax.set_ylabel(f"Accuracy (pass@$K{{=}}{K_SELECTED}$)")
+        ax.set_ylabel(f"Accuracy (pass@$K{{=}}{K_SELECTED}$)" + arrow)
     else:
-        ax.set_ylabel(f"Accuracy (pass@${PASSK_TARGET}$ from $K{{=}}{K_SELECTED}$)")
+        ax.set_ylabel(f"Accuracy (pass@${PASSK_TARGET}$ from $K{{=}}{K_SELECTED}$)" + arrow)
     ax.grid(True, alpha=0.3)
     ax.legend(loc="lower left", frameon=True, framealpha=0.9)
     fig.tight_layout(pad=0.4)
