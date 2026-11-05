@@ -16,13 +16,17 @@ LM="google/gemma-2-9b-it"; MN="google__gemma-2-9b-it"
 EMB="Qwen/Qwen3-Embedding-0.6B"; ES="qwen"
 export EMN="${MN}_${ES}" K=10 N_RUNS=10 ANCHOR_ST=1.2
 export TAUS="0.003 0.01 0.03 0.1 0.3 1 3 10 30"
+export SAMP_TS="0.428571 0.666667 0.818182 1 1.03 1.05 1.07 1.1 1.22222"
+export MAP_TS="500 100 50 25 10 3 1"
 export CAL="cache-gsm8k/calibration_${EMN}.json"
 
 estimate_pool() {
     local CD="cache-gsm8k/pool$1"
     local E="dpp-estimation --output_folder $CD/est${K}${EMN##*_} --model_name $EMN --cache_dir $CD --k $K"
     $E --N "$N_RUNS" --ancestral --naive --kmeans
+    $E --N "$N_RUNS" --samp --target_Ts $SAMP_TS --sampling_T "$ANCHOR_ST"
     $E --N "$N_RUNS" --samp --taus $TAUS --sampling_T "$ANCHOR_ST" --calibration "$CAL"
+    $E --N 1 --map --target_Ts $MAP_TS --sampling_T "$ANCHOR_ST"
     $E --N 1 --map --taus $TAUS --sampling_T "$ANCHOR_ST" --calibration "$CAL"
     echo "POOL_DONE gsm8k $1"
 }
