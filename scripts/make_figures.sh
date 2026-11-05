@@ -10,7 +10,7 @@ cd "$(dirname "$0")/.."
 export OPENBLAS_NUM_THREADS=${OPENBLAS_NUM_THREADS:-1}
 
 CPUS=${CPUS:-8}
-GROUPS_ALL="frontiers ablations bounds weights pools significance baselines cost probe"
+GROUPS_ALL="frontiers ablations bounds ndial weights pools significance baselines beam cost probe"
 
 frontiers() {
     python analysis/plot_intrinsic.py --ci-mode pool_t
@@ -24,6 +24,8 @@ bounds() {
     python analysis/bound_empirical.py --task gsm8k --stage all --taus 0.03 1
     python analysis/bound_required_n.py
     python analysis/bound_tables.py
+}
+ndial() {  # after bounds
     python analysis/gsm8k_n2500.py
     python analysis/plot_ndial.py
 }
@@ -48,8 +50,8 @@ baselines() {
     python analysis/baselines_gsm8k.py
     python analysis/baselines_gsm8k.py --variant qwenins
     python analysis/heldout_diversity.py
-    for task in fineweb ambrosia gsm8k; do python analysis/beam_baselines.py --task "$task"; done
 }
+beam() { for task in fineweb ambrosia gsm8k; do python analysis/beam_baselines.py --task "$task"; done; }
 pools() {
     python analysis/pool_ceiling.py --part A --n-pools 30 --workers "$CPUS"
     python analysis/pool_ceiling.py --part B --n-pools 30
