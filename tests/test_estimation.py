@@ -5,14 +5,15 @@ import itertools
 import json
 import os
 import pickle
+import shutil
 import sys
 from unittest import mock
 
 import numpy as np
 import pytest
 
-from lm_dpp.estimation import (cli, greedy_map, quality_log_scales, sample_dpp, sample_kmeans_for_prompt,
-                               sigma_hat_from_embeddings, target_log_scales)
+from lm_dpp.estimation import (ancestral_draw, cli, greedy_map, method_seed, quality_log_scales, sample_dpp,
+                               sample_kmeans_for_prompt, sigma_hat_from_embeddings, target_log_scales)
 from lm_dpp.utils.cached import cached_ddict
 
 RNG = np.random.default_rng(42)
@@ -131,6 +132,36 @@ def test_sample_dpp():
     draws = sample_dpp(quality_log_scales(p["logps_t1"], 0.2, p["counts"]), p["embeddings"], 5, N=3)
     assert len(draws) == 3
     assert all(len(set(s)) == 5 for s in draws)
+
+
+def test_ancestral_draw_follows_counts():
+    # Taking every position of the pool returns each string exactly count times.
+    for counts in ([3, 2], [1, 1, 1], [5, 1, 4], [200]):
+        drawn = ancestral_draw(np.array(counts), sum(counts))
+        assert np.bincount(drawn, minlength=len(counts)).tolist() == counts
+
+
+def test_pools_get_their_own_streams():
+    assert method_seed("ancestral", 0, "pool0") != method_seed("ancestral", 0, "pool1")
+    assert method_seed("ancestral", 0, "pool0") != method_seed("ancestral", 1, "pool0")
+    assert method_seed("ancestral", 0, "pool0") != method_seed("samp", 0, "pool0")
+    assert method_seed("ancestral", 0, "pool0") == method_seed("ancestral", 0, "pool0")
+
+
+def test_cli_seed_depends_on_the_pool_name_only(tmp_path):
+    src = tmp_path / "a" / "pool0"
+    src.mkdir(parents=True)
+    fake_cache(src, sampling_Ts=[1.0], n_prompts=6)
+    for name in ("a/pool1", "b/pool0"):
+        shutil.copytree(src, tmp_path / name)
+
+    def sets(name):
+        cache = tmp_path / name
+        run_cli("--output_folder", cache / "out", "--model_name", MODEL, "--cache_dir", cache, "--k", 3, "--ancestral")
+        return [list(x[1]) for x in pickle.load(open(cache / "out" / "0" / f"{MODEL}-ancestral" / "s1.pkl", "rb"))]
+
+    assert sets("a/pool0") == sets("b/pool0")
+    assert sets("a/pool0") != sets("a/pool1")
 
 
 def test_kmeans():

@@ -28,7 +28,7 @@ Output layout (one scheme for all methods):
         samp, map        -> tau{tau}_s{sT}.pkl or T{T}_s{sT}.pkl
         ancestral, naive, kmeans -> s{sT}.pkl
 Deterministic methods (map) are computed once into run dir 0; stochastic
-methods write one dir per run 0..N-1 (numpy seeded per (method, run)).
+methods write one dir per run 0..N-1 (numpy seeded per (method, run, pool)).
 """
 import argparse
 import json
@@ -47,6 +47,13 @@ MAD_TO_SIGMA = 1.4826
 def fmt(x):
     """Float -> filesystem token: 1.0 -> '1', 0.03 -> '0.03', 500 -> '500'."""
     return f"{float(x):g}"
+
+
+def method_seed(method, run, pool):
+    """Numpy seed of one (method, run) on one pool. Pools need separate streams: on a shared
+    stream every pool draws the same positions for a prompt, so the pools' means share their
+    sampling error and intervals across pools come out too narrow."""
+    return (run * 1000003 + zlib.crc32(f"{method}|{pool}".encode())) % (2 ** 32)
 
 
 # ---------------------------------------------------------------------------
@@ -269,6 +276,12 @@ def run_naive(embeddings_dict, output_folder, model_name, k):
         draw_one, k, "naive")
 
 
+def ancestral_draw(counts, k):
+    """k pool draws without replacement, as indices into the pool's unique strings."""
+    positions = np.random.choice(sum(counts), size=k, replace=False)
+    return np.searchsorted(np.cumsum(counts), positions, side="right")
+
+
 def run_ancestral(embeddings_dict, output_folder, model_name, k):
     """Ancestral baseline: k pool draws without replacement."""
     method_dir = f"{output_folder}/{model_name}-ancestral"
@@ -281,8 +294,7 @@ def run_ancestral(embeddings_dict, output_folder, model_name, k):
                 continue
             u_sents, counts, logps_t1, embeddings = (
                 data["u_sents"], data["counts"], data["logps_t1"], data["embeddings"])
-            sample = np.random.choice(sum(counts), size=k, replace=False)
-            sample = np.searchsorted(np.cumsum(counts), sample)
+            sample = ancestral_draw(counts, k)
             output_l.append(selection_record(prompt, sample, u_sents, logps_t1, embeddings))
         output_l._save()
         print(f"s{fmt(sT)}", end=" ", flush=True)
@@ -414,32 +426,32 @@ def cli():
     print(f"[estimation] {args.model_name} | k={args.k} N={args.N} "
           f"pool={args.pool_size or 'full'} | sT={sampling_Ts} -> {args.output_folder}")
 
-    def method_seed(method, run):
-        return (run * 1000003 + zlib.crc32(method.encode())) % (2 ** 32)
+    pool = os.path.basename(os.path.normpath(args.cache_dir))
 
     for run in range(args.N):
         run_dir = f"{args.output_folder}/{run}"
         if args.N > 1:
             print(f" run {run}")
         if args.samp and args.taus:
-            np.random.seed(method_seed("samp", run))
+            np.random.seed(method_seed("samp", run, pool))
             run_samp(active, run_dir, args.model_name, args.k, args.taus, sigma,
                      pool_size=args.pool_size)
         if args.samp and args.target_Ts:
-            np.random.seed(method_seed("samp_T", run))
+            np.random.seed(method_seed("samp_T", run, pool))
             run_samp_T(active, run_dir, args.model_name, args.k, args.target_Ts,
                        pool_size=args.pool_size)
         if args.map_ and run == 0:
+            np.random.seed(method_seed("map", run, pool))  # only --pool-size draws from it
             run_map(active, run_dir, args.model_name, args.k, args.taus, sigma,
                     pool_size=args.pool_size, target_Ts=args.target_Ts)
         if args.ancestral:
-            np.random.seed(method_seed("ancestral", run))
+            np.random.seed(method_seed("ancestral", run, pool))
             run_ancestral(active, run_dir, args.model_name, args.k)
         if args.naive:
-            np.random.seed(method_seed("naive", run))
+            np.random.seed(method_seed("naive", run, pool))
             run_naive(active, run_dir, args.model_name, args.k)
         if args.kmeans:
-            np.random.seed(method_seed("kmeans", run))
+            np.random.seed(method_seed("kmeans", run, pool))
             run_kmeans(active, run_dir, args.model_name, args.k,
                        random_state=run, pool_size=args.pool_size)
 
