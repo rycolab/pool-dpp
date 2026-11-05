@@ -182,19 +182,18 @@ def lm_emb_grid():
                                 capthick=0.4, elinewidth=0.4, linewidth=1,
                                 label=name, alpha=0.85)
             pts = [collect(est, "samp", model=model, tau=tau) for tau in taus]
-            good = [(p, tau) for p, tau in zip(pts, taus) if p[4]]
+            good = [p for p in pts if p[4]]
             if good:
-                order = np.argsort([p[2] for p, _ in good])
-                xs = [good[i][0][2] for i in order]
-                ys = [good[i][0][0] for i in order]
-                xe = [ci95(good[i][0][3], good[i][0][4]) for i in order]
-                ye = [ci95(good[i][0][1], good[i][0][4]) for i in order]
+                xs = [p[2] for p in good]
+                ys = [p[0] for p in good]
+                xe = [ci95(p[3], p[4]) for p in good]
+                ye = [ci95(p[1], p[4]) for p in good]
                 ax.errorbar(xs, ys, xerr=xe, yerr=ye, color=COLORS["PoolDPP-Samp"],
                             marker="o", markersize=3, capsize=1.5, capthick=0.4,
                             elinewidth=0.4, linewidth=1, label="PoolDPP-Samp",
                             alpha=0.85)
             pts = [collect(est, "map", model=model, tau=tau) for tau in taus]
-            good = sorted([p for p in pts if p[4]], key=lambda p: p[2])
+            good = [p for p in pts if p[4]]
             if good:
                 ax.errorbar([p[2] for p in good], [p[0] for p in good],
                             color=COLORS["PoolDPP-MAP"], marker=MARKERS["PoolDPP-MAP"],
@@ -236,8 +235,6 @@ def multimodel():
             good = [p for p in pts if p[4]]
             if not good:
                 continue
-            if key == "tau":
-                good = sorted(good, key=lambda p: p[2])
             ax.errorbar([p[2] for p in good], [p[0] for p in good],
                         xerr=[ci95(p[3], p[4]) for p in good],
                         yerr=[ci95(p[1], p[4]) for p in good],

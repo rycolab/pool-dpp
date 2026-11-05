@@ -181,7 +181,7 @@ def collect(est_dir, method_subfolder, sweep, key_fn):
     return out
 
 
-def plot_curve(ax, name, pts, sort_by_x=False, annotate=True, label_fn=str):
+def plot_curve(ax, name, pts, annotate=True, label_fn=str):
     if not pts:
         return
     keys = list(pts.keys())
@@ -193,10 +193,6 @@ def plot_curve(ax, name, pts, sort_by_x=False, annotate=True, label_fn=str):
     else:
         xerr = np.array([ci95(pts[k]["x_std"], pts[k]["n"]) for k in keys])
         yerr = np.array([ci95(pts[k]["y_std"], pts[k]["n"]) for k in keys])
-    if sort_by_x:
-        order = np.argsort(xs)
-        xs, ys, xerr, yerr = xs[order], ys[order], xerr[order], yerr[order]
-        keys = [keys[i] for i in order]
     ax.errorbar(xs, ys, xerr=xerr, yerr=yerr,
                 color=COLORS[name], marker=MARKERS[name], markersize=4,
                 capsize=2, capthick=0.5, elinewidth=0.6, linewidth=1.2, label=name)
@@ -239,9 +235,9 @@ def main(est_dirs=None, ci_mode=None, out=None, points_out=None, knob="T"):
     plot_curve(ax, "Ancestral", curves["Ancestral"])
     plot_curve(ax, "$k$-Means", curves["$k$-Means"])
     plot_curve(ax, "PoolDPP-Samp", curves["PoolDPP-Samp"],
-               sort_by_x=True, label_fn=lambda t: f"{t:.2g}" if t < 10 else f"{t:g}")
+               label_fn=lambda t: f"{t:.2g}" if t < 10 else f"{t:g}")
     plot_curve(ax, "PoolDPP-MAP", curves["PoolDPP-MAP"],
-               sort_by_x=True, label_fn=lambda t: f"{t:.2g}" if t < 10 else f"{t:g}")
+               label_fn=lambda t: f"{t:.2g}" if t < 10 else f"{t:g}")
 
     ax.set_xlabel("Diversity (log-determinant of Gram matrix)")
     ax.set_ylabel("Quality (mean log-probability)")

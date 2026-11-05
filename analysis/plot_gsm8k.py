@@ -171,7 +171,7 @@ def collect_pool_level(pdirs, method_subfolder, sweep, key_fn, metrics, ci_mode=
     return out
 
 
-def plot_curve(ax, name, pts, sort_by_x=False, annotate=True, label_fn=str):
+def plot_curve(ax, name, pts, annotate=True, label_fn=str):
     if not pts:
         return
     keys = list(pts.keys())
@@ -179,10 +179,6 @@ def plot_curve(ax, name, pts, sort_by_x=False, annotate=True, label_fn=str):
     ys = np.array([pts[k]["y_mean"] for k in keys])
     xerr = np.array([pts[k]["x_ci"] for k in keys])
     yerr = np.array([pts[k]["y_ci"] for k in keys])
-    if sort_by_x:
-        order = np.argsort(xs)
-        xs, ys, xerr, yerr = xs[order], ys[order], xerr[order], yerr[order]
-        keys = [keys[i] for i in order]
     ax.errorbar(xs, ys, xerr=xerr, yerr=yerr,
                 color=COLORS[name], marker=MARKERS[name], markersize=4,
                 capsize=2, capthick=0.5, elinewidth=0.6, linewidth=1.2, label=name)
@@ -217,11 +213,11 @@ def draw_panel(ax, pdirs, model, metrics, ci_mode):
     plot_curve(ax, "PoolDPP-Samp",
                collect_pool_level(pdirs, f"{model}-samp", SAMP_TAUS,
                                   lambda t: f"tau{fmt(t)}_s{fmt(SAMP_ST_HELD)}.pkl", metrics, ci_mode),
-               sort_by_x=True, label_fn=lambda t: f"{t:.3g}")
+               label_fn=lambda t: f"{t:.3g}")
     plot_curve(ax, "PoolDPP-MAP",
                collect_pool_level(pdirs, f"{model}-map", MAP_TAUS,
                                   lambda t: f"tau{fmt(t)}_s{fmt(MAP_ST_HELD)}.pkl", metrics, ci_mode),
-               sort_by_x=True, label_fn=lambda t: f"{t:.3g}")
+               label_fn=lambda t: f"{t:.3g}")
     ax.set_xlabel("Diversity (log-determinant of Gram matrix)")
     ax.grid(True, alpha=0.3)
 

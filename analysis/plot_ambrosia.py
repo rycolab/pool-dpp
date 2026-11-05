@@ -203,7 +203,7 @@ def collect_pool_level(pdirs, method_subfolder, sweep, key_fn, ci_mode="bootstra
     return out
 
 
-def plot_curve(ax, name, pts, sort_by_x=False, annotate=True, label_fn=str):
+def plot_curve(ax, name, pts, annotate=True, label_fn=str):
     if not pts:
         return
     keys = list(pts.keys())
@@ -211,10 +211,6 @@ def plot_curve(ax, name, pts, sort_by_x=False, annotate=True, label_fn=str):
     ys = np.array([pts[k]["y_mean"] for k in keys])
     xe = np.array([pts[k]["x_ci"] for k in keys])
     ye = np.array([pts[k]["y_ci"] for k in keys])
-    if sort_by_x:
-        order = np.argsort(xs)
-        xs, ys, xe, ye = xs[order], ys[order], xe[order], ye[order]
-        keys = [keys[i] for i in order]
     ax.errorbar(xs, ys, xerr=xe, yerr=ye,
                 color=COLORS[name], marker=MARKERS[name], markersize=4,
                 capsize=2, capthick=0.5, elinewidth=0.6, linewidth=1.2, label=name)
@@ -256,7 +252,7 @@ def main(n_pools, ci_mode, out=None, points_out=None, knob="T"):
     for name in ("Ancestral", "Naive DPP", "$k$-Means"):
         plot_curve(ax, name, curves[name])
     for name in ("PoolDPP-Samp", "PoolDPP-MAP"):
-        plot_curve(ax, name, curves[name], sort_by_x=True, label_fn=lambda t: f"{t:.2g}")
+        plot_curve(ax, name, curves[name], label_fn=lambda t: f"{t:.2g}")
 
     ax.set_xlabel("Recall: Golden Query Coverage")
     ax.set_ylabel("Precision: Golden Accuracy")
