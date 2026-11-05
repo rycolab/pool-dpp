@@ -8,7 +8,9 @@ Headline methods (mirrors the paper figure):
   - Ancestral, Naive-DPP, k-Means : sweep the pool sampling temperature sT.
   - PoolDPP-Samp (stochastic k-DPP): hold sT=1.2, sweep the tilt tau.
   - PoolDPP-MAP  (greedy MAP DPP)  : hold sT=1.2, sweep the tilt tau.
---knob T plots the T grid instead of tau (Samp: kappa = plm^(1/T), MAP: beta = 1/(2T)).
+--knob T relabels the same kernel by T = 1/(2 beta) = sigma_hat/(2 tau), so w = plm^(1/T) in both
+modes. --knob target_T plots PoolDPP-Samp with w = plm^(1/T)/q instead, the FineWeb and Ambrosia
+kernel, which differs from the tilt at sT != 1.
 
 Accuracy = pass@K: fraction of questions in which at least one of the K=10
 selected chain-of-thought solutions is correct.  Diversity = mean log-determinant
@@ -23,7 +25,7 @@ bars — they vary pool-to-pool even though they are deterministic within a pool
 Usage::
 
     python analysis/plot_gsm8k.py [--n-pools N] [--ci-mode bootstrap|pool_t]
-                                  [--kernel baseline|instructed] [--knob tau|T]
+                                  [--kernel baseline|instructed] [--knob tau|T|target_T]
 
 Output: ``analysis/gsm8k_plot.pdf`` and ``analysis/gsm8k_points.json``, or
 ``analysis/gsm8k_instructed_plot.pdf`` and ``analysis/gsm8k_instructed_points.json``
@@ -67,9 +69,10 @@ MAP_ST_HELD = 1.2                                 # PoolDPP-MAP: accuracy peak
 # beta = tau / sigma_hat, see cache-gsm8k/calibration_*.json).
 SAMP_TAUS = [0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30]
 MAP_TAUS = [0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30]
-# --knob T, see scripts/run_gsm8k.sh.
-SAMP_TS = [0.428571, 0.666667, 0.818182, 1, 1.03, 1.05, 1.07, 1.1, 1.22222]
-MAP_TS = [500, 100, 50, 25, 10, 3, 1]                # beta = 1/(2T)
+# --knob T and target_T, see scripts/run_gsm8k.sh.
+SAMP_TS = [2.5, 5, 10, 25, 50, 100, 500]             # w = plm^(1/T), tau = sigma_hat / (2T)
+MAP_TS = [2.5, 5, 10, 15, 20, 25, 50, 100, 500]      # w = plm^(1/T), beta = 1/(2T)
+SAMP_TARGET_TS = [0.428571, 0.666667, 0.818182, 1, 1.03, 1.05, 1.07, 1.1, 1.22222]  # w = plm^(1/T) / q
 
 
 def fmt(x):
@@ -225,17 +228,34 @@ def main(n_pools, ci_mode, kernel, knob, out=None, points_out=None):
         return collect_pool_level(pdirs, f"{model}-{method}", sweep,
                                   lambda v: f"s{fmt(v)}.pkl", metrics, ci_mode)
 
-    def pooldpp(method, sweep, held_st):
-        tag = "T" if knob == "T" else "tau"
-        return collect_pool_level(pdirs, f"{model}-{method}", sweep,
-                                  lambda t: f"{tag}{fmt(t)}_s{fmt(held_st)}.pkl", metrics, ci_mode)
+    def pooldpp(method, sweep, key_fn):
+        return collect_pool_level(pdirs, f"{model}-{method}", sweep, key_fn, metrics, ci_mode)
+
+    def tau_key(st):
+        return lambda tau: f"tau{fmt(tau)}_s{fmt(st)}.pkl"
+
+    def T_key(st):
+        return lambda T: f"T{fmt(T)}_s{fmt(st)}.pkl"
+
+    if knob == "tau":
+        samp = pooldpp("samp", SAMP_TAUS, tau_key(SAMP_ST_HELD))
+        map_ = pooldpp("map", MAP_TAUS, tau_key(MAP_ST_HELD))
+    else:
+        map_ = pooldpp("map", MAP_TS, T_key(MAP_ST_HELD))
+        if knob == "target_T":
+            samp = pooldpp("samp", SAMP_TARGET_TS, T_key(SAMP_ST_HELD))
+        else:
+            with open(os.path.join(ROOT_DIR, "cache-gsm8k", f"calibration_{model}.json")) as f:
+                sigma = json.load(f)["sigma_hat"][fmt(SAMP_ST_HELD)]
+            samp = pooldpp("samp", SAMP_TS,
+                           lambda T: tau_key(SAMP_ST_HELD)(sigma / (2.0 * T)))
 
     curves = {
         "Ancestral": baseline("ancestral", ST_SWEEP),
         "Naive-DPP": baseline("naive", NAIVE_ST_SWEEP),
         "$k$-Means": baseline("kmeans", ST_SWEEP),
-        "PoolDPP-Samp": pooldpp("samp", SAMP_TS if knob == "T" else SAMP_TAUS, SAMP_ST_HELD),
-        "PoolDPP-MAP": pooldpp("map", MAP_TS if knob == "T" else MAP_TAUS, MAP_ST_HELD),
+        "PoolDPP-Samp": samp,
+        "PoolDPP-MAP": map_,
     }
     for name in ("Ancestral", "Naive-DPP", "$k$-Means"):
         plot_curve(ax, name, curves[name])
@@ -273,7 +293,7 @@ if __name__ == "__main__":
     p.add_argument("--n-pools", type=int, default=20)
     p.add_argument("--ci-mode", choices=["bootstrap", "pool_t"], default="bootstrap")
     p.add_argument("--kernel", choices=sorted(KERNELS), default="baseline")
-    p.add_argument("--knob", choices=["tau", "T"], default="tau")
+    p.add_argument("--knob", choices=["tau", "T", "target_T"], default="tau")
     p.add_argument("--out", default=None)
     p.add_argument("--points-out", default=None)
     args = p.parse_args()
