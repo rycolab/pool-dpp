@@ -257,7 +257,7 @@ def main(n_pools, ci_mode, out=None, points_out=None, knob="T"):
     ax.set_xlabel(r"Recall: Golden Query Coverage $\longrightarrow$")
     ax.set_ylabel(r"Precision: Golden Accuracy $\longrightarrow$")
     ax.grid(True, alpha=0.3)
-    ax.legend(loc="lower left", frameon=True, framealpha=0.9)
+    ax.legend(loc="upper right" if knob == "T" else "lower right", frameon=True, framealpha=0.9)
     fig.tight_layout(pad=0.4)
 
     output_path = out or os.path.join(SCRIPT_DIR, "ambrosia_plot.pdf")
