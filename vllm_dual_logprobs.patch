@@ -1,0 +1,214 @@
+--- a/vllm/outputs.py
++++ b/vllm/outputs.py
+@@ -42,6 +42,7 @@
+     token_ids: GenericSequence[int]
+     cumulative_logprob: Optional[float]
+     logprobs: Optional[SampleLogprobs]
++    cumulative_logprob_at_temperature: Optional[float]
+     finish_reason: Optional[str] = None
+     stop_reason: Union[int, str, None] = None
+     lora_request: Optional[LoRARequest] = None
+@@ -159,6 +160,8 @@
+                                 next_completion.logprobs)
+                         completion.cumulative_logprob = (
+                             next_completion.cumulative_logprob)
++                        completion.cumulative_logprob_at_temperature = (
++                            next_completion.cumulative_logprob_at_temperature)
+                         completion.finish_reason = next_completion.finish_reason
+                         completion.stop_reason = next_completion.stop_reason
+                     else:
+--- a/vllm/config/model.py
++++ b/vllm/config/model.py
+@@ -66,7 +66,7 @@
+ TokenizerMode = Literal["auto", "slow", "mistral", "custom"]
+ ModelDType = Literal["auto", "half", "float16", "bfloat16", "float", "float32"]
+ LogprobsMode = Literal["raw_logits", "raw_logprobs", "processed_logits",
+-                       "processed_logprobs"]
++                       "processed_logprobs", "raw_processed_logprobs"]
+ HfOverrides = Union[dict[str, Any], Callable[[PretrainedConfig],
+                                              PretrainedConfig]]
+ ModelImpl = Literal["auto", "vllm", "transformers", "terratorch"]
+--- a/vllm/v1/outputs.py
++++ b/vllm/v1/outputs.py
+@@ -20,12 +20,14 @@
+     logprobs: list[list[float]]
+     # [num_reqs]
+     sampled_token_ranks: list[int]
++    logprobs_at_temperature: Optional[list[list[float]]] = None
+ 
+     def slice(self, start: int, end: int):
+         return LogprobsLists(
+             self.logprob_token_ids[start:end],
+             self.logprobs[start:end],
+             self.sampled_token_ranks[start:end],
++            None if self.logprobs_at_temperature is None else self.logprobs_at_temperature[start:end]
+         )
+ 
+ 
+@@ -38,11 +40,12 @@
+     # [num_reqs]
+     selected_token_ranks: torch.Tensor
+ 
+-    def tolists(self):
++    def tolists(self, logprobs_at_temperature: Optional[torch.Tensor] = None) -> LogprobsLists:
+         return LogprobsLists(
+             self.logprob_token_ids.tolist(),
+             self.logprobs.tolist(),
+             self.selected_token_ranks.tolist(),
++            None if logprobs_at_temperature is None else logprobs_at_temperature.tolist()
+         )
+ 
+     @staticmethod
+@@ -78,7 +81,8 @@
+     # All requests are padded to max_num_generated_tokens.
+     # PLACEHOLDER_TOKEN_ID (-1 by default) is used for padding.
+     sampled_token_ids: torch.Tensor
+-    logprobs_tensors: Optional[LogprobsTensors]
++    raw_logprobs_tensors: Optional[LogprobsTensors]
++    processed_logprobs_tensors: Optional[LogprobsTensors]
+ 
+ 
+ @dataclass
+--- a/vllm/v1/engine/logprobs.py
++++ b/vllm/v1/engine/logprobs.py
+@@ -31,6 +31,7 @@
+     cumulative_logprob: Optional[float]
+     num_logprobs: Optional[int]
+     num_prompt_logprobs: Optional[int]
++    cumulative_logprob_at_temperature: Optional[float] = None
+ 
+     @classmethod
+     def from_new_request(
+@@ -49,6 +50,7 @@
+             prompt_logprobs=(None if num_prompt_logprobs is None else [None]),
+             num_prompt_logprobs=num_prompt_logprobs,
+             num_logprobs=num_logprobs,
++            cumulative_logprob_at_temperature=(None if num_logprobs is None else 0.),
+         )
+ 
+     def _update_sample_logprobs(self, logprobs_lists: LogprobsLists) -> None:
+@@ -66,10 +68,11 @@
+         assert self.logprobs is not None
+         assert self.cumulative_logprob is not None
+ 
+-        token_ids_lst, logprobs_lst, ranks_lst = logprobs_lists
++        token_ids_lst, logprobs_lst, ranks_lst, logprobs_at_t_lst = logprobs_lists
++        logprobs_at_t_lst = logprobs_at_t_lst if logprobs_at_t_lst is not None else [None] * len(token_ids_lst)
+ 
+-        for rank, logprobs, token_ids in zip(ranks_lst, logprobs_lst,
+-                                             token_ids_lst):
++        for rank, logprobs, token_ids, logprobs_t in zip(ranks_lst, logprobs_lst,
++                                             token_ids_lst, logprobs_at_t_lst):
+ 
+             # Detokenize (non-incrementally).
+             decoded_tokens = NONES if self.tokenizer is None else (
+@@ -77,7 +80,9 @@
+ 
+             # Sampler puts the sampled logprob in first.
+             sampled_token_logprob = logprobs[0]
++            sampled_token_logprob_at_temperature = logprobs_t[0] if logprobs_t is not None else 0.0
+             self.cumulative_logprob += sampled_token_logprob
++            self.cumulative_logprob_at_temperature += sampled_token_logprob_at_temperature
+ 
+             # Update with the Logprob dictionary for this pos.
+             self.logprobs.append(
+--- a/vllm/v1/engine/output_processor.py
++++ b/vllm/v1/engine/output_processor.py
+@@ -287,6 +287,7 @@
+             token_ids=token_ids,
+             logprobs=logprobs,
+             cumulative_logprob=self.logprobs_processor.cumulative_logprob,
++            cumulative_logprob_at_temperature=self.logprobs_processor.cumulative_logprob_at_temperature,
+             finish_reason=str(finish_reason) if finished else None,
+             stop_reason=stop_reason if finished else None)
+ 
+--- a/vllm/v1/worker/gpu_model_runner.py
++++ b/vllm/v1/worker/gpu_model_runner.py
+@@ -2123,9 +2123,15 @@
+ 
+         # NOTE: GPU -> CPU Sync happens here.
+         # Move as many CPU operations as possible before this sync point.
+-        logprobs_tensors = sampler_output.logprobs_tensors
+-        logprobs_lists = logprobs_tensors.tolists() \
+-            if logprobs_tensors is not None else None
++        logprobs_tensors = sampler_output.raw_logprobs_tensors or sampler_output.processed_logprobs_tensors
++
++        logprobs_lists = logprobs_tensors.tolists(
++            logprobs_at_temperature=(
++                sampler_output.processed_logprobs_tensors.logprobs
++                if sampler_output.raw_logprobs_tensors and sampler_output.processed_logprobs_tensors
++                else None
++            )
++        ) if logprobs_tensors else None
+ 
+         # Compute prompt logprobs if needed.
+         prompt_logprobs_dict = self._get_prompt_logprobs_dict(
+--- a/vllm/v1/sample/sampler.py
++++ b/vllm/v1/sample/sampler.py
+@@ -76,8 +76,9 @@
+         # This is different from the V0 sampler, which uses the logits that
+         # is used for sampling (after penalties and temperature scaling).
+         num_logprobs = sampling_metadata.max_num_logprobs
++        raw_logprobs = None
+         if num_logprobs is not None:
+-            if self.logprobs_mode == "raw_logprobs":
++            if self.logprobs_mode == "raw_logprobs" or self.logprobs_mode == "raw_processed_logprobs":
+                 raw_logprobs = self.compute_logprobs(logits)
+             elif self.logprobs_mode == "raw_logits":
+                 raw_logprobs = logits.clone()
+@@ -98,8 +99,6 @@
+ 
+         # Sample the next token.
+         sampled, processed_logprobs = self.sample(logits, sampling_metadata)
+-        if processed_logprobs is not None:
+-            raw_logprobs = processed_logprobs
+         # Convert sampled token ids to int64 (long) type to ensure compatibility
+         # with subsequent operations that may use these values as indices.
+         # This conversion is necessary because FlashInfer sampling operations
+@@ -108,8 +107,14 @@
+ 
+         # Gather the logprobs of the topk and sampled token (if requested).
+         # Get logprobs and rank tensors (if requested)
+-        logprobs_tensors = None if num_logprobs is None else \
+-            self.gather_logprobs(raw_logprobs, num_logprobs, token_ids=sampled)
++        raw_logprobs_tensors = None 
++        if (num_logprobs is not None) and (raw_logprobs is not None):
++            raw_logprobs_tensors = self.gather_logprobs(
++                raw_logprobs, num_logprobs, token_ids=sampled)
++        processed_logprobs_tensors = None
++        if (num_logprobs is not None) and (processed_logprobs is not None):
++            processed_logprobs_tensors = self.gather_logprobs(
++                processed_logprobs, num_logprobs, token_ids=sampled)
+ 
+         # Use int32 to reduce the tensor size.
+         sampled = sampled.to(torch.int32)
+@@ -120,7 +125,8 @@
+             # [num_requests, 1], where each row represents one generated
+             # token per request.
+             sampled_token_ids=sampled.unsqueeze(-1),
+-            logprobs_tensors=logprobs_tensors,
++            raw_logprobs_tensors=raw_logprobs_tensors,
++            processed_logprobs_tensors=processed_logprobs_tensors,
+         )
+         return sampler_output
+ 
+@@ -161,7 +167,7 @@
+                 if sampling_metadata.max_num_logprobs is not None:
+                     if self.logprobs_mode == "processed_logits":
+                         processed_logprobs = logits
+-                    elif self.logprobs_mode == "processed_logprobs":
++                    elif self.logprobs_mode == "processed_logprobs" or self.logprobs_mode == "raw_processed_logprobs":
+                         processed_logprobs = self.compute_logprobs(logits)
+                 return greedy_sampled, processed_logprobs
+ 
+--- a/vllm/v1/sample/ops/topk_topp_sampler.py
++++ b/vllm/v1/sample/ops/topk_topp_sampler.py
+@@ -91,7 +91,7 @@
+         logits_to_return = None
+         if self.logprobs_mode == "processed_logits":
+             logits_to_return = logits
+-        elif self.logprobs_mode == "processed_logprobs":
++        elif self.logprobs_mode == "processed_logprobs" or self.logprobs_mode == "raw_processed_logprobs":
+             logits_to_return = logits.log_softmax(dim=-1, dtype=torch.float32)
+         probs = logits.softmax(dim=-1, dtype=torch.float32)
+         return random_sample(probs, generators), logits_to_return

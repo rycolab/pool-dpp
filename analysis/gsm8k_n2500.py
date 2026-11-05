@@ -1,0 +1,246 @@
+"""GSM8K at N=2500 from two independently seeded workers (tab:ndial, tab:weights)
+==============================================================================
+Two workers (seeds 303 and 404, 1,250 draws each at sT=1.2) merged to one pool of
+N=2,500 draws per question.
+
+Kernel: B-rows plm^beta * phi, beta = tau / sigma_hat(sT=1.2) with sigma_hat from
+the cache-gsm8k calibration (the same constant the N=100 pools use), so the L
+weight is plm^(2 beta). The merged pool holds unique strings with summed counts.
+
+Reports:
+  - certified KL at N in {100, 1250, 2500} from the per-question bound rows of the
+    same tau anchors (chi2_1 and r_1 do not depend on N);
+  - pass@10 of PoolDPP-MAP per worker (N=1250) and merged (N=2500);
+  - pass@10 of PoolDPP-Samp at N=2500;
+  - ESS of the L weights at N=2500;
+  - pool ceiling (any correct chain among the 2,500 draws);
+  - cross/within collision ratio between the two workers (independence).
+
+Output: analysis/gsm8k_n2500.json
+
+Usage:
+    OPENBLAS_NUM_THREADS=8 python analysis/gsm8k_n2500.py
+"""
+
+import argparse
+import json
+import math
+import os
+import pickle
+import sys
+
+import numpy as np
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(SCRIPT_DIR)
+sys.path.insert(0, os.path.join(ROOT_DIR, "src"))
+sys.path.insert(0, SCRIPT_DIR)
+
+from lm_dpp.estimation import fmt, greedy_map, load_calibration, quality_log_scales, sample_dpp  # noqa: E402
+from lm_dpp.utils.math_utils import build_math_prompt, is_correct, load_gsm8k_dataset  # noqa: E402
+
+ST = 1.2
+K = 10
+MAP_TAUS = [0.03, 0.1, 0.3, 1, 3]
+SAMP_TAUS = [0.03, 1]
+SAMP_DRAWS = 5
+CACHES = ["cache-gsm8k-n2500-a", "cache-gsm8k-n2500-b"]
+EMB_FNAME = "google__gemma-2-9b-it_qwen_embeddings.pkl"
+CAL = "cache-gsm8k/calibration_google__gemma-2-9b-it_qwen.json"
+BOUND_RAW = "bound_raw_gsm8k.json"
+
+
+def cert_at(N, chi2_1, r1):
+    denom = math.comb(N, K)
+    ac = [math.comb(K, c) * math.comb(N - K, K - c) / denom
+          for c in range(1, K + 1)]
+    v = ac[0] * chi2_1
+    for c in range(2, K + 1):
+        if ac[c - 1] == 0.0:
+            continue
+        v += ac[c - 1] * max(K ** c / math.perm(K, c) * r1 ** c - 1.0, 0.0)
+    return math.log1p(v)
+
+
+def merge_halves(ha, hb):
+    """Unique strings across both workers, counts summed (int64)."""
+    out = {}
+    for pt in ha:
+        if pt not in hb:
+            continue
+        idx, sents, phi, lp1, cnt = {}, [], [], [], []
+        for d in (ha[pt], hb[pt]):
+            E = np.asarray(d["embeddings"])
+            L1 = np.asarray(d["logps_t1"], dtype=np.float64)
+            C = np.asarray(d["counts"], dtype=np.int64)
+            for j, s in enumerate(d["u_sents"]):
+                k = idx.get(s)
+                if k is None:
+                    k = idx[s] = len(sents)
+                    sents.append(s)
+                    phi.append(E[j])
+                    lp1.append(L1[j])
+                    cnt.append(0)
+                cnt[k] += int(C[j])
+        out[pt] = dict(u_sents=sents, embeddings=np.asarray(phi, dtype=np.float64),
+                       logps_t1=np.asarray(lp1), counts=np.asarray(cnt, dtype=np.int64))
+    return out
+
+
+def as_pool(d):
+    return dict(u_sents=list(d["u_sents"]),
+                embeddings=np.asarray(d["embeddings"], dtype=np.float64),
+                logps_t1=np.asarray(d["logps_t1"], dtype=np.float64),
+                counts=np.asarray(d["counts"], dtype=np.int64))
+
+
+def cross_within_ratio(ha, hb):
+    """Matched draw pairs across workers vs. their expectation under
+    independence (see analysis/check_pool_independence.py)."""
+    X = E = 0.0
+    for pt in ha:
+        if pt not in hb:
+            continue
+        ca = dict(zip(ha[pt]["u_sents"], np.asarray(ha[pt]["counts"], float)))
+        cb = dict(zip(hb[pt]["u_sents"], np.asarray(hb[pt]["counts"], float)))
+        X += sum(c * cb[s] for s, c in ca.items() if s in cb)
+        Na, Nb = sum(ca.values()), sum(cb.values())
+        Qa = sum(c * (c - 1) / 2 for c in ca.values()) / (Na * (Na - 1) / 2)
+        Qb = sum(c * (c - 1) / 2 for c in cb.values()) / (Nb * (Nb - 1) / 2)
+        E += Na * Nb * (Qa + Qb) / 2
+    return dict(cross_matched_pairs=float(X), expected_if_independent=float(E),
+                ratio=(float(X / E) if E > 0 else None))
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--caches", nargs=2, default=CACHES)
+    ap.add_argument("--calibration", default=CAL)
+    ap.add_argument("--bound-raw", default=os.path.join(SCRIPT_DIR, BOUND_RAW))
+    ap.add_argument("--out", default=os.path.join(SCRIPT_DIR, "gsm8k_n2500.json"))
+    ap.add_argument("--max-prompts", type=int, default=None, help="smoke tests")
+    a = ap.parse_args()
+    np.random.seed(0)
+
+    df = load_gsm8k_dataset().head(50)
+
+    if len(df) < 50:  # offline load returns an empty frame
+
+        raise SystemExit("GSM8K dataset did not load (HF offline?); refusing to score")
+    prompt_to_gold = {build_math_prompt(r["question"]): r["answer"]
+                      for _, r in df.iterrows()}
+    sigma = load_calibration(os.path.join(ROOT_DIR, a.calibration))[ST]
+
+    halves = []
+    for c in a.caches:
+        with open(os.path.join(ROOT_DIR, c, EMB_FNAME), "rb") as f:
+            halves.append(pickle.load(f)[ST])
+    prompts = [pt for pt in halves[0] if pt in prompt_to_gold and pt in halves[1]]
+    if a.max_prompts:
+        prompts = prompts[:a.max_prompts]
+    print(f"{len(prompts)} prompts; sigma_hat(sT={ST})={sigma:.4f}", flush=True)
+    merged = merge_halves({p: halves[0][p] for p in prompts},
+                          {p: halves[1][p] for p in prompts})
+
+    results = {"_meta": dict(
+        caches=a.caches, calibration=a.calibration, sigma_hat=sigma, K=K, sT=ST,
+        kernel="B-rows plm^beta phi, beta = tau/sigma_hat; L weight plm^(2 beta)",
+        n_prompts=len(prompts))}
+    results["independence_between_workers"] = cross_within_ratio(halves[0], halves[1])
+    print("independence:", results["independence_between_workers"], flush=True)
+    Ns = [int(merged[pt]["counts"].sum()) for pt in prompts]
+    results["_meta"]["draws_per_prompt"] = [min(Ns), max(Ns)]
+    results["_meta"]["unique_per_prompt_median"] = float(np.median(
+        [len(merged[pt]["u_sents"]) for pt in prompts]))
+
+    corr_cache = {}
+
+    def correct_any(pt, sents):
+        gold = prompt_to_gold[pt]
+        for s in sents:
+            key = (pt, s)
+            if key not in corr_cache:
+                corr_cache[key] = bool(is_correct(s, gold))
+            if corr_cache[key]:
+                return True
+        return False
+
+    # certificates from the bound rows (same anchors)
+    if os.path.exists(a.bound_raw):
+        raw = json.load(open(a.bound_raw))
+        for key, rows in raw.items():
+            if not isinstance(rows, list) or not rows or "chi2_1" not in rows[0]:
+                continue
+            results[f"cert|{key}"] = {
+                str(N): float(np.median([cert_at(N, r["chi2_1"], r["r1"]) for r in rows]))
+                for N in (100, 1250, 2500)}
+            print(f"cert {key}: {results[f'cert|{key}']}", flush=True)
+    else:
+        print(f"[warn] {a.bound_raw} missing; certificates skipped", flush=True)
+
+    # L-weight ESS at N=2500
+    ess_out = {}
+    for tau in sorted(set(MAP_TAUS) | set(SAMP_TAUS)):
+        beta = tau / sigma
+        ess = []
+        for pt in prompts:
+            d = merged[pt]
+            c = d["counts"].astype(np.float64)
+            lw = 2.0 * beta * d["logps_t1"]
+            w = np.exp(lw - lw.max())
+            wbar = w / (w * c).sum()
+            ess.append(1.0 / (c * wbar ** 2).sum())
+        ess_out[fmt(tau)] = {"median": float(np.median(ess)), "min": float(np.min(ess)),
+                             "n_lt_K": int((np.asarray(ess) < K).sum())}
+    results["L_weight_ess_N2500"] = ess_out
+
+    def map_pass(pool, tau):
+        return greedy_map(quality_log_scales(pool["logps_t1"], tau / sigma), pool["embeddings"], K)
+
+    # per-worker N=1250 and merged N=2500 MAP
+    for name, src in [("A_N1250", {p: as_pool(halves[0][p]) for p in prompts}),
+                      ("B_N1250", {p: as_pool(halves[1][p]) for p in prompts}),
+                      ("merged_N2500", merged)]:
+        vals = {}
+        for tau in MAP_TAUS:
+            hits = [float(correct_any(pt, [src[pt]["u_sents"][i]
+                                           for i in map_pass(src[pt], tau)]))
+                    for pt in prompts]
+            vals[fmt(tau)] = float(np.mean(hits))
+        results[f"map_pass_at_10|{name}"] = vals
+        print(f"MAP {name}: {vals}", flush=True)
+
+    # merged N=2500 Samp
+    samp = {}
+    for tau in SAMP_TAUS:
+        vals, n_short = [], 0
+        for pt in prompts:
+            d = merged[pt]
+            draws = sample_dpp(quality_log_scales(d["logps_t1"], tau / sigma, d["counts"]),
+                               d["embeddings"], K, N=SAMP_DRAWS)
+            n_short += sum(len(s) < K for s in draws)
+            hits = [float(correct_any(pt, [d["u_sents"][i] for i in s])) for s in draws if len(s) == K]
+            if hits:
+                vals.append(float(np.mean(hits)))
+        samp[fmt(tau)] = {"pass_at_10": float(np.mean(vals)), "n_prompts": len(vals),
+                          "n_draws_per_prompt": SAMP_DRAWS, "n_sets_lt_K": n_short}
+        print(f"Samp N=2500 tau={fmt(tau)}: {samp[fmt(tau)]}", flush=True)
+    results["samp_N2500"] = samp
+
+    results["ceiling_pass_at_2500"] = float(np.mean(
+        [float(correct_any(pt, merged[pt]["u_sents"])) for pt in prompts]))
+
+    with open(a.out, "w") as f:
+        json.dump(results, f, indent=1, default=float)
+    print(json.dumps(results, indent=1, default=float))
+    print(f"Saved {a.out}")
+    ind = results["independence_between_workers"]
+    X, E = ind["cross_matched_pairs"], ind["expected_if_independent"]
+    if X > 1.5 * E + 3 * math.sqrt(E) + 5:
+        print(f"ERROR: workers are not independent (X={X:.0f}, E={E:.1f}); "
+              "these halves must not back the N-dial claim")
+        sys.exit(2)
+
+
+if __name__ == "__main__":
+    main()

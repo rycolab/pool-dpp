@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pool-dpp"
+version = "1.0.0"
+description = "A Model of Diverse Sampling from Language Models"
+readme = "README.md"
+authors = [
+    { name = "Manuel de Prada Corral" },
+    { name = "Yahya Emara" },
+    { name = "Timothy J. O'Donnell" },
+    { name = "Ryan Cotterell" },
+    { name = "Tim Vieira" },
+]
+requires-python = ">=3.11"
+dependencies = [
+    "numpy",
+    "scipy",
+    "scikit-learn",
+    "pandas",
+    "matplotlib",
+    "rich",
+    "datasets",
+    "transformers>=4.40,<5.0",
+    "accelerate",
+    "sentence-transformers",
+]
+
+[project.optional-dependencies]
+vllm = ["vllm==0.11.0"]
+dev = ["pytest>=7.0", "mpmath"]
+
+[project.scripts]
+dpp-sample = "lm_dpp.sample_vllm:cli"
+dpp-embeddings = "lm_dpp.embeddings:cli"
+dpp-estimation = "lm_dpp.estimation:cli"
+dpp-sample-swor = "lm_dpp.sample_sbs:cli"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

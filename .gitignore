@@ -1,0 +1,18 @@
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+
+# pools, embeddings, and selections
+cache-*/
+logs/
+
+# data, downloaded separately
+ambrosia.csv
+
+# outputs of analysis/
+analysis/*.json
+analysis/*.pkl
+analysis/*.pdf
+analysis/bound_work/
