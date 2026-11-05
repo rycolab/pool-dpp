@@ -8,8 +8,16 @@ the cache-gsm8k calibration (the same constant the N=100 pools use), so the L
 weight is plm^(2 beta). The merged pool holds unique strings with summed counts.
 
 Reports:
-  - certified KL at N in {100, 1250, 2500} from the per-question bound rows of the
-    same tau anchors (chi2_1 and r_1 do not depend on N);
+  - the bound on the KL at N in {100, 1250, 2500} from the per-question bound rows
+    of the same tau anchors (bound_raw_gsm8k.json, built from the N=100 pools;
+    chi2_1 = Var_q(u_1) and r_1 do not depend on N), median over questions:
+      key "bound_m1|{setting}" (new, primary): second-moment hybrid
+          log(1 + a_1 chi2_1 + sum_{c>=2} a_c ((K^c/(K)_c)^2 m_1^c - 1)),
+          m_1 = 1 + chi2_1;
+      key "cert|{setting}" (secondary, meaning unchanged): r_1 hybrid
+          log(1 + a_1 chi2_1 + sum_{c>=2} a_c (K^c/(K)_c r_1^c - 1));
+    formulas in bound_formulas.py. These values come from the bound rows, not
+    from the N=2,500 pools;
   - pass@10 of PoolDPP-MAP per worker (N=1250) and merged (N=2500);
   - pass@10 of PoolDPP-Samp at N=2500;
   - ESS of the L weights at N=2500;
@@ -36,6 +44,7 @@ ROOT_DIR = os.path.dirname(SCRIPT_DIR)
 sys.path.insert(0, os.path.join(ROOT_DIR, "src"))
 sys.path.insert(0, SCRIPT_DIR)
 
+import bound_formulas as bf  # noqa: E402
 from lm_dpp.estimation import fmt, greedy_map, load_calibration, quality_log_scales, sample_dpp  # noqa: E402
 from lm_dpp.utils.math_utils import build_math_prompt, is_correct, load_gsm8k_dataset  # noqa: E402
 
@@ -50,16 +59,14 @@ CAL = "cache-gsm8k/calibration_google__gemma-2-9b-it_qwen.json"
 BOUND_RAW = "bound_raw_gsm8k.json"
 
 
+def bound_m1_at(N, chi2_1):
+    """Second-moment hybrid bound on the KL at pool size N (primary)."""
+    return bf.kl_hybrid_m1(N, K, chi2_1)
+
+
 def cert_at(N, chi2_1, r1):
-    denom = math.comb(N, K)
-    ac = [math.comb(K, c) * math.comb(N - K, K - c) / denom
-          for c in range(1, K + 1)]
-    v = ac[0] * chi2_1
-    for c in range(2, K + 1):
-        if ac[c - 1] == 0.0:
-            continue
-        v += ac[c - 1] * max(K ** c / math.perm(K, c) * r1 ** c - 1.0, 0.0)
-    return math.log1p(v)
+    """r_1 hybrid bound on the KL at pool size N (secondary)."""
+    return bf.kl_hybrid_r1(N, K, chi2_1, r1)
 
 
 def merge_halves(ha, hb):
@@ -165,18 +172,24 @@ def main():
                 return True
         return False
 
-    # certificates from the bound rows (same anchors)
+    # bounds on the KL from the bound rows (same anchors)
     if os.path.exists(a.bound_raw):
         raw = json.load(open(a.bound_raw))
         for key, rows in raw.items():
             if not isinstance(rows, list) or not rows or "chi2_1" not in rows[0]:
                 continue
+            for r in rows:
+                bf.m1_of_row(r)  # rows that store m1 must have m1 = 1 + chi2_1
+            results[f"bound_m1|{key}"] = {
+                str(N): float(np.median([bound_m1_at(N, r["chi2_1"]) for r in rows]))
+                for N in (100, 1250, 2500)}
             results[f"cert|{key}"] = {
                 str(N): float(np.median([cert_at(N, r["chi2_1"], r["r1"]) for r in rows]))
                 for N in (100, 1250, 2500)}
-            print(f"cert {key}: {results[f'cert|{key}']}", flush=True)
+            print(f"bound on the KL (m1) {key}: {results[f'bound_m1|{key}']}", flush=True)
+            print(f"  r1 version (secondary) {key}: {results[f'cert|{key}']}", flush=True)
     else:
-        print(f"[warn] {a.bound_raw} missing; certificates skipped", flush=True)
+        print(f"[warn] {a.bound_raw} missing; bounds on the KL skipped", flush=True)
 
     # L-weight ESS at N=2500
     ess_out = {}

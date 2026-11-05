@@ -10,18 +10,55 @@ w = kappa/q, P = target K-DPP, Z = normalizer):
 
 u_c is the inclusion ratio of the note; Var(u_c) equals chi2(pi_c || q^c) for
 the normalized c-point marginal pi_c, which is why the variables below are named
-chi2_*. Corollaries: the leading term a_1 Var(u_1) (exact, from the K-DPP
-marginal formula), and the closed form KL <= K^2 r_1/(N-K+1) with
-r_1 = sup_y u_1(y) (negative association).
+chi2_*. Corollaries (formulas in bound_formulas.py):
+  - the leading term a_1 Var(u_1), exact, from the K-DPP marginal formula;
+  - PRIMARY, second-moment bound. With m_1 = E_q[u_1^2] = 1 + Var_q(u_1),
+      KL <= log(1 + a_1 Var(u_1) + sum_{c>=2} a_c ((K^c/(K)_c)^2 m_1^c - 1))
+    (hybrid) and KL <= K^2 m_1/(N-K+1) (closed form);
+  - SECONDARY, sup bound (the paper keeps it in a footnote). With
+    r_1 = sup_y u_1(y),
+      KL <= log(1 + a_1 Var(u_1) + sum_{c>=2} a_c (K^c/(K)_c r_1^c - 1))
+    and KL <= K^2 r_1/(N-K+1).
+Both use negative association, u_c <= K^c/(K)_c prod_i u_1(y_i). m_1 <= r_1, so
+the second-moment closed form is never the larger one; the two hybrids are not
+ordered (see bound_formulas.py), so the summary reports how often the
+second-moment hybrid is the larger.
 
 Code note: this file predates the switch to the paper's symbols, so the pool
-size is spelled M/M_exp/M_grid here; it is the paper's N throughout.
+size is spelled M/M_exp/M_grid here; it is the paper's N throughout. The JSON
+keys cert_* predate the second-moment bound and hold the r_1 (sup) versions;
+their meaning is unchanged.
+
+Per-prompt row keys (bound_raw_{task}.json, analyze stage):
+  chi2_1               Var_q(u_1) = E_q[u_1^2] - 1 = sum_y pi_1^2/q - 1
+  m1                   E_q[u_1^2] = 1 + chi2_1                       (new)
+  r1                   sup_y u_1(y)                                  (secondary)
+  a1, leading          a_1(N), exact leading term a_1 chi2_1
+  na_tail_m1           sum_{c>=2} a_c ((K^c/(K)_c)^2 m_1^c - 1)        (new)
+  bound_hybrid_m1_KL   log(1 + leading + na_tail_m1)                 (new, primary)
+  bound_simple_m1_KL   K^2 m_1/(N-K+1)                               (new, primary)
+  na_tail              sum_{c>=2} a_c (K^c/(K)_c r_1^c - 1)            (secondary)
+  cert_hybrid_KL       log(1 + leading + na_tail)                    (secondary)
+  cert_simple_KL       K^2 r_1/(N-K+1)                               (secondary)
+  pred_leading_by_m    {m: a_1(m) chi2_1}, exact lower bound on Var(Zhat)/Z^2
+  pred_upper_m1_by_m   {m: second-moment upper bound on Var(Zhat)/Z^2}   (new)
+  pred_upper_by_m      {m: r_1 upper bound on Var(Zhat)/Z^2}         (secondary)
+  others (mc_*, measured_relvar, sub_*, iid, ...) unchanged.
+Summary keys (bound_empirical_{task}_{stage}.json, "{task}|summary"): the
+medians of the above (median_m1, median_bound_hybrid_m1_KL,
+median_bound_simple_m1_KL are new; median_r1, median_cert_* are the r_1
+versions), predicted_upper_m1_by_m (new) next to predicted_upper_by_m (r_1),
+frac_hybrid_m1_above_r1 (new: fraction of prompts where bound_hybrid_m1_KL >
+cert_hybrid_KL), and frac_above_upper_m1_bound (new: fraction of prompts whose
+block relvar at m exceeds the second-moment upper bound; nonzero values come
+from Monte Carlo noise in the block estimate or a broken bound).
 
 Three tests, all on the real caches at the experimental K, D and pool size:
 
   T1  Exactness on real data. Small real sub-instances (real embeddings, real
       LM weights) where all |Y|^M sketch realizations are enumerable: compare
-      the exact Var(Zhat)/Z^2 to the identity RHS computed term by term.
+      the exact Var(Zhat)/Z^2 to the identity RHS computed term by term, and
+      check log(1 + exact) against both hybrids and both closed forms.
 
   T2  Experimental scale. Ground set = the pooled distinct strings of one
       prompt across all pools (q = empirical frequency, w = the real importance
@@ -30,7 +67,8 @@ Three tests, all on the real caches at the experimental K, D and pool size:
       the leave-one-out elementary symmetric polynomial identity
       P(y in S) Z = kappa(y) sum_d <v_d,phi_y>^2 e_{K-1}(lambda_{-d}),
       giving u_1 = P(y in S)/(K q(y)). Compare: MC estimate of the LHS
-      (= the full RHS), the exact leading term, and the certified bounds.
+      (= the full RHS), the exact leading term, and the bounds (m_1 primary,
+      r_1 secondary).
 
   T3  Rate/structure on the TRUE instance. Disjoint blocks of a pool's N i.i.d.
       draws are independent draws of m i.i.d. points from the true q, so
@@ -64,12 +102,16 @@ import json
 import math
 import os
 import pickle
+import sys
 from collections import defaultdict
 
 import numpy as np
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(SCRIPT_DIR)
+sys.path.insert(0, SCRIPT_DIR)
+
+import bound_formulas as bf  # noqa: E402
 SCRATCH = os.environ.get("BOUND_SCRATCH", os.path.join(SCRIPT_DIR, "bound_work"))
 
 CONFIGS = {
@@ -162,12 +204,7 @@ def log_alpha(M, K):
 
 def a_coeffs(M, K):
     """a_c(M) = C(K,c) C(M-K,K-c)/C(M,K) for c=1..K (0 when infeasible)."""
-    denom = math.comb(M, K)
-    return np.array([
-        math.comb(K, c) * math.comb(M - K, K - c) / denom
-        if (M - K) >= (K - c) else 0.0
-        for c in range(1, K + 1)
-    ])
+    return bf.a_coeffs(M, K)
 
 
 # --------------------------------------------------------------------------
@@ -500,7 +537,17 @@ def t1_enumeration(task, pooled, rng, cases):
 
         # exact leading term via the marginal-kernel formula (independent path)
         pi1 = tgt["P1"] / K
-        chi2_1_mk = float((pi1 ** 2 / q).sum() - 1.0)
+        m1 = float((pi1 ** 2 / q).sum())           # E_q[u_1^2]
+        chi2_1_mk = m1 - 1.0
+        r1 = float((pi1 / q).max())
+        # bounds on this sub-instance vs the exact value of log(1 + Var/Z^2)
+        log1p_exact = math.log1p(var_exact / (Zc ** 2))
+        bounds = dict(
+            bound_hybrid_m1_KL=bf.kl_hybrid_m1(M, K, chi2_1_mk),
+            bound_simple_m1_KL=bf.kl_closed_m1(M, K, m1),
+            cert_hybrid_KL=bf.kl_hybrid_r1(M, K, chi2_1_mk, r1),
+            cert_simple_KL=bf.kl_closed_r1(M, K, r1),
+        )
         res.append(dict(
             nY=nY, K=K, M=M, D=Phi.shape[1],
             Z=Zc, Z_from_eK=Z, logZ_relerr=abs(Z - Zc) / Zc,
@@ -512,6 +559,8 @@ def t1_enumeration(task, pooled, rng, cases):
             chi2_1_marginal_kernel=chi2_1_mk,
             chi2_1_enumerated=chi2s[0],
             sumP1=tgt["sumP1"],
+            m1=m1, r1=r1, log1p_var_exact=log1p_exact, **bounds,
+            bounds_hold=bool(all(log1p_exact <= b for b in bounds.values())),
         ))
         r = res[-1]
         print(f"[T1] nY={nY} K={K} M={M} D={r['D']}: "
@@ -521,6 +570,15 @@ def t1_enumeration(task, pooled, rng, cases):
               f"E[Zhat]/Z={r['EZ_over_Z']:.12f}  "
               f"chi2_1 (marg.kernel vs enum)={chi2_1_mk:.8e} / {chi2s[0]:.8e}  "
               f"sum P1={r['sumP1']:.10f} (=K)", flush=True)
+        print(f"[T1]   log(1+exact)={log1p_exact:.6g} <= bound on the KL: "
+              f"m1 hybrid={bounds['bound_hybrid_m1_KL']:.6g} "
+              f"m1 closed={bounds['bound_simple_m1_KL']:.6g} | "
+              f"r1 (secondary) hybrid={bounds['cert_hybrid_KL']:.6g} "
+              f"closed={bounds['cert_simple_KL']:.6g}  "
+              f"holds={r['bounds_hold']}", flush=True)
+        if not r["bounds_hold"]:
+            raise RuntimeError(f"[T1] a bound is below log(1 + exact Var/Z^2) "
+                               f"on sub-instance {r}")
     return res
 
 
@@ -553,20 +611,21 @@ def analyze(task, max_prompts, R_mc, n_sub_rep, seed=0):
                 continue
             logZ = tgt["logZ"]
             pi1 = tgt["P1"] / K
-            chi2_1 = float((pi1 ** 2 / q).sum() - 1.0)
-            r1 = float((pi1 / q).max())
+            m1 = float((pi1 ** 2 / q).sum())       # E_q[u_1^2]
+            chi2_1 = m1 - 1.0                      # Var_q(u_1) (E_q[u_1] = 1)
+            r1 = float((pi1 / q).max())            # sup u_1, secondary
 
             ac = a_coeffs(M_exp, K)
-            lead = float(ac[0] * chi2_1)
-            # NA bound on the c>=2 remainder: a_c (alpha_{(K,c)} r1^c - 1)
-            tail = 0.0
-            for c in range(2, K + 1):
-                if ac[c - 1] == 0.0:
-                    continue
-                alpha_Kc = K ** c / math.perm(K, c)
-                tail += ac[c - 1] * max(alpha_Kc * r1 ** c - 1.0, 0.0)
-            cert_hybrid = math.log1p(lead + tail)
-            cert_simple = K * K * r1 / (M_exp - K + 1)
+            lead = bf.leading(M_exp, K, chi2_1)
+            # NA bounds on the c>=2 remainder (bound_formulas.py):
+            #   primary   a_c ((K^c/(K)_c)^2 m1^c - 1)   (second moment)
+            #   secondary a_c (K^c/(K)_c r1^c - 1)       (sup)
+            tail_m1 = bf.na_tail_m1(M_exp, K, chi2_1)
+            tail = bf.na_tail_r1(M_exp, K, chi2_1, r1)
+            bound_hybrid_m1 = bf.kl_hybrid_m1(M_exp, K, chi2_1)
+            bound_simple_m1 = bf.kl_closed_m1(M_exp, K, m1)
+            cert_hybrid = bf.kl_hybrid_r1(M_exp, K, chi2_1, r1)
+            cert_simple = bf.kl_closed_r1(M_exp, K, r1)
 
             mc = mc_relvar(Phi, rho, q, K, M_exp, logZ, R_mc, rng)
 
@@ -577,20 +636,15 @@ def analyze(task, max_prompts, R_mc, n_sub_rep, seed=0):
 
             # T3: disjoint within-pool blocks -> true-instance relvar at each m,
             # plus the identity's prediction for the same m on this instance
-            sub, sub_n, pred, pred_hi = {}, {}, {}, {}
+            sub, sub_n, pred, pred_hi, pred_hi_m1 = {}, {}, {}, {}, {}
             for m in cfg["M_grid"]:
                 rv, nb = block_relvar(Phi, rho, Cnt, K, m)
                 if rv is not None:
                     sub[m] = rv
                     sub_n[m] = nb
-                acm = a_coeffs(m, K)
-                pred[m] = float(acm[0] * chi2_1)      # exact lower bound
-                t = 0.0
-                for c in range(2, K + 1):
-                    if acm[c - 1] == 0.0:
-                        continue
-                    t += acm[c - 1] * max(K ** c / math.perm(K, c) * r1 ** c - 1.0, 0.0)
-                pred_hi[m] = pred[m] + t              # NA upper bound
+                pred[m] = bf.leading(m, K, chi2_1)                  # exact lower bound
+                pred_hi_m1[m] = bf.relvar_bound_m1(m, K, chi2_1)    # upper, primary
+                pred_hi[m] = bf.relvar_bound_r1(m, K, chi2_1, r1)   # upper, secondary
 
             # missing-mass diagnostic (Good-Turing) for the surrogate caveat
             singles = float((tot == 1).sum())
@@ -599,22 +653,30 @@ def analyze(task, max_prompts, R_mc, n_sub_rep, seed=0):
             rows.append(dict(
                 prompt_hash=abs(hash(pt)) % 10**8, n_uniq=int(rec["n_uniq"]),
                 N_total=int(tot.sum()), missing_mass=miss,
-                logZ=logZ, sumP1=tgt["sumP1"], chi2_1=chi2_1, r1=r1,
-                a1=float(ac[0]), leading=lead, na_tail=tail,
+                logZ=logZ, sumP1=tgt["sumP1"], chi2_1=chi2_1, m1=m1, r1=r1,
+                a1=float(ac[0]), leading=lead,
+                na_tail_m1=tail_m1,
+                bound_hybrid_m1_KL=bound_hybrid_m1,
+                bound_simple_m1_KL=bound_simple_m1,
+                na_tail=tail,
                 cert_hybrid_KL=cert_hybrid, cert_simple_KL=cert_simple,
                 mc_relvar=mc["relvar"], mc_se=mc["se_relvar"],
                 mc_mean_ratio=mc["mean_ratio"],
                 measured_relvar=meas, sub_relvar=sub, sub_nblocks=sub_n,
-                pred_leading_by_m=pred, pred_upper_by_m=pred_hi,
+                pred_leading_by_m=pred, pred_upper_m1_by_m=pred_hi_m1,
+                pred_upper_by_m=pred_hi,
                 iid=iid_diagnostics(Cnt, rec["logps"]),
             ))
             if ip % 5 == 0:
                 r = rows[-1]
                 print(f"  [{setting_key(task, scheme, tT)}] p{ip}: nY={r['n_uniq']} "
-                      f"chi2_1={r['chi2_1']:.4g} r1={r['r1']:.3g} "
+                      f"chi2_1={r['chi2_1']:.4g} m1={r['m1']:.4g} "
+                      f"r1={r['r1']:.3g} (secondary) "
                       f"lead={r['leading']:.4g} MC={r['mc_relvar']:.4g}"
                       f"+-{r['mc_se']:.2g} meas={r['measured_relvar']} "
-                      f"E[Zhat]/Z={r['mc_mean_ratio']:.4f}", flush=True)
+                      f"E[Zhat]/Z={r['mc_mean_ratio']:.4f} "
+                      f"KL bound m1 hybrid={r['bound_hybrid_m1_KL']:.4g} "
+                      f"(r1 hybrid={r['cert_hybrid_KL']:.4g})", flush=True)
         per_setting[setting_key(task, scheme, tT)] = rows
     return per_setting
 
@@ -672,11 +734,23 @@ def summarize(per_setting):
         pred_hi_med = {m: float(np.median([r["pred_upper_by_m"][m] for r in rows
                                            if m in r["pred_upper_by_m"]]))
                        for m in allm}
+        pred_hi_m1_med = {m: float(np.median([r["pred_upper_m1_by_m"][m] for r in rows
+                                              if m in r["pred_upper_m1_by_m"]]))
+                          for m in allm}
         # fraction of prompts whose measured relvar falls below the identity's
         # EXACT lower bound a_1(m) chi2_1 (impossible for an unbiased estimate)
         below = {m: float(np.mean([r["sub_relvar"][m] < r["pred_leading_by_m"][m]
                                    for r in rows if m in r["sub_relvar"]]))
                  for m in sub_med}
+        # ... and above the second-moment UPPER bound (impossible for the true
+        # value; nonzero means block-estimate noise or a broken bound)
+        above_m1 = {m: float(np.mean([r["sub_relvar"][m] > r["pred_upper_m1_by_m"][m]
+                                      for r in rows if m in r["sub_relvar"]]))
+                    for m in sub_med}
+        # the two hybrids are not ordered (bound_formulas.py): how often is the
+        # second-moment one the larger?
+        frac_m1_above = float(np.mean([r["bound_hybrid_m1_KL"] > r["cert_hybrid_KL"]
+                                       for r in rows]))
         iid_med = {k: float(np.median([r["iid"][k] for r in rows
                                        if r["iid"].get(k) is not None]))
                    for k in ("obs_collisions", "pred_collisions",
@@ -689,21 +763,27 @@ def summarize(per_setting):
             median_missing_mass=med(lambda r: r["missing_mass"]),
             median_sumP1_minus_K=med(lambda r: r["sumP1"]),
             median_chi2_1=med(lambda r: r["chi2_1"]),
+            median_m1=med(lambda r: r["m1"]),
             median_r1=med(lambda r: r["r1"]),
             median_leading=float(np.median(leads)),
             median_mc_relvar=float(np.median(mcs)) if mcs else None,
             median_mc_mean_ratio=med(lambda r: r["mc_mean_ratio"]),
             median_leading_over_mc=float(np.median(ratio)) if ratio else None,
             median_measured_relvar=med(lambda r: r["measured_relvar"]),
+            median_bound_hybrid_m1_KL=med(lambda r: r["bound_hybrid_m1_KL"]),
+            median_bound_simple_m1_KL=med(lambda r: r["bound_simple_m1_KL"]),
             median_cert_hybrid_KL=med(lambda r: r["cert_hybrid_KL"]),
             median_cert_simple_KL=med(lambda r: r["cert_simple_KL"]),
+            frac_hybrid_m1_above_r1=frac_m1_above,
             block_relvar_median=sub_med,
             block_nblocks=({m: int(np.median([r["sub_nblocks"][m] for r in rows
                                               if m in r["sub_nblocks"]]))
                             for m in sub_med} if sub_med else {}),
             predicted_leading_by_m=pred_med,
+            predicted_upper_m1_by_m=pred_hi_m1_med,
             predicted_upper_by_m=pred_hi_med,
             frac_below_exact_lower_bound=below,
+            frac_above_upper_m1_bound=above_m1,
             median_mc_se=med(lambda r: r["mc_se"]),
             iid_diagnostics_median=iid_med,
         )
@@ -713,27 +793,36 @@ def summarize(per_setting):
               f"missing mass={g(s['median_missing_mass'], '.3f')}")
         print(f"  sum P1 (should = K): {g(s['median_sumP1_minus_K'], '.8f')}")
         print(f"  E[Zhat]/Z (MC, should = 1): {g(s['median_mc_mean_ratio'], '.4f')}")
-        print(f"  chi2(pi_1||q)={g(s['median_chi2_1'])}  r1={g(s['median_r1'])}")
+        print(f"  chi2(pi_1||q)={g(s['median_chi2_1'])}  "
+              f"m1=E_q[u_1^2]={g(s['median_m1'])}  "
+              f"r1=sup u_1 (secondary)={g(s['median_r1'])}")
         print(f"  identity leading a_1 chi2_1 = {g(s['median_leading'])}")
         print(f"  MC Var(Zhat)/Z^2 (= full RHS) = {g(s['median_mc_relvar'])}"
               f" +- {g(s['median_mc_se'], '.3g')}")
         print(f"  leading/MC = {g(s['median_leading_over_mc'])}")
         print(f"  measured across-pool relvar   = {g(s['median_measured_relvar'])}")
-        print(f"  certified KL: hybrid={g(s['median_cert_hybrid_KL'])}  "
-              f"simple K^2 r1/(M-K+1)={g(s['median_cert_simple_KL'])}")
+        print(f"  bound on the KL (m1): hybrid={g(s['median_bound_hybrid_m1_KL'])}  "
+              f"closed form K^2 m1/(M-K+1)={g(s['median_bound_simple_m1_KL'])}")
+        print(f"  bound on the KL (r1, secondary): hybrid={g(s['median_cert_hybrid_KL'])}  "
+              f"closed form K^2 r1/(M-K+1)={g(s['median_cert_simple_KL'])}")
+        print(f"  fraction of prompts with m1 hybrid > r1 hybrid: "
+              f"{g(s['frac_hybrid_m1_above_r1'], '.3f')}")
         print("  i.i.d. diagnostics (LM log-probs vs pools): "
               f"within-pool collisions obs={g(iid_med.get('obs_collisions'), '.3g')} "
               f"pred={g(iid_med.get('pred_collisions'), '.3g')}; "
               f"cross-pool shared strings obs={g(iid_med.get('obs_shared_pairwise'), '.3g')} "
               f"pred(LM logps)={g(iid_med.get('pred_shared_pairwise'), '.3g')} "
               f"pred(empirical q)={g(iid_med.get('pred_shared_pairwise_emp'), '.3g')}")
-        print("  true-instance relvar from disjoint blocks vs identity bracket:")
+        print("  true-instance relvar from disjoint blocks vs identity bracket "
+              "[exact lower, m1 upper] (r1 upper, secondary):")
         for m in sub_med:
             print(f"    m={m:>4}: obs={g(sub_med[m])} "
                   f"(n_blocks={s['block_nblocks'][m]})  "
                   f"identity in [{g(pred_med.get(m))}, "
-                  f"{g(pred_hi_med.get(m))}]  obs*m={g(sub_med[m]*m, '.3g')}  "
-                  f"frac prompts below exact lower bd={g(below[m], '.2f')}")
+                  f"{g(pred_hi_m1_med.get(m))}] (r1: {g(pred_hi_med.get(m))})  "
+                  f"obs*m={g(sub_med[m]*m, '.3g')}  "
+                  f"frac prompts below exact lower bd={g(below[m], '.2f')}  "
+                  f"above m1 upper bd={g(above_m1[m], '.2f')}")
     return summ
 
 

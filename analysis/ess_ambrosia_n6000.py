@@ -2,8 +2,15 @@
 ===============================================================================
 Merges the 30 pools of N=200 into one candidate set per question at sT=1.0 and
 sT=1.5 (unique strings, counts summed). Reports the ESS of the L weights
-plm^(2 tau/sigma_hat) at N=200 (pool 0) and N=6000, and the certified KL at
-N=200 and N=6000 from the per-question bound rows.
+plm^(2 tau/sigma_hat) at N=200 (pool 0) and N=6000, and the bound on the KL at
+N=200 and N=6000 from the per-question bound rows (bound_raw_ambrosia.json),
+median over questions:
+  "bound_m1|{setting}": median_bound_m1_N200, median_bound_m1_N6000 (new,
+      primary): second-moment hybrid
+      log(1 + a_1 chi2_1 + sum_{c>=2} a_c ((K^c/(K)_c)^2 m_1^c - 1)), m_1 = 1 + chi2_1;
+  "cert|{setting}": median_cert_N200, median_cert_N6000 (secondary, meaning
+      unchanged): r_1 hybrid log(1 + a_1 chi2_1 + sum_{c>=2} a_c (K^c/(K)_c r_1^c - 1)).
+Formulas in bound_formulas.py.
 
 sigma_hat is the cache-ambrosia calibration (pool 0), the constant the N=200
 runs use, so a tau means the same kernel at both pool sizes.
@@ -13,14 +20,17 @@ Output: analysis/ess_ambrosia_n6000.json
 
 import argparse
 import json
-import math
 import os
 import pickle
+import sys
 
 import numpy as np
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(SCRIPT_DIR)
+sys.path.insert(0, SCRIPT_DIR)
+
+import bound_formulas as bf  # noqa: E402
 MODEL = "google__gemma-2-9b-it_minilm"
 FNAME = f"{MODEL}_embeddings.pkl"
 STS = [1.0, 1.5]
@@ -88,16 +98,14 @@ def ess_summary(per_prompt, beta):
             "n_collapsed_lt_K": int((ess < K).sum())}
 
 
+def bound_m1_at(N, K_, chi2_1):
+    """Second-moment hybrid bound on the KL at pool size N (primary)."""
+    return bf.kl_hybrid_m1(N, K_, chi2_1)
+
+
 def cert_at(N, K_, chi2_1, r1):
-    denom = math.comb(N, K_)
-    ac = [math.comb(K_, c) * math.comb(N - K_, K_ - c) / denom
-          for c in range(1, K_ + 1)]
-    v = ac[0] * chi2_1
-    for c in range(2, K_ + 1):
-        if ac[c - 1] == 0.0:
-            continue
-        v += ac[c - 1] * max(K_ ** c / math.perm(K_, c) * r1 ** c - 1.0, 0.0)
-    return math.log1p(v)
+    """r_1 hybrid bound on the KL at pool size N (secondary)."""
+    return bf.kl_hybrid_r1(N, K_, chi2_1, r1)
 
 
 def run(a):
@@ -133,15 +141,24 @@ def run(a):
         for key, rows in json.load(open(xr)).items():
             if not isinstance(rows, list) or not rows or "chi2_1" not in rows[0]:
                 continue
+            for r in rows:
+                bf.m1_of_row(r)  # rows that store m1 must have m1 = 1 + chi2_1
+            o_m1 = {"median_bound_m1_N200": float(np.median(
+                        [bound_m1_at(200, K, r["chi2_1"]) for r in rows])),
+                    "median_bound_m1_N6000": float(np.median(
+                        [bound_m1_at(6000, K, r["chi2_1"]) for r in rows]))}
+            out[f"bound_m1|{key}"] = o_m1
+            print(f"bound on the KL (m1) {key}: N=200 {o_m1['median_bound_m1_N200']:.4f} -> "
+                  f"N=6000 {o_m1['median_bound_m1_N6000']:.5f}")
             o = {"median_cert_N200": float(np.median([cert_at(200, K, r["chi2_1"], r["r1"])
                                                       for r in rows])),
                  "median_cert_N6000": float(np.median([cert_at(6000, K, r["chi2_1"], r["r1"])
                                                        for r in rows]))}
             out[f"cert|{key}"] = o
-            print(f"cert {key}: N=200 {o['median_cert_N200']:.4f} -> "
+            print(f"  r1 version (secondary) {key}: N=200 {o['median_cert_N200']:.4f} -> "
                   f"N=6000 {o['median_cert_N6000']:.5f}")
     else:
-        print(f"[warn] {xr} missing; certificates skipped")
+        print(f"[warn] {xr} missing; bounds on the KL skipped")
     with open(os.path.join(SCRIPT_DIR, "ess_ambrosia_n6000.json"), "w") as f:
         json.dump(out, f, indent=1)
     print("Saved analysis/ess_ambrosia_n6000.json")

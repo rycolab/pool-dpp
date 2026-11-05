@@ -4,7 +4,13 @@ Two pools of 4000 draws per prompt (seeds 101 and 202, sT=1.0), embedded with
 MiniLM and merged per prompt (unique strings, counts summed). Reports the ESS of
 the L weights plm^(2 tau/sigma_hat) for N=4000 (each half) and N=8000 (merged)
 next to N=400 (pool 0), the cross/within collision ratio between the halves, and
-the certified KL at N=400 and N=8000 from the per-question bound rows.
+the bound on the KL at N in {400, 4000, 8000} from the per-question bound rows
+(bound_raw_fineweb.json), median over questions:
+  "bound_m1|{setting}" (new, primary): second-moment hybrid
+      log(1 + a_1 chi2_1 + sum_{c>=2} a_c ((K^c/(K)_c)^2 m_1^c - 1)), m_1 = 1 + chi2_1;
+  "cert|{setting}" (secondary, meaning unchanged): r_1 hybrid
+      log(1 + a_1 chi2_1 + sum_{c>=2} a_c (K^c/(K)_c r_1^c - 1)).
+Formulas in bound_formulas.py.
 
 sigma_hat is the cache-fineweb calibration (pool 0), so a tau means the same
 kernel at every pool size.
@@ -17,11 +23,15 @@ import json
 import math
 import os
 import pickle
+import sys
 
 import numpy as np
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(SCRIPT_DIR)
+sys.path.insert(0, SCRIPT_DIR)
+
+import bound_formulas as bf  # noqa: E402
 TAUS = [0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30]
 K = 10
 MODEL = "google__gemma-2-9b-it_minilm"
@@ -94,15 +104,14 @@ def summarize(ess, N):
     }
 
 
+def bound_m1_at(N, chi2_1):
+    """Second-moment hybrid bound on the KL at pool size N (primary)."""
+    return bf.kl_hybrid_m1(N, K, chi2_1)
+
+
 def cert_at(N, chi2_1, r1):
-    denom = math.comb(N, K)
-    ac = [math.comb(K, c) * math.comb(N - K, K - c) / denom for c in range(1, K + 1)]
-    v = ac[0] * chi2_1
-    for c in range(2, K + 1):
-        if ac[c - 1] == 0.0:
-            continue
-        v += ac[c - 1] * max(K ** c / math.perm(K, c) * r1 ** c - 1.0, 0.0)
-    return math.log1p(v)
+    """r_1 hybrid bound on the KL at pool size N (secondary)."""
+    return bf.kl_hybrid_r1(N, K, chi2_1, r1)
 
 
 def cross_within_ratio(da, db):
@@ -150,12 +159,18 @@ def run(a):
         for key, rows in json.load(open(xr)).items():
             if not isinstance(rows, list) or not rows or "chi2_1" not in rows[0]:
                 continue
+            for r in rows:
+                bf.m1_of_row(r)  # rows that store m1 must have m1 = 1 + chi2_1
+            out[f"bound_m1|{key}"] = {str(N): float(np.median([bound_m1_at(N, r["chi2_1"])
+                                                              for r in rows]))
+                                      for N in (400, 4000, 8000)}
+            print(f"bound on the KL (m1) {key}: {out[f'bound_m1|{key}']}")
             out[f"cert|{key}"] = {str(N): float(np.median([cert_at(N, r["chi2_1"], r["r1"])
                                                           for r in rows]))
                                   for N in (400, 4000, 8000)}
-            print(f"cert {key}: {out[f'cert|{key}']}")
+            print(f"  r1 version (secondary) {key}: {out[f'cert|{key}']}")
     else:
-        print(f"[warn] {xr} missing; certificates skipped")
+        print(f"[warn] {xr} missing; bounds on the KL skipped")
     with open(os.path.join(SCRIPT_DIR, "ess_fineweb_n8000.json"), "w") as f:
         json.dump(out, f, indent=1)
     print("Saved analysis/ess_fineweb_n8000.json")
