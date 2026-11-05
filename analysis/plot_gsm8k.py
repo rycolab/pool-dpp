@@ -269,7 +269,7 @@ def main(n_pools, ci_mode, kernel, knob, out=None, points_out=None):
     else:
         ax.set_ylabel(f"Accuracy (pass@${PASSK_TARGET}$ from $K{{=}}{K_SELECTED}$)" + arrow)
     ax.grid(True, alpha=0.3)
-    ax.legend(loc="lower left", frameon=True, framealpha=0.9)
+    ax.legend(loc="lower right", frameon=True, framealpha=0.9)
     fig.tight_layout(pad=0.4)
 
     output_path = out or os.path.join(SCRIPT_DIR, f"{stem}_plot.pdf")
