@@ -1,5 +1,5 @@
 #!/bin/bash
-# GSM8K selections on the instructed kernel (tab:gsm8k-kernels, tab:significance), under
+# GSM8K selections on the instructed kernel (fig:gsm8k_instructed, tab:gsm8k-kernels, tab:significance), under
 # cache-gsm8k/pool{i}/est10qwenins. Embed first: python analysis/embed_instructed.py
 # --pool-start 0 --pool-end 20. Resume-safe.
 #

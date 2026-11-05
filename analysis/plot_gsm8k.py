@@ -8,6 +8,7 @@ Headline methods (mirrors the paper figure):
   - Ancestral, Naive-DPP, k-Means : sweep the pool sampling temperature sT.
   - PoolDPP-Samp (stochastic k-DPP): hold sT=1.2, sweep the tilt tau.
   - PoolDPP-MAP  (greedy MAP DPP)  : hold sT=1.2, sweep the tilt tau.
+--knob T plots the T grid instead of tau (Samp: kappa = plm^(1/T), MAP: beta = 1/(2T)).
 
 Accuracy = pass@K: fraction of questions in which at least one of the K=10
 selected chain-of-thought solutions is correct.  Diversity = mean log-determinant
@@ -22,11 +23,15 @@ bars — they vary pool-to-pool even though they are deterministic within a pool
 Usage::
 
     python analysis/plot_gsm8k.py [--n-pools N] [--ci-mode bootstrap|pool_t]
+                                  [--kernel baseline|instructed] [--knob tau|T]
 
-Output: ``analysis/gsm8k_plot.pdf``
+Output: ``analysis/gsm8k_plot.pdf`` and ``analysis/gsm8k_points.json``, or
+``analysis/gsm8k_instructed_plot.pdf`` and ``analysis/gsm8k_instructed_points.json``
+with ``--kernel instructed``.
 """
 
 import argparse
+import json
 import os
 import pickle
 from math import comb
@@ -43,8 +48,11 @@ from lm_dpp.utils.math_utils import build_math_prompt, is_correct, load_gsm8k_da
 # ---------------------------------------------------------------------------
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(SCRIPT_DIR)
-EST_SUBDIR = "est10qwen"
-MODEL = "google__gemma-2-9b-it_qwen"
+# kernel -> (est subdir, model name, output stem)
+KERNELS = {
+    "baseline": ("est10qwen", "google__gemma-2-9b-it_qwen", "gsm8k"),
+    "instructed": ("est10qwenins", "google__gemma-2-9b-it_qwenins", "gsm8k_instructed"),
+}
 N_QUESTIONS = 50
 K_SELECTED = 10
 # pass@PASSK_TARGET from the K_SELECTED chosen solutions. None -> pass@K (any of
@@ -59,6 +67,9 @@ MAP_ST_HELD = 1.2                                 # PoolDPP-MAP: accuracy peak
 # beta = tau / sigma_hat, see cache-gsm8k/calibration_*.json).
 SAMP_TAUS = [0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30]
 MAP_TAUS = [0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30]
+# --knob T, see scripts/run_gsm8k.sh.
+SAMP_TS = [0.428571, 0.666667, 0.818182, 1, 1.03, 1.05, 1.07, 1.1, 1.22222]
+MAP_TS = [500, 100, 50, 25, 10, 3, 1]                # beta = 1/(2T)
 
 
 def fmt(x):
@@ -73,7 +84,7 @@ MARKERS = {"Ancestral": "^", "$k$-Means": "s", "Naive-DPP": "v",
 # ---------------------------------------------------------------------------
 # Pool discovery + metrics
 # ---------------------------------------------------------------------------
-def pool_dirs(n_pools, est_subdir=EST_SUBDIR):
+def pool_dirs(n_pools, est_subdir):
     """est dirs across pools: cache-gsm8k/pool0, cache-gsm8k/pool1, ..."""
     dirs = []
     for i in range(n_pools):
@@ -191,50 +202,16 @@ def plot_curve(ax, name, pts, annotate=True, label_fn=str):
 # ---------------------------------------------------------------------------
 # Plot
 # ---------------------------------------------------------------------------
-# Panels: (est subdir, model name, panel title). The instructed-kernel panel is
-# drawn only when its estimation dirs exist (run scripts/run_gsm8k_instructed.sh
-# after analysis/embed_instructed.py).
-PANELS = [
-    ("est10qwen", "google__gemma-2-9b-it_qwen", "baseline kernel (Qwen3-Emb-0.6B)"),
-    ("est10qwenins", "google__gemma-2-9b-it_qwenins", "instructed kernel"),
-]
-
-
-def draw_panel(ax, pdirs, model, metrics, ci_mode):
-    plot_curve(ax, "Ancestral",
-               collect_pool_level(pdirs, f"{model}-ancestral", ST_SWEEP,
-                                  lambda v: f"s{fmt(v)}.pkl", metrics, ci_mode))
-    plot_curve(ax, "Naive-DPP",
-               collect_pool_level(pdirs, f"{model}-naive", NAIVE_ST_SWEEP,
-                                  lambda v: f"s{fmt(v)}.pkl", metrics, ci_mode))
-    plot_curve(ax, "$k$-Means",
-               collect_pool_level(pdirs, f"{model}-kmeans", ST_SWEEP,
-                                  lambda v: f"s{fmt(v)}.pkl", metrics, ci_mode))
-    plot_curve(ax, "PoolDPP-Samp",
-               collect_pool_level(pdirs, f"{model}-samp", SAMP_TAUS,
-                                  lambda t: f"tau{fmt(t)}_s{fmt(SAMP_ST_HELD)}.pkl", metrics, ci_mode),
-               label_fn=lambda t: f"{t:.3g}")
-    plot_curve(ax, "PoolDPP-MAP",
-               collect_pool_level(pdirs, f"{model}-map", MAP_TAUS,
-                                  lambda t: f"tau{fmt(t)}_s{fmt(MAP_ST_HELD)}.pkl", metrics, ci_mode),
-               label_fn=lambda t: f"{t:.3g}")
-    ax.set_xlabel("Diversity (log-determinant of Gram matrix)")
-    ax.grid(True, alpha=0.3)
-
-
-def main(n_pools, ci_mode):
+def main(n_pools, ci_mode, kernel, knob, out=None, points_out=None):
     print("Loading GSM8K dataset...")
     df_gsm8k = load_gsm8k_dataset().head(N_QUESTIONS)
     prompt_to_gold = {build_math_prompt(r["question"]): r["answer"]
                       for _, r in df_gsm8k.iterrows()}
     metrics = make_metrics(prompt_to_gold)
 
-    panels = []
-    for est_subdir, model, title in PANELS:
-        pdirs = pool_dirs(n_pools, est_subdir)
-        if pdirs:
-            panels.append((pdirs, model, title))
-    print(f"Panels: {[(t, len(p)) for p, _, t in panels]} ; ci_mode={ci_mode}")
+    est_subdir, model, stem = KERNELS[kernel]
+    pdirs = pool_dirs(n_pools, est_subdir)
+    print(f"Kernel: {kernel} ; pools found: {len(pdirs)} ; knob={knob} ; ci_mode={ci_mode}")
 
     plt.rcParams.update({
         "text.usetex": False, "font.family": "serif", "font.size": 9,
@@ -242,29 +219,61 @@ def main(n_pools, ci_mode):
         "xtick.labelsize": 8, "ytick.labelsize": 8, "legend.fontsize": 8,
         "figure.dpi": 300,
     })
+    fig, ax = plt.subplots(figsize=(5.5, 3.0))
 
-    n = len(panels)
-    fig, axes = plt.subplots(1, n, figsize=(5.0 * n, 3.0),
-                             sharey=True, squeeze=False)
-    for ax, (pdirs, model, title) in zip(axes[0], panels):
-        draw_panel(ax, pdirs, model, metrics, ci_mode)
-        if n > 1:
-            ax.set_title(title)
+    def baseline(method, sweep):
+        return collect_pool_level(pdirs, f"{model}-{method}", sweep,
+                                  lambda v: f"s{fmt(v)}.pkl", metrics, ci_mode)
+
+    def pooldpp(method, sweep, held_st):
+        tag = "T" if knob == "T" else "tau"
+        return collect_pool_level(pdirs, f"{model}-{method}", sweep,
+                                  lambda t: f"{tag}{fmt(t)}_s{fmt(held_st)}.pkl", metrics, ci_mode)
+
+    curves = {
+        "Ancestral": baseline("ancestral", ST_SWEEP),
+        "Naive-DPP": baseline("naive", NAIVE_ST_SWEEP),
+        "$k$-Means": baseline("kmeans", ST_SWEEP),
+        "PoolDPP-Samp": pooldpp("samp", SAMP_TS if knob == "T" else SAMP_TAUS, SAMP_ST_HELD),
+        "PoolDPP-MAP": pooldpp("map", MAP_TS if knob == "T" else MAP_TAUS, MAP_ST_HELD),
+    }
+    for name in ("Ancestral", "Naive-DPP", "$k$-Means"):
+        plot_curve(ax, name, curves[name])
+    for name in ("PoolDPP-Samp", "PoolDPP-MAP"):
+        plot_curve(ax, name, curves[name], label_fn=lambda t: f"{t:.3g}")
+
+    ax.set_xlabel("Diversity (log-determinant of Gram matrix)")
     if PASSK_TARGET is None:
-        axes[0][0].set_ylabel(f"Accuracy (pass@$K{{=}}{K_SELECTED}$)")
+        ax.set_ylabel(f"Accuracy (pass@$K{{=}}{K_SELECTED}$)")
     else:
-        axes[0][0].set_ylabel(f"Accuracy (pass@${PASSK_TARGET}$ from $K{{=}}{K_SELECTED}$)")
-    axes[0][0].legend(loc="lower left", frameon=True, framealpha=0.9)
+        ax.set_ylabel(f"Accuracy (pass@${PASSK_TARGET}$ from $K{{=}}{K_SELECTED}$)")
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc="lower left", frameon=True, framealpha=0.9)
     fig.tight_layout(pad=0.4)
 
-    output_path = os.path.join(SCRIPT_DIR, "gsm8k_plot.pdf")
+    output_path = out or os.path.join(SCRIPT_DIR, f"{stem}_plot.pdf")
     fig.savefig(output_path, bbox_inches="tight")
     print(f"Saved to {output_path}")
+
+    pts = {name.replace("$", ""): {fmt(k): {kk: float(vv) for kk, vv in v.items()}
+                                   for k, v in c.items()}
+           for name, c in curves.items()}
+    pts["_meta"] = {"kernel": kernel, "n_pools": len(pdirs), "ci_mode": ci_mode,
+                    "x": "diversity (log-det)", "y": "accuracy (pass@K)",
+                    "knob": f"sT for baselines, {knob} for PoolDPP (sT=1.2)"}
+    points_out = points_out or os.path.join(SCRIPT_DIR, f"{stem}_points.json")
+    with open(points_out, "w") as f:
+        json.dump(pts, f, indent=1)
+    print(f"Saved {points_out}")
 
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--n-pools", type=int, default=20)
     p.add_argument("--ci-mode", choices=["bootstrap", "pool_t"], default="bootstrap")
+    p.add_argument("--kernel", choices=sorted(KERNELS), default="baseline")
+    p.add_argument("--knob", choices=["tau", "T"], default="tau")
+    p.add_argument("--out", default=None)
+    p.add_argument("--points-out", default=None)
     args = p.parse_args()
-    main(args.n_pools, args.ci_mode)
+    main(args.n_pools, args.ci_mode, args.kernel, args.knob, args.out, args.points_out)
