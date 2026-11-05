@@ -44,7 +44,7 @@ resumes where it stopped.
 |---|---|
 | FineWeb, Ambrosia, and GSM8K frontiers | `plot_intrinsic.py`, `plot_ambrosia.py`, `plot_gsm8k.py` |
 | Pool-size, K, LM and embedder ablations | `plot_ablations.py` |
-| Bound on the KL, required pool size, N-dial | `bound_empirical.py`, `bound_required_n.py`, `bound_tables.py`, `gsm8k_n2500.py`, `plot_ndial.py` |
+| Bound on the KL, required pool size, N-dial | `bound_empirical.py`, `bound_required_n.py`, `bound_tables.py`, `gsm8k_n2500.py`, `plot_ndial.py` (formulas shared in `bound_formulas.py`) |
 | Weight diagnostics | `weight_diagnostics.py`, `ess_fineweb_n8000.py`, `ess_ambrosia_n6000.py` |
 | Significance tests | `significance.py` |
 | Set-level baselines, GSM8K kernels | `baselines.py`, `baselines_gsm8k.py` |
@@ -73,6 +73,6 @@ Selections are written to `cache-{task}/.../est{K}{embedder}/{run}/{lm}_{embedde
 ## Tests
 
 ```bash
-pytest tests/test_estimation.py tests/test_sbs.py
+pytest tests/test_estimation.py tests/test_sbs.py tests/test_bounds_m1.py
 python tests/test_stable.py
 ```
