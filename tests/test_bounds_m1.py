@@ -14,11 +14,18 @@ the estimator bound_empirical.py evaluates as alpha(N,K) e_K(eig B B^T); the
 test checks the two agree on a few pools. Var_{q^c}(u_c) is computed by
 enumerating ordered c-tuples (u_c = 0 on tuples with a repeated string, since a
 pool K-subset with a repeat has determinant 0).
+
+Checked against the exact values: the Z-free identity; both hybrids and both
+closed forms, including the paper's Theorem 5.5 form log(e^theta - 1 + a_0) <= theta
+and its Corollary 5.6 form log sum_{c=0}^K a_c alpha_c^2 m_1^c (equal to
+kl_hybrid_m1); and Hoeffding's (1948, Thm 5.2) monotonicity of Var(u_c)/c, with
+its consequences (K^2/N) Var(u_1) <= Var(Zhat)/Z^2 <= (K/N) Var(u_K).
 """
 import itertools
 import math
 import os
 import sys
+from decimal import Decimal, localcontext
 
 import numpy as np
 import pytest
@@ -101,12 +108,28 @@ def exact(Phi, q, rho, K, N):
                 relvar=relvar, var_uc=var_uc, omegas=omegas, Zhat=Zhat, kappa=kappa)
 
 
+def a0(N, K):
+    """c = 0 overlap coefficient C(N-K,K)/C(N,K)."""
+    return math.comb(N - K, K) / math.comb(N, K)
+
+
+def cor56_m1(N, K, m1):
+    """The paper's Corollary 5.6 form: log sum_{c=0}^K a_c alpha_c^2 m_1^c."""
+    a = bf.a_coeffs(N, K)
+    return math.log(a0(N, K) + sum(float(a[c - 1]) * bf.alpha(K, c) ** 2 * m1 ** c
+                                   for c in range(1, K + 1)))
+
+
 def bounds(K, N, e):
     chi2_1 = e["m1"] - 1.0          # what bound_empirical.py stores as chi2_1
     return dict(
         log1p_exact=math.log1p(e["relvar"]),
         hybrid_m1=bf.kl_hybrid_m1(N, K, chi2_1),
+        cor56_m1=cor56_m1(N, K, e["m1"]),
         closed_m1=bf.kl_closed_m1(N, K, e["m1"]),
+        theta_m1=bf.kl_theta_m1(N, K, e["m1"]),
+        lower_hoeffding=bf.lower_hoeffding(N, K, chi2_1),
+        upper_hoeffding=K / N * e["var_uc"][K - 1],
         hybrid_r1=bf.kl_hybrid_r1(N, K, chi2_1, e["r1"]),
         closed_r1=bf.kl_closed_r1(N, K, e["r1"]),
         relvar_m1=bf.relvar_bound_m1(N, K, chi2_1),
@@ -141,6 +164,11 @@ def check_instance(Phi, q, rho, K, N):
     assert e["m1"] == pytest.approx(1.0 + e["var_u1"], abs=1e-12)
     assert e["m1"] <= e["r1"] * (1 + 1e-12)
 
+    # Hoeffding (1948, Thm 5.2): Var(u_c)/c is nondecreasing in c
+    ratios = [v / c for c, v in enumerate(e["var_uc"], start=1)]
+    for lo_r, hi_r in zip(ratios, ratios[1:]):
+        assert lo_r <= hi_r * (1 + 1e-9) + 1e-13
+
     # per-c bounds on Var(u_c) (c = 1 is exact for the second-moment route)
     for c, v in enumerate(e["var_uc"], start=1):
         assert v <= bf.alpha(K, c) ** 2 * e["m1"] ** c - 1.0 + 1e-10
@@ -150,6 +178,11 @@ def check_instance(Phi, q, rho, K, N):
     # bounds on Var(Zhat)/Z^2 and on log(1 + Var/Z^2)
     tol = 1e-12
     assert b["leading"] <= e["relvar"] + tol
+    assert b["leading"] <= b["lower_hoeffding"] + tol
+    assert b["lower_hoeffding"] <= e["relvar"] * (1 + 1e-9) + tol
+    assert e["relvar"] <= b["upper_hoeffding"] * (1 + 1e-9) + tol
+    assert b["closed_m1"] <= b["theta_m1"] + tol
+    assert b["cor56_m1"] == pytest.approx(b["hybrid_m1"], rel=1e-9, abs=1e-13)
     assert b["relvar_m1"] >= e["relvar"] - tol
     assert b["relvar_r1"] >= e["relvar"] - tol
     assert b["hybrid_m1"] >= b["log1p_exact"] - tol
@@ -195,10 +228,49 @@ def test_closed_forms_dominate_hybrids_on_grid():
                 m1 = 1.0 + var
                 h_m1 = bf.kl_hybrid_m1(N, K, var)
                 assert bf.kl_closed_m1(N, K, m1) >= h_m1 * (1 - 1e-12)
+                assert bf.kl_closed_m1(N, K, m1) <= bf.kl_theta_m1(N, K, m1)
+                assert cor56_m1(N, K, m1) == pytest.approx(h_m1, rel=1e-9, abs=1e-14)
+                assert bf.leading(N, K, var) <= bf.lower_hoeffding(N, K, var) * (1 + 1e-12)
                 for ratio in (1.0, 1.5, 10.0):
                     r1 = ratio * m1
                     assert bf.kl_closed_r1(N, K, r1) >= bf.kl_hybrid_r1(N, K, var, r1) * (1 - 1e-12)
                     assert bf.kl_closed_m1(N, K, m1) <= bf.kl_closed_r1(N, K, r1)
+
+
+def test_closed_m1_matches_high_precision():
+    """log(e^theta - 1 + a_0) in 60-digit decimal arithmetic vs kl_closed_m1,
+    including large N where theta and 1 - a_0 are both about K^2/N."""
+    for K in (3, 10):
+        for N in (K, 2 * K, 100, 2500, 10 ** 6, 10 ** 9):
+            for m1 in (1.0, 1.001, 1.3, 5.0, 50.0):
+                with localcontext() as ctx:
+                    ctx.prec = 60
+                    theta = Decimal(K * K) * Decimal(m1) / Decimal(N - K + 1)
+                    a0_d = Decimal(math.comb(N - K, K)) / Decimal(math.comb(N, K))
+                    ref = float((theta.exp() - 1 + a0_d).ln())
+                assert bf.kl_closed_m1(N, K, m1) == pytest.approx(ref, rel=1e-12, abs=1e-300)
+
+
+def test_cor56_equals_hybrid_m1_on_exact_instances():
+    for nY, D, K, N in CONFIGS:
+        e = exact(*make_instance(nY, D, 0), K, N)
+        assert cor56_m1(N, K, e["m1"]) == pytest.approx(
+            bf.kl_hybrid_m1(N, K, e["m1"] - 1.0), rel=1e-12, abs=1e-15)
+
+
+@pytest.mark.parametrize("K", [3, 10])
+@pytest.mark.parametrize("chi2_1", [0.0, 1e-3, 0.02, 0.68, 3.0, 30.0])
+@pytest.mark.parametrize("target", [1.0, 0.1, 0.01])
+def test_required_N_lower_hoeffding(K, chi2_1, target):
+    ans = bf.required_N_lower_hoeffding(K, chi2_1, target)
+    fn = lambda N: math.log1p(bf.lower_hoeffding(N, K, chi2_1))  # noqa: E731
+    assert ans >= K and fn(ans) <= target
+    assert ans == K or fn(ans - 1) > target
+    # same answer as the generic search ("for every N >= N0"), since the bound
+    # decreases in N everywhere
+    assert ans == bf.required_N(fn, K, target, N_hi=10 ** 9)
+    # and the closed form N >= K^2 chi2_1 / (e^target - 1), up to the ceiling
+    assert ans == max(K, math.ceil(K * K * chi2_1 / math.expm1(target) - 1e-9))
 
 
 def _old_cert(N, K, chi2_1, r1):
@@ -291,6 +363,10 @@ def test_input_checks_raise():
         bf.a_coeffs(5, 10)                          # N < K
     with pytest.raises(ValueError):
         bf.required_N(lambda N: 1.0, 3, 0.1, N_hi=1000)   # target never reached
+    with pytest.raises(ValueError):
+        bf.required_N_lower_hoeffding(3, 0.5, 0.0)        # target must be > 0
+    with pytest.raises(ValueError):
+        bf.lower_hoeffding(100, 10, -0.1)                 # Var_q(u_1) < 0
     assert bf.m1_of_row({"chi2_1": 0.25}) == 1.25
     assert bf.m1_of_row({"chi2_1": 0.25, "m1": 1.25}) == 1.25
     with pytest.raises(ValueError):
@@ -298,13 +374,15 @@ def test_input_checks_raise():
 
 
 if __name__ == "__main__":
-    print(f"{'instance':>22} {'Var/Z^2':>10} {'log1p':>9} {'hyb m1':>9} {'cls m1':>9} "
-          f"{'hyb r1':>9} {'cls r1':>9} {'m1':>7} {'r1':>8}")
+    print(f"{'instance':>22} {'K2/N V1':>9} {'Var/Z^2':>10} {'K/N VK':>9} {'log1p':>9} "
+          f"{'hyb m1':>9} {'cls m1':>9} {'theta':>9} {'hyb r1':>9} {'cls r1':>9} "
+          f"{'m1':>7} {'r1':>8}")
     insts = [(f"{cfg} s{s}{' heavy' if h else ''}", make_instance(cfg[0], cfg[1], s, h), cfg)
              for cfg in CONFIGS for s in SEEDS[:1] for h in (False, True)]
     insts += [(f"{cfg} uniform", uniform_instance(cfg[0]), cfg) for cfg in CONFIGS[:2]]
     for name, inst, (_, _, K, N) in insts:
         e, b = check_instance(*inst, K, N)
-        print(f"{name:>22} {e['relvar']:10.4g} {b['log1p_exact']:9.4g} {b['hybrid_m1']:9.4g} "
-              f"{b['closed_m1']:9.4g} {b['hybrid_r1']:9.4g} {b['closed_r1']:9.4g} "
-              f"{e['m1']:7.3f} {e['r1']:8.3f}")
+        print(f"{name:>22} {b['lower_hoeffding']:9.4g} {e['relvar']:10.4g} "
+              f"{b['upper_hoeffding']:9.4g} {b['log1p_exact']:9.4g} {b['hybrid_m1']:9.4g} "
+              f"{b['closed_m1']:9.4g} {b['theta_m1']:9.4g} {b['hybrid_r1']:9.4g} "
+              f"{b['closed_r1']:9.4g} {e['m1']:7.3f} {e['r1']:8.3f}")

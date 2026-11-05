@@ -10,7 +10,8 @@ so Var_q(u_1) = chi2_1 (and, for the secondary bound, r_1), which do not depend
 on M, fix the whole curve. For each prompt we find the smallest M0 such that,
 for every M >= M0,
 
-    lower     : log(1 + a_1(M) chi2_1)                         <= target  (necessary)
+    lower H   : log(1 + (K^2/M) chi2_1)                        <= target  (necessary, primary)
+    lower a1  : log(1 + a_1(M) chi2_1)                         <= target  (necessary, secondary)
     hybrid m1 : log(1 + a_1(M) chi2_1 + tail_m1(M, m_1))       <= target  (sufficient, primary)
     hybrid r1 : log(1 + a_1(M) chi2_1 + tail_r1(M, r_1))       <= target  (sufficient, secondary)
 
@@ -19,7 +20,16 @@ and tail_r1 = sum_{c>=2} a_c (K^c/(K)_c r_1^c - 1) (formulas in bound_formulas.p
 The m1 bound depends on the prompt only through chi2_1, so bound_raw files written
 before the key ``m1`` existed give the same answer.
 
-Search (bound_formulas.required_N). The bounds are non-increasing in M only for
+"Necessary" is about the Var(Zhat)/Z^2 route: below that M, log(1 + Var/Z^2)
+exceeds the target, so this route cannot bound the KL by the target there (the
+KL itself may still be smaller). The primary lower bound is Hoeffding's,
+Var(Zhat)/Z^2 >= (K^2/M) chi2_1 (Hoeffding 1948, Thm 5.2: Var(u_c)/c is
+nondecreasing in c, and sum_c c a_c = K^2/M). It is at least a_1(M) chi2_1 and
+decreases in M at every M, so its required M is the closed form
+M >= K^2 chi2_1 / (e^target - 1) (bound_formulas.required_N_lower_hoeffding),
+with no floor effects.
+
+Search for the other three (bound_formulas.required_N). They are non-increasing in M only for
 M >= K^2 - 1; below that the a_c are not monotone (a_1 = 0 for M < 2K - 1). The
 old code bisected on [2K, 10^9] as if the bound were monotone everywhere (so
 its smallest answer was 2K + 1) and returned None when the bound was still
@@ -31,7 +41,10 @@ target by --M-hi raises an error. The answers agree with the old code whenever
 the crossing is above K^2 - 1.
 
 Output keys (analysis/bound_required_n.json), per "{task}|tau|tau=..." setting:
-  "KL<={target}|necessary_leading"     lower bound on the required M
+  "KL<={target}|necessary_hoeffding"   lower bound on the required M from (K^2/M) chi2_1
+                                       (new, primary)
+  "KL<={target}|necessary_leading"     lower bound on the required M from a_1(M) chi2_1
+                                       (secondary; meaning unchanged)
   "KL<={target}|sufficient_hybrid_m1"  M from the second-moment hybrid (new, primary)
   "KL<={target}|sufficient_hybrid"     M from the r_1 hybrid (secondary; meaning unchanged)
 each with median_M, q25, q75, log10_median, n (= number of prompts) and
@@ -61,8 +74,9 @@ TASK_PARAMS = {"ambrosia": (3, 200), "fineweb": (10, 400), "gsm8k": (10, 100)}
 TARGETS = [1.0, 0.1]
 M_HI = 10 ** 9
 
-# name -> bound on the KL at pool size M for one row (K fixed per task)
+# name -> log(1 + bound on Var(Zhat)/Z^2) at pool size M for one row (K fixed per task)
 BOUNDS = {
+    "necessary_hoeffding": lambda M, K, r: math.log1p(bf.lower_hoeffding(M, K, r["chi2_1"])),
     "necessary_leading": lambda M, K, r: math.log1p(bf.leading(M, K, r["chi2_1"])),
     "sufficient_hybrid_m1": lambda M, K, r: bf.kl_hybrid_m1(M, K, r["chi2_1"]),
     "sufficient_hybrid": lambda M, K, r: bf.kl_hybrid_r1(M, K, r["chi2_1"], r["r1"]),
@@ -71,6 +85,8 @@ BOUNDS = {
 
 def required_M(K, row, target, name, M_hi=M_HI):
     """Smallest pool size M0 with BOUNDS[name](M) <= target for every M >= M0."""
+    if name == "necessary_hoeffding":   # monotone in M: closed form
+        return bf.required_N_lower_hoeffding(K, row["chi2_1"], target)
     return bf.required_N(lambda M: BOUNDS[name](M, K, row), K, target, M_hi)
 
 
@@ -112,7 +128,8 @@ def main():
             rows_out[key] = out
             print(f"\n=== {key} (K={K}, {len(rows)} prompts) ===")
             for k, v in out.items():
-                tag = "  [r1, secondary]" if k.endswith("|sufficient_hybrid") else ""
+                tag = ("  [r1, secondary]" if k.endswith("|sufficient_hybrid")
+                       else "  [a1, secondary]" if k.endswith("|necessary_leading") else "")
                 print(f"  {k:36s} median M = {v['median_M']:>12,d} "
                       f"(10^{v['log10_median']:.2f})  IQR [{v['q25']:,d}, {v['q75']:,d}]"
                       f"  at M=K: {v['n_at_K']}{tag}")

@@ -24,21 +24,42 @@ and the two routes from it to Var(u_c) are:
       Hybrid:  KL <= log(1 + a_1 Var_q(u_1) + sum_{c>=2} a_c (alpha_c^2 m_1^c - 1)).
       At c = 1, alpha_1^2 m_1 - 1 = Var_q(u_1), so this is the same as using
       the squared pointwise bound for every c: it depends on the instance only
-      through Var_q(u_1).
-      Closed form:  KL <= K^2 m_1 / (N - K + 1).
+      through Var_q(u_1). Since sum_{c=0}^K a_c = 1 (a_0 = C(N-K,K)/C(N,K),
+      no overlap) and alpha_0 = 1, the hybrid equals the paper's Corollary 5.6,
+          KL <= log sum_{c=0}^K a_c alpha_c^2 m_1^c,
+      exactly (kl_hybrid_m1; tests/test_bounds_m1.py checks the equality).
+      Closed form (the paper's Theorem 5.5), theta = K^2 m_1 / (N - K + 1):
+          KL <= log(e^theta - 1 + a_0) <= theta.
+      kl_closed_m1 returns the middle expression and kl_theta_m1 returns theta.
+      The first commit of this change returned theta from kl_closed_m1 (key
+      bound_simple_m1_KL); that key now holds log(e^theta - 1 + a_0) and theta
+      has its own key, bound_theta_m1.
 
   sup (secondary, kept for the paper's footnote). Var(u_c) <= sup u_c - 1:
           Var(u_c) <= alpha_c r_1^c - 1,   r_1 = sup_y u_1(y).
       Hybrid:  KL <= log(1 + a_1 Var_q(u_1) + sum_{c>=2} a_c (alpha_c r_1^c - 1)).
-      Closed form:  KL <= K^2 r_1 / (N - K + 1).
+      Closed form:  KL <= K^2 r_1 / (N - K + 1)   (no a_0 refinement).
 
 Each closed form is at least its hybrid, at every N >= K. Proof:
-a_c alpha_c^2 m_1^c <= (K^2 m_1/(N-K+1))^c / c!, so the second-moment sum
-inside the log is at most exp(K^2 m_1/(N-K+1)), and the r_1 sum is at most
-(1 + K r_1/(N-K+1))^K. tests/test_bounds_m1.py checks this on a grid.
+a_c alpha_c^2 m_1^c <= theta^c / c! for c >= 1, so the Corollary 5.6 sum is at
+most a_0 + e^theta - 1 <= e^theta; and the r_1 sum is at most
+(1 + K r_1/(N-K+1))^K <= e^{K^2 r_1/(N-K+1)}. tests/test_bounds_m1.py checks
+this on a grid.
+
+Lower bounds on Var(Zhat)/Z^2 (and so on the reduced quantity, not on the KL):
+  Hoeffding (primary). Var(u_c)/c is nondecreasing in c (Hoeffding 1948,
+      Thm 5.2: u_c is the c-th conditional expectation of the U-statistic
+      kernel of Zhat/Z), and sum_c c a_c = K^2/N (the expected overlap of two
+      random K-subsets of N slots), so
+          Var(Zhat)/Z^2 >= (K^2/N) Var_q(u_1)            (lower_hoeffding)
+      at every N, which is >= a_1 Var_q(u_1).
+  leading term (secondary). a_1(N) Var_q(u_1), the exact c = 1 term (leading).
+The same theorem gives the upper bound Var(Zhat)/Z^2 <= (K/N) Var(u_K) (the
+paper's Rao-Blackwell remark). Var(u_K) is not computed from u_1, so it appears
+only in tests/test_bounds_m1.py and in bound_empirical.py's T1 enumeration.
 
 m_1 <= r_1 always (E_q[u_1^2] <= sup u_1 E_q[u_1]), so the second-moment closed
-form is never larger than the r_1 closed form. The HYBRIDS ARE NOT ORDERED: the
+form (<= theta) is never larger than the r_1 closed form. The HYBRIDS ARE NOT ORDERED: the
 second-moment tail squares alpha_c, so when u_1 is nearly constant (r_1 close to
 m_1) the second-moment hybrid is the larger of the two. It is the smaller one
 only when r_1/m_1 exceeds a threshold that depends on K, N and Var_q(u_1)
@@ -57,6 +78,7 @@ impossible at this N), which is exact, not an approximation.
 """
 
 import math
+from fractions import Fraction
 
 import numpy as np
 
@@ -104,8 +126,44 @@ def _check_r1(r1):
 
 
 def leading(N, K, chi2_1):
-    """Exact c = 1 term a_1(N) Var_q(u_1) (a lower bound on Var(Zhat)/Z^2)."""
+    """Exact c = 1 term a_1(N) Var_q(u_1) (secondary lower bound on Var(Zhat)/Z^2)."""
     return float(a_coeffs(N, K)[0] * _check_var(chi2_1))
+
+
+def lower_hoeffding(N, K, chi2_1):
+    """Primary lower bound on Var(Zhat)/Z^2: (K^2/N) Var_q(u_1).
+
+    From Hoeffding (1948, Thm 5.2), Var(u_c)/c is nondecreasing in c, and
+    sum_c c a_c(N) = K^2/N. It is >= leading(N, K, chi2_1) at every N.
+    """
+    N, K = int(N), int(K)
+    if N < K:
+        raise ValueError(f"pool size N={N} is smaller than K={K}")
+    return K * K / N * _check_var(chi2_1)
+
+
+def required_N_lower_hoeffding(K, chi2_1, target):
+    """Smallest N >= K with log(1 + (K^2/N) Var_q(u_1)) <= target, i.e.
+    N >= K^2 Var_q(u_1) / (e^target - 1).
+
+    The bound decreases in N at every N, so this is also the smallest N0 with
+    the bound <= target at every N >= N0 (no floor effects, unlike the a_1
+    version, whose a_1(N) is 0 for N < 2K - 1). The ceiling is checked against
+    the predicate itself, so rounding in the division cannot shift the answer.
+    """
+    if not target > 0:
+        raise ValueError(f"target must be > 0, got {target!r}")
+    chi2_1 = _check_var(chi2_1)
+
+    def ok(N):
+        return math.log1p(lower_hoeffding(N, K, chi2_1)) <= target
+
+    N = max(K, math.ceil(K * K * max(chi2_1, 0.0) / math.expm1(target)))
+    while N > K and ok(N - 1):
+        N -= 1
+    while not ok(N):
+        N += 1
+    return N
 
 
 def relvar_bound_m1(N, K, chi2_1):
@@ -147,7 +205,11 @@ def na_tail_r1(N, K, chi2_1, r1):
 
 
 def kl_hybrid_m1(N, K, chi2_1):
-    """Primary bound: KL <= log(1 + relvar_bound_m1)."""
+    """Primary bound: KL <= log(1 + relvar_bound_m1).
+
+    Equal to the paper's Corollary 5.6, log sum_{c=0}^K a_c alpha_c^2 m_1^c
+    (a_0 = C(N-K,K)/C(N,K), alpha_0 = 1), because sum_{c=0}^K a_c = 1.
+    """
     return math.log1p(relvar_bound_m1(N, K, chi2_1))
 
 
@@ -156,12 +218,48 @@ def kl_hybrid_r1(N, K, chi2_1, r1):
     return math.log1p(relvar_bound_r1(N, K, chi2_1, r1))
 
 
-def kl_closed_m1(N, K, m1):
-    """Primary closed form: KL <= K^2 m_1/(N-K+1)."""
+def kl_theta_m1(N, K, m1):
+    """theta = K^2 m_1/(N-K+1), the outer bound in KL <= log(e^theta - 1 + a_0) <= theta."""
     if N < K:
         raise ValueError(f"pool size N={N} is smaller than K={K}")
-    m1 = 1.0 + _check_var(float(m1) - 1.0)
-    return K * K * m1 / (N - K + 1)
+    _check_var(float(m1) - 1.0)
+    return K * K * float(m1) / (N - K + 1)
+
+
+def _expm1_minus_x(x):
+    """e^x - 1 - x for 0 <= x <= 1, by its series (no cancellation)."""
+    total, term, k = 0.0, x * x / 2.0, 2
+    while term > 0.0 and term > 1e-18 * total:
+        total += term
+        k += 1
+        term *= x / k
+    return total
+
+
+def kl_closed_m1(N, K, m1):
+    """Primary closed form (the paper's Theorem 5.5):
+    KL <= log(e^theta - 1 + a_0),  theta = K^2 m_1/(N-K+1),  a_0 = C(N-K,K)/C(N,K).
+
+    Evaluation, accurate to rounding at every N and m_1 (checked against
+    60-digit arithmetic in tests/test_bounds_m1.py):
+      theta <= 1: log1p(D) with D = [theta - (1 - a_0)] + [e^theta - 1 - theta].
+        For large N, theta and 1 - a_0 are both about K^2/N while D is about
+        K^2 (m_1 - 1)/N, so the first bracket is formed in exact rational
+        arithmetic (m_1 is a float, hence rational; 1 - a_0 from exact
+        integers) and rounded once; the second is a series. Both brackets are
+        >= 0 (1 - a_0 = P(overlap >= 1) <= E[overlap] = K^2/N < theta).
+      theta > 1: theta + log1p(-(1 - a_0) e^-theta), which does not overflow.
+    The first commit of this change returned theta here; theta is now
+    kl_theta_m1.
+    """
+    theta = kl_theta_m1(N, K, m1)
+    N, K = int(N), int(K)
+    denom = math.comb(N, K)
+    one_minus_a0 = Fraction(denom - math.comb(N - K, K), denom)
+    if theta > 1.0:
+        return theta + math.log1p(-float(one_minus_a0) * math.exp(-theta))
+    lin = Fraction(K * K) * Fraction(float(m1)) / (N - K + 1) - one_minus_a0
+    return math.log1p(float(lin) + _expm1_minus_x(theta))
 
 
 def kl_closed_r1(N, K, r1):
