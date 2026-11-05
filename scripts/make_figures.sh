@@ -15,7 +15,7 @@ GROUPS_ALL="frontiers ablations bounds ndial weights pools significance baseline
 frontiers() {
     python analysis/plot_intrinsic.py --ci-mode pool_t
     python analysis/plot_ambrosia.py --n-pools 30 --ci-mode pool_t
-    python analysis/plot_gsm8k.py
+    python analysis/plot_gsm8k.py --n-pools 20 --ci-mode pool_t
 }
 ablations() { python analysis/plot_ablations.py; }
 bounds() {
