@@ -8,9 +8,14 @@ pools ``cache-fineweb-pools/pool{1..9}/est10minilm/``.
 
 Headline methods (mirrors the paper figure):
   - Ancestral, Naive-DPP, k-Means : sweep the pool sampling temperature sT.
-  - PoolDPP-Samp                  : hold sT=1.0, sweep T (kappa = plm^(1/T)).
-  - PoolDPP-MAP (greedy MAP DPP)  : hold sT=1.0, sweep T (beta = 1/(2T)).
+  - PoolDPP-Samp                  : hold sT=1.0, sweep T.
+  - PoolDPP-MAP (greedy MAP DPP)  : hold sT=1.0, sweep T.
 --knob tau plots the tau grid instead of T.
+
+T sets the target quality kappa = plm^(1/T) in both PoolDPP modes. Samp draws from the pool, so its
+weight corrects for the proposal: w = kappa/q. MAP maximizes over the pool's strings, where draw
+frequencies play no part: w = kappa. MAP's T therefore runs larger for the same kernel: at sT=1,
+w = plm^(1/T_map) equals w = plm^(1/T_samp - 1) when T_samp = T_map / (1 + T_map).
 
 Each ``.pkl`` is a list of ``(prompt, sample_sents, sample_logps,
 sample_embeddings)`` tuples.
@@ -53,9 +58,9 @@ MODEL = "google__gemma-2-9b-it_minilm"
 ST_SWEEP = [0.6, 0.8, 1.0, 1.2, 1.5]              # Ancestral / Naive / k-Means
 SAMP_ST = 1.0                                     # PoolDPP-Samp: fixed pool temp
 MAP_ST = 1.0                                      # PoolDPP-MAP: fixed pool temp
-SAMP_TS = [0.428571, 0.666667, 0.818182, 1, 1.22222]
-MAP_TS = [500, 100, 50, 25, 10]                   # beta = 1/(2T)
-# --knob tau: the dimensionless tilt (beta = tau / sigma_hat).
+SAMP_TS = [0.428571, 0.666667, 0.818182, 1, 1.22222]  # w = kappa/q
+MAP_TS = [500, 100, 50, 25, 10]                       # w = kappa
+# --knob tau: w = plm^(2 tau / sigma_hat), with no q.
 SAMP_TAUS = [0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30]
 MAP_TAUS = [0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30]
 
