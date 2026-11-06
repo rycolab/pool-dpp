@@ -80,8 +80,7 @@ def fmt(x):
 
 COLORS = {"Ancestral": "#1f77b4", "$k$-Means": "#9467bd", "Naive-DPP": "#2ca02c",
           "PoolDPP-Samp": "#ff7f0e", "PoolDPP-MAP": "#d62728"}
-MARKERS = {"Ancestral": "^", "$k$-Means": "s", "Naive-DPP": "v",
-           "PoolDPP-Samp": "o", "PoolDPP-MAP": "D"}
+# Every point has the same small marker, drawn under its interval, so short intervals stay visible.
 
 
 # ---------------------------------------------------------------------------
@@ -193,9 +192,8 @@ def plot_curve(ax, name, pts, annotate=True, label_fn=str):
     ys = np.array([pts[k]["y_mean"] for k in keys])
     xerr = np.array([pts[k]["x_ci"] for k in keys])
     yerr = np.array([pts[k]["y_ci"] for k in keys])
-    ax.errorbar(xs, ys, xerr=xerr, yerr=yerr,
-                color=COLORS[name], marker=MARKERS[name], markersize=4,
-                capsize=2, capthick=0.5, elinewidth=0.6, linewidth=1.2, label=name)
+    ax.errorbar(xs, ys, xerr=xerr, yerr=yerr, color=COLORS[name], linewidth=1.5, marker="o", markersize=2.5,
+                capsize=2.5, capthick=0.8, elinewidth=0.8, barsabove=True, label=name)
     if annotate and len(keys) <= 10:
         for x, y, k in zip(xs, ys, keys):
             ax.annotate(label_fn(k), (x, y), textcoords="offset points",

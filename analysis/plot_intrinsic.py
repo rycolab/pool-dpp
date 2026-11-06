@@ -70,9 +70,7 @@ def fmt(x):
 
 COLORS = {"Ancestral": "#1f77b4", "$k$-Means": "#9467bd", "Naive-DPP": "#2ca02c",
           "PoolDPP-Samp": "#ff7f0e", "PoolDPP-MAP": "#d62728"}
-# Curves differ by color and line style. Every point has the same small marker, drawn under its interval.
-LINESTYLES = {"Ancestral": "-", "$k$-Means": (0, (6, 2)), "Naive-DPP": (0, (6, 2, 1, 2, 1, 2)),
-              "PoolDPP-Samp": (0, (3, 1, 1, 1)), "PoolDPP-MAP": (0, (1, 1))}
+# Every point has the same small marker, drawn under its interval, so short intervals stay visible.
 
 
 # ---------------------------------------------------------------------------
@@ -199,8 +197,8 @@ def plot_curve(ax, name, pts, annotate=True, label_fn=str):
     else:
         xerr = np.array([ci95(pts[k]["x_std"], pts[k]["n"]) for k in keys])
         yerr = np.array([ci95(pts[k]["y_std"], pts[k]["n"]) for k in keys])
-    ax.errorbar(xs, ys, xerr=xerr, yerr=yerr, color=COLORS[name], linestyle=LINESTYLES[name], linewidth=1.5,
-                marker="o", markersize=2.5, capsize=2.5, capthick=0.8, elinewidth=0.8, barsabove=True, label=name)
+    ax.errorbar(xs, ys, xerr=xerr, yerr=yerr, color=COLORS[name], linewidth=1.5, marker="o", markersize=2.5,
+                capsize=2.5, capthick=0.8, elinewidth=0.8, barsabove=True, label=name)
     if annotate and len(keys) <= 10:
         for x, y, k in zip(xs, ys, keys):
             ax.annotate(label_fn(k), (x, y), textcoords="offset points",
