@@ -10,6 +10,7 @@ export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1
 
 N_POOLS=${N_POOLS:-30}
 N_EXTRA=${N_EXTRA:-50}    # sampled only to serve redraws
+EXTRA_DIR=${EXTRA_DIR:-cache-ambrosia}
 STAGES=${STAGES:-"sample estimate"}
 J=${J:-1}
 
@@ -24,12 +25,12 @@ export CAL="cache-ambrosia/calibration_${EMN}.json"
 # A prompt whose pool has fewer than K distinct embeddings (Zhat = 0) redraws its pool. Extra pools come
 # first, since their strings count nowhere else, each pool starting at a different one. Then the other pools.
 other_pools() {
-    { for d in $(seq 0 $((N_EXTRA - 1))); do echo "cache-ambrosia/pool$((N_POOLS + ($1 + d) % N_EXTRA))"; done
+    { for d in $(seq 0 $((N_EXTRA - 1))); do echo "$EXTRA_DIR/pool$((N_POOLS + ($1 + d) % N_EXTRA))"; done
       for d in $(seq 1 $((N_POOLS - 1))); do echo "cache-ambrosia/pool$((($1 + d) % N_POOLS))"; done
     } | while read -r c; do [ -f "$c/${EMN}_embeddings.pkl" ] && echo "$c"; done
 }
 export -f other_pools
-export N_POOLS N_EXTRA
+export N_POOLS N_EXTRA EXTRA_DIR
 
 estimate_pool() {
     local CD="cache-ambrosia/pool$1"
@@ -46,6 +47,7 @@ export -f estimate_pool
 case " $STAGES " in *" sample "*)
     for i in $(seq 0 $((N_POOLS + N_EXTRA - 1))); do
         CD="cache-ambrosia/pool$i"
+        [ "$i" -lt "$N_POOLS" ] || CD="$EXTRA_DIR/pool$i"
         dpp-sample --mode ambrosia-top100 --chat-template --n-samples 200 \
             --temperatures 0.6 0.7 1.0 1.2 1.25 1.3 1.5 --max-new-tokens 800 \
             --gpu-mem-util 0.90 --sample-concurrency 50 --model "$LM" --cache-dir "$CD" --seed "$i"
