@@ -52,7 +52,6 @@ MAP_TS = [10, 7.5, 3, 1]
 SAMP_ST_HELD = 1.0
 MAP_ST_HELD = 1.5
 ST_SWEEP_BASE = [0.6, 0.7, 1.0, 1.2, 1.25, 1.3]
-ST_SWEEP_NAIVE = [0.6, 0.7, 1.0, 1.2, 1.25]
 CACHE = os.environ.get("E1_CACHE", "cache-ambrosia")
 
 
@@ -310,8 +309,6 @@ def part_b(n_pools):
     for sT in ST_SWEEP_BASE:
         methods.append(("Ancestral", sT, f"{MODEL}-ancestral", f"s{fmt(sT)}.pkl", sT))
         methods.append(("k-Means", sT, f"{MODEL}-kmeans", f"s{fmt(sT)}.pkl", sT))
-    for sT in ST_SWEEP_NAIVE:
-        methods.append(("Naive DPP", sT, f"{MODEL}-naive", f"s{fmt(sT)}.pkl", sT))
     for T in SAMP_TS:
         methods.append(("PoolDPP-Samp", fmt(T), f"{MODEL}-samp",
                         f"T{fmt(T)}_s{fmt(SAMP_ST_HELD)}.pkl", SAMP_ST_HELD))

@@ -35,7 +35,7 @@ export N_POOLS N_EXTRA EXTRA_DIR
 estimate_pool() {
     local CD="cache-ambrosia/pool$1"
     local E="dpp-estimation --output_folder $CD/est${K}${EMN##*_} --model_name $EMN --cache_dir $CD --k $K --redraw_dirs $(other_pools "$1" | tr '\n' ' ')"
-    $E --N "$N_RUNS" --ancestral --naive --kmeans
+    $E --N "$N_RUNS" --ancestral --kmeans
     $E --N "$N_RUNS" --samp --target_Ts $SAMP_TS --sampling_T 1.0
     $E --N "$N_RUNS" --samp --taus $TAUS --sampling_T 1.0 --calibration "$CAL"
     $E --N 1 --map --target_Ts $MAP_TS --sampling_T 1.5

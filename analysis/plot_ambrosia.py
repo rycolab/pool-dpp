@@ -5,9 +5,11 @@ Precision (golden accuracy) vs. recall (golden-query coverage) for the Ambrosia
 SQL ambiguity benchmark (Gemma-2-9B-IT, MiniLM embeddings, k=3).
 
 Headline methods (mirrors the paper figure):
-  - Ancestral, Naive DPP, k-Means : sweep the pool sampling temperature sT.
+  - Ancestral, k-Means            : sweep the pool sampling temperature sT.
   - PoolDPP-Samp                  : hold sT=1.0, sweep T.
   - PoolDPP-MAP (greedy MAP DPP)  : hold sT=1.5, sweep T.
+The naive DPP is not run on Ambrosia: at sT 0.6 and 0.7, 79 and 57 of 3,000 (question, pool) cells
+have Zhat = 0, against 8 for PoolDPP-Samp at sT=1, so neither a redraw nor a zero score compares fairly.
 --knob tau plots the tau grid instead of T.
 
 T sets the target quality kappa = plm^(1/T) in both PoolDPP modes. Samp draws from the pool, so its
@@ -56,7 +58,6 @@ MODEL = "google__gemma-2-9b-it_minilm"
 EST_SUBDIR = "est3minilm"
 
 ST_SWEEP = [0.6, 0.7, 1.0, 1.2, 1.25, 1.3]        # Ancestral / k-Means (skips temps not sampled)
-ST_SWEEP_NAIVE = [0.6, 0.7, 1.0, 1.2, 1.25]       # Naive DPP collapses at sT>=1.3
 SAMP_ST_HELD = 1.0                                # PoolDPP-Samp anchor temperature
 MAP_ST_HELD = 1.5                                 # PoolDPP-MAP: hottest pool
 SAMP_TS = [0.428571, 0.538462, 0.666667, 0.818182, 1]  # w = kappa/q
@@ -69,7 +70,7 @@ MAP_TAUS = [0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30]
 def fmt(x):
     return f"{float(x):g}"
 
-COLORS = {"Ancestral": "#1f77b4", "$k$-Means": "#9467bd", "Naive DPP": "#2ca02c",
+COLORS = {"Ancestral": "#1f77b4", "$k$-Means": "#9467bd",
           "PoolDPP-Samp": "#ff7f0e", "PoolDPP-MAP": "#d62728"}
 # Every point has the same small marker, drawn under its interval, so short intervals stay visible.
 
@@ -241,8 +242,6 @@ def main(n_pools, ci_mode, out=None, points_out=None, knob="T"):
     curves = {
         "Ancestral": collect_pool_level(pdirs, f"{MODEL}-ancestral", ST_SWEEP,
                                         lambda v: f"s{fmt(v)}.pkl", ci_mode),
-        "Naive DPP": collect_pool_level(pdirs, f"{MODEL}-naive", ST_SWEEP_NAIVE,
-                                        lambda v: f"s{fmt(v)}.pkl", ci_mode),
         "$k$-Means": collect_pool_level(pdirs, f"{MODEL}-kmeans", ST_SWEEP,
                                         lambda v: f"s{fmt(v)}.pkl", ci_mode),
         "PoolDPP-Samp": collect_pool_level(
@@ -252,7 +251,7 @@ def main(n_pools, ci_mode, out=None, points_out=None, knob="T"):
             pdirs, f"{MODEL}-map", MAP_TS if knob == "T" else MAP_TAUS,
             lambda t: f"{'T' if knob == 'T' else 'tau'}{fmt(t)}_s{fmt(MAP_ST_HELD)}.pkl", ci_mode),
     }
-    for name in ("Ancestral", "Naive DPP", "$k$-Means"):
+    for name in ("Ancestral", "$k$-Means"):
         plot_curve(ax, name, curves[name])
     for name in ("PoolDPP-Samp", "PoolDPP-MAP"):
         plot_curve(ax, name, curves[name], label_fn=lambda t: f"{t:.2g}")

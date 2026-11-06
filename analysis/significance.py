@@ -68,8 +68,6 @@ AMB_METHODS = (
      for sT in [0.6, 0.7, 1.0, 1.2, 1.25, 1.3]]
     + [("k-Means", sT, f"{AMB_MODEL}-kmeans", f"s{fmt(sT)}.pkl")
        for sT in [0.6, 0.7, 1.0, 1.2, 1.25, 1.3]]
-    + [("Naive DPP", sT, f"{AMB_MODEL}-naive", f"s{fmt(sT)}.pkl")
-       for sT in [0.6, 0.7, 1.0, 1.2, 1.25]]
     + [("PoolDPP-Samp", T, f"{AMB_MODEL}-samp", f"T{fmt(T)}_s1.pkl") for T in AMB_SAMP_TS]
     + [("PoolDPP-MAP", T, f"{AMB_MODEL}-map", f"T{fmt(T)}_s1.5.pkl") for T in AMB_MAP_TS]
 )
@@ -310,14 +308,10 @@ def main():
                  ("PoolDPP-Samp", "0.666667"), ("Ancestral", "1.0")),
                 ("Samp(T=0.666667,sT=1.0) vs k-Means(sT=1.0) [matched sT]",
                  ("PoolDPP-Samp", "0.666667"), ("k-Means", "1.0")),
-                ("Samp(T=0.666667,sT=1.0) vs Naive(sT=1.0) [matched sT]",
-                 ("PoolDPP-Samp", "0.666667"), ("Naive DPP", "1.0")),
                 ("Samp(T=0.818182,sT=1.0) vs Ancestral(sT=1.0) [matched sT]",
                  ("PoolDPP-Samp", "0.818182"), ("Ancestral", "1.0")),
                 ("Samp(T=0.818182,sT=1.0) vs k-Means(sT=1.0) [matched sT]",
                  ("PoolDPP-Samp", "0.818182"), ("k-Means", "1.0")),
-                ("Samp(T=0.818182,sT=1.0) vs Naive(sT=1.0) [matched sT]",
-                 ("PoolDPP-Samp", "0.818182"), ("Naive DPP", "1.0")),
                 ("MAP(T=10,sT=1.5) vs k-Means(sT=1.0) [k-means best recall]",
                  ("PoolDPP-MAP", "10"), ("k-Means", "1.0")),
                 ("MAP(T=10,sT=1.5) vs Ancestral(sT=1.0) [ancestral best recall]",
