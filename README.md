@@ -34,7 +34,7 @@ The Ambrosia experiments read `ambrosia.csv` from the repository root. Download 
 | GSM8K pools and selections | `bash scripts/run_gsm8k.sh` | GPU, then CPU |
 | GSM8K instructed kernel | `python analysis/embed_instructed.py --pool-start 0 --pool-end 100`, then `bash scripts/run_gsm8k_instructed.sh` | GPU, then CPU |
 | Larger pools | `bash scripts/run_large_pools.sh` | GPU |
-| Beam-search baselines | `METHOD=sbs`, `cps`, or `detbs` `bash scripts/run_beam_baselines.sh` | GPU |
+| Beam-search baselines | `METHOD=sbs`, `cps`, `detbs`, or `divbs` `bash scripts/run_beam_baselines.sh` | GPU |
 | MATH-500 pools, selections, and figure | `bash scripts/run_math500.sh` | GPU, then CPU |
 | LLM-based selection | `python analysis/llm_selection.py`, after the FineWeb pools | GPU |
 | Pair judge | `GEMINI_API_KEY=... python analysis/pair_judge.py validate`, then `score`, after the GSM8K selections | Gemini API |
@@ -68,7 +68,7 @@ src/dpp/stable.py          exact K-DPP sampling for row weights that span many o
 src/lm_dpp/sample_vllm.py  dpp-sample: draw the pool
 src/lm_dpp/embeddings.py   dpp-embeddings: embed the unique strings
 src/lm_dpp/estimation.py   dpp-estimation: PoolDPP-Samp, PoolDPP-MAP, and pool baselines
-src/lm_dpp/sample_sbs.py, sample_detbs.py, sbs_decoding.py, det_beam.py   beam-search baselines
+src/lm_dpp/sample_sbs.py, sample_detbs.py, sample_divbs.py, sbs_decoding.py, det_beam.py   beam-search baselines
 scripts/                   one script per experiment
 analysis/                  figures and tables
 ```

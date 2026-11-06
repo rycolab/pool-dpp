@@ -42,10 +42,12 @@ ROOT_DIR = os.path.dirname(SCRIPT_DIR)
 sys.path.insert(0, SCRIPT_DIR)
 
 from baselines import logdet  # noqa: E402
+from heldout_diversity import distinct_n  # noqa: E402
 
 # method suffix -> (label, knob name for the cache key: sampling temperature
 # for the SWOR methods, diversity weight w for deterministic DetBS)
 METHODS = {"sbs": ("SBS", "sT"), "cps": ("CPSBS", "sT"), "detbs": ("DetBS", "w"),
+           "divbs": ("DivBS", "penalty"),  # deterministic; knob is the Hamming diversity penalty
            "setty": ("SetSMC", "T"),  # setty-smc: SIS + inclusion-kernel end readout
            "settysmc": ("SetSMC-online", "T"),  # setty-smc: online tau=.25 arm
            "setty100": ("SetSMC-100", "T"), "setty200": ("SetSMC-200", "T")}
@@ -117,7 +119,7 @@ def run_fineweb(k=10):
             emb = load_cache(emb_file)
 
             for T in sorted(cache):
-                q_acc, d_acc = defaultdict(list), defaultdict(list)
+                q_acc, d_acc, d2_acc = defaultdict(list), defaultdict(list), defaultdict(list)
                 for prompt in fineweb_prompts:
                     runs = load_runs(cache, T, prompt, k)
                     if not runs:
@@ -127,6 +129,7 @@ def run_fineweb(k=10):
                         q_acc[ri].append(float(np.mean(run["lps_t1"])))
                         E = np.stack([lookup[s] for s in run["sents"]])
                         d_acc[ri].append(logdet(E))
+                        d2_acc[ri].append(distinct_n(run["sents"], 2))
                 if not q_acc:
                     continue
                 q, qc = aggregate(q_acc)
@@ -134,6 +137,10 @@ def run_fineweb(k=10):
                 out[f"{label}|{lm}|{knob}={T}"] = {
                     "quality_mean_logp": q, "quality_ci95": qc,
                     "kernel_logdet_minilm": d, "logdet_ci95": dc,
+                    "distinct_2": aggregate(d2_acc)[0],
+                    # standard deviations over prompts in run 0, as in tab:beam_baselines
+                    "prompt_sd": {"quality": float(np.std(q_acc[0])), "logdet": float(np.std(d_acc[0])),
+                                  "distinct_2": float(np.std(d2_acc[0]))},
                     "n_runs": len(q_acc), "n_prompts": len(q_acc[0]),
                 }
     return out

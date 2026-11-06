@@ -9,11 +9,14 @@
 # sampling temperature is each method's diversity knob, annealing the local
 # conditionals exactly as in the reference implementations).
 #
-#   METHOD=sbs bash scripts/run_beam_baselines.sh     (or METHOD=cps, METHOD=detbs)
+#   METHOD=sbs bash scripts/run_beam_baselines.sh     (or METHOD=cps, METHOD=detbs, METHOD=divbs)
 #
 # METHOD=detbs runs Determinantal Beam Search (Meister et al. 2021) instead:
 # deterministic, so its diversity knob is the interaction weight w (w=0 is
 # standard beam search at T=1), swept in one batched decode per prompt.
+#
+# METHOD=divbs runs Diverse Beam Search (Vijayakumar et al. 2018), the DivBS row of tab:beam_baselines:
+# deterministic, on FineWeb with the chat template.
 #
 # Every step is resume-safe. Score with: python analysis/beam_baselines.py
 set -e
@@ -25,6 +28,13 @@ GEMMA="google/gemma-2-9b-it"
 QWEN="Qwen/Qwen3-8B"
 
 echo "=== SWOR baselines: method=$METHOD ==="
+
+if [ "$METHOD" = "divbs" ]; then
+    python -m lm_dpp.sample_divbs --mode fineweb --model "$GEMMA" --chat-template \
+        --k 10 --penalties 1.0 --max-new-tokens 50 --cache-dir cache-fineweb-swor
+    echo "=== SWOR baselines done: method=divbs ==="
+    exit 0
+fi
 
 if [ "$METHOD" = "detbs" ]; then
     # Paper (k=10 MT) sweeps w in [0.01, 0.15]; w=0 recovers beam search.
