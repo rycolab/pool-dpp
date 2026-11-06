@@ -1,7 +1,7 @@
 """
 GSM8K baselines on every axis of the paper (tab:baselines, tab:gsm8k-kernels, tab:gsm8k_meank_passk)
 ===================================================================================================
-This script scores every method, on the same 20 pools at matched
+This script scores every method, on the same 100 pools at matched
 sT=1.2, on four axes:
 
   pass@K            fraction of questions with >=1 correct chain among K=10
@@ -17,7 +17,7 @@ PoolDPP-Samp, k-Means, Ancestral, Naive are read from the unified est layout
 figure's grids.
 
 Uncertainty: each metric is averaged within a pool (over questions and run
-dirs), then reported as the mean over the 20 independent pools with a 95%
+dirs), then reported as the mean over the 100 independent pools with a 95%
 t-interval half-width across pools ({metric}_ci95). The Pareto frontier is
 computed on the means.
 
@@ -45,7 +45,7 @@ M = "google__gemma-2-9b-it_qwen"
 EST = "est10qwen"
 ST = 1.2
 K = 10
-N_POOLS = 20
+N_POOLS = 100
 SAMP_TS = [0.428571, 0.666667, 0.818182, 1, 1.03, 1.05, 1.07, 1.1, 1.22222]
 MAP_TS = [2.5, 5, 10, 15, 20, 25, 50, 100, 500]
 ANS_RE = re.compile(r"####\s*\$?\s*(-?\d[\d,]*(?:\.\d+)?)")

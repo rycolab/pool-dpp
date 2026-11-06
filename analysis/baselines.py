@@ -36,7 +36,7 @@ Scoring uses each task's own headline axes:
   gsm8k     pass@K=10                      mean per-chain accuracy
 
 Pools: fineweb = cache-fineweb (pool 0) + cache-fineweb-pools/pool*;
-ambrosia = cache-ambrosia/pool{0..29}; gsm8k = cache-gsm8k/pool{0..19}.
+ambrosia = cache-ambrosia/pool{0..99}; gsm8k = cache-gsm8k/pool{0..99}.
 
 Usage:
     OPENBLAS_NUM_THREADS=1 python analysis/baselines.py --task fineweb
@@ -224,7 +224,7 @@ def run_fineweb(k=10, sT=1.0, pool_dirs=None, est_rows=True):
     return summarize_pools(acc, [Q, D])
 
 
-def run_ambrosia(n_pools=30, k=3, sTs=(1.0, 1.2, 1.5), cache="cache-ambrosia",
+def run_ambrosia(n_pools=100, k=3, sTs=(1.0, 1.2, 1.5), cache="cache-ambrosia",
                  est_rows=True):
     with open(os.path.join(SCRIPT_DIR, "pool_ceiling_sigtable.pkl"), "rb") as f:
         st = pickle.load(f)
@@ -289,7 +289,7 @@ def run_ambrosia(n_pools=30, k=3, sTs=(1.0, 1.2, 1.5), cache="cache-ambrosia",
     return summarize_pools(acc, [C, P])
 
 
-def run_gsm8k(n_pools=20, k=10, sT=1.2, cache="cache-gsm8k", est_rows=True):
+def run_gsm8k(n_pools=100, k=10, sT=1.2, cache="cache-gsm8k", est_rows=True):
     from lm_dpp.utils.math_utils import build_math_prompt, is_correct, load_gsm8k_dataset
     df = load_gsm8k_dataset().head(50)
     if len(df) < 50:  # offline load returns an empty frame
@@ -357,11 +357,11 @@ def main():
         res = run_fineweb(pool_dirs=pools, est_rows=est_rows)
         hdr = ("quality_mean_logp", "kernel_logdet_minilm")
     elif a.task == "ambrosia":
-        res = run_ambrosia(a.n_pools or 30, cache=a.cache or "cache-ambrosia",
+        res = run_ambrosia(a.n_pools or 100, cache=a.cache or "cache-ambrosia",
                            est_rows=est_rows)
         hdr = ("recall_coverage", "precision_golden_accuracy")
     else:
-        res = run_gsm8k(a.n_pools or 20, cache=a.cache or "cache-gsm8k",
+        res = run_gsm8k(a.n_pools or 100, cache=a.cache or "cache-gsm8k",
                         est_rows=est_rows)
         hdr = ("pass_at_K", "mean_per_chain_accuracy")
 

@@ -8,8 +8,8 @@ Headline methods (mirrors the paper figure):
   - Ancestral, k-Means            : sweep the pool sampling temperature sT.
   - PoolDPP-Samp                  : hold sT=1.0, sweep T.
   - PoolDPP-MAP (greedy MAP DPP)  : hold sT=1.5, sweep T.
-The naive DPP is not run on Ambrosia: at sT 0.6 and 0.7, 79 and 57 of 3,000 (question, pool) cells
-have Zhat = 0, against 8 for PoolDPP-Samp at sT=1, so neither a redraw nor a zero score compares fairly.
+The naive DPP is not run on Ambrosia: at sT 0.6 and 0.7, about 2.7% and 1.9% of (question, pool) cells
+have Zhat = 0, against 0.24% for PoolDPP-Samp at sT=1, so neither a redraw nor a zero score compares fairly.
 --knob tau plots the tau grid instead of T.
 
 T sets the target quality kappa = plm^(1/T) in both PoolDPP modes. Samp draws from the pool, so its
@@ -284,7 +284,7 @@ def main(n_pools, ci_mode, out=None, points_out=None, knob="T"):
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
-    p.add_argument("--n-pools", type=int, default=30)
+    p.add_argument("--n-pools", type=int, default=100)
     p.add_argument("--ci-mode", choices=["bootstrap", "pool_t"], default="bootstrap")
     p.add_argument("--out", default=None)
     p.add_argument("--points-out", default=None)

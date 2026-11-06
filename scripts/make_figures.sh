@@ -14,13 +14,13 @@ GROUPS_ALL="frontiers ablations bounds ndial weights pools significance baseline
 
 frontiers() {
     python analysis/plot_intrinsic.py --ci-mode pool_t
-    python analysis/plot_ambrosia.py --n-pools 30 --ci-mode pool_t
-    python analysis/plot_gsm8k.py --n-pools 20 --ci-mode pool_t
-    python analysis/plot_gsm8k.py --n-pools 20 --ci-mode pool_t --kernel instructed
+    python analysis/plot_ambrosia.py --n-pools 100 --ci-mode pool_t
+    python analysis/plot_gsm8k.py --n-pools 100 --ci-mode pool_t
+    python analysis/plot_gsm8k.py --n-pools 100 --ci-mode pool_t --kernel instructed
 }
 ablations() { python analysis/plot_ablations.py; }
 bounds() {
-    python analysis/bound_empirical.py --task ambrosia --stage all --Ts 0.666667 1 --n-pools 30 --workers "$CPUS"
+    python analysis/bound_empirical.py --task ambrosia --stage all --Ts 0.666667 1 --n-pools 100 --workers "$CPUS"
     python analysis/bound_empirical.py --task fineweb --stage all --Ts 0.818182 1 --workers "$CPUS"
     python analysis/bound_empirical.py --task gsm8k --stage all --Ts 1 1.05 --workers "$CPUS"
     python analysis/bound_required_n.py
@@ -36,15 +36,15 @@ weights() {
     python analysis/ess_ambrosia_n6000.py
 }
 significance() {  # after pools: reuses the execution table of pool_ceiling.py
-    python analysis/significance.py --task ambrosia --phase collect --n-pools 30
+    python analysis/significance.py --task ambrosia --phase collect --n-pools 100
     python analysis/significance.py --task ambrosia --phase analyze
-    python analysis/significance.py --task gsm8k --phase collect --n-pools 20
+    python analysis/significance.py --task gsm8k --phase collect --n-pools 100
     python analysis/significance.py --task gsm8k --phase analyze
-    GSM_VARIANT=qwenins python analysis/significance.py --task gsm8k --phase collect --n-pools 20
+    GSM_VARIANT=qwenins python analysis/significance.py --task gsm8k --phase collect --n-pools 100
     GSM_VARIANT=qwenins python analysis/significance.py --task gsm8k --phase analyze
 }
 baselines() {
-    python analysis/baselines.py --task ambrosia --n-pools 30
+    python analysis/baselines.py --task ambrosia --n-pools 100
     python analysis/baselines.py --task fineweb --fineweb-pools cache-fineweb \
         $(for i in $(seq 1 9); do echo "cache-fineweb-pools/pool$i"; done)
     python analysis/baselines.py --task gsm8k
@@ -54,8 +54,8 @@ baselines() {
 }
 beam() { for task in fineweb ambrosia gsm8k; do python analysis/beam_baselines.py --task "$task"; done; }
 pools() {
-    python analysis/pool_ceiling.py --part A --n-pools 30 --workers "$CPUS"
-    python analysis/pool_ceiling.py --part B --n-pools 30
+    python analysis/pool_ceiling.py --part A --n-pools 100 --workers "$CPUS"
+    python analysis/pool_ceiling.py --part B --n-pools 100
     python analysis/length_stratified.py
     python analysis/length_analysis.py
 }

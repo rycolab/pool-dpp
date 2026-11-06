@@ -1,14 +1,14 @@
 #!/bin/bash
 # GSM8K selections on the instructed kernel (fig:gsm8k_instructed, tab:gsm8k-kernels, tab:significance), under
 # cache-gsm8k/pool{i}/est10qwenins. Embed first: python analysis/embed_instructed.py
-# --pool-start 0 --pool-end 20. Resume-safe.
+# --pool-start 0 --pool-end 100. Resume-safe.
 #
 #   J=16 bash scripts/run_gsm8k_instructed.sh
 set -eu
 cd "$(dirname "$0")/.."
 export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1
 
-N_POOLS=${N_POOLS:-20}
+N_POOLS=${N_POOLS:-100}
 J=${J:-1}
 export EMN="google__gemma-2-9b-it_qwenins" K=10 N_RUNS=10 ANCHOR_ST=1.2
 export TAUS="0.003 0.01 0.03 0.1 0.3 1 3 10 30"

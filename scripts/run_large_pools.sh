@@ -2,7 +2,7 @@
 # GPU: the larger pools behind tab:weights and tab:ndial. Resume-safe.
 #   cache-gsm8k-n2500-{a,b}    GSM8K, 1,250 draws per question each, sT=1.2, seeds 303 and 404
 #   cache-fineweb-n8000-{a,b}  FineWeb, 4,000 draws per prompt each, sT=1.0, seeds 101 and 202
-# The Ambrosia N'=6000 instance merges the 30 pools of scripts/run_ambrosia.sh.
+# The Ambrosia N'=6000 instance merges pools 0-29 of scripts/run_ambrosia.sh.
 set -eu
 cd "$(dirname "$0")/.."
 

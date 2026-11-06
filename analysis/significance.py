@@ -11,7 +11,7 @@ Two pairings, both reported:
                    pair across methods on the question. n = 50 (GSM8K) / 100
                    (Ambrosia).
   pool-level     : average each method over questions -> one value per pool;
-                   pair across methods on the pool. n = 20 / 30. This is the
+                   pair across methods on the pool. n = 100. This is the
                    unit the figure's error bars are computed over.
 
 For each pair: mean paired difference, bootstrap 95% CI on that difference, and
@@ -288,7 +288,7 @@ def main():
     for task in tasks:
         cache = os.path.join(SCRIPT_DIR, f"significance_cells_{task}{SUFFIX if task == 'gsm8k' else ''}.pkl")
         if a.phase == "collect":
-            n = a.n_pools or (30 if task == "ambrosia" else 20)
+            n = a.n_pools or 100
             print(f"=== collecting {task} ({n} pools) ===", flush=True)
             rows = (collect_ambrosia(n) if task == "ambrosia"
                     else collect_gsm8k(n))

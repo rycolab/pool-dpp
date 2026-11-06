@@ -135,7 +135,7 @@ _POOLED = None  # prompt -> ground set, shared with the worker processes by fork
 
 CONFIGS = {
     "ambrosia": dict(
-        cache="cache-ambrosia", n_pools=30,
+        cache="cache-ambrosia", n_pools=100,
         fname="google__gemma-2-9b-it_minilm_embeddings.pkl",
         sT=1.0, K=3, D=384, M_exp=200,
         M_grid=[10, 20, 25, 40, 50, 100, 200],
@@ -148,7 +148,7 @@ CONFIGS = {
         M_grid=[10, 20, 25, 50, 100, 200],
     ),
     "gsm8k": dict(
-        cache="cache-gsm8k", n_pools=20,
+        cache="cache-gsm8k", n_pools=100,
         fname="google__gemma-2-9b-it_qwen_embeddings.pkl",
         sT=1.2, K=10, D=1024, M_exp=100,
         M_grid=[20, 25, 33, 50, 100],

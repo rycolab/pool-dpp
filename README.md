@@ -32,7 +32,7 @@ The Ambrosia experiments read `ambrosia.csv` from the repository root. Download 
 | FineWeb pool-size and K ablations | `bash scripts/run_fineweb_ablations.sh` | CPU |
 | Ambrosia pools and selections | `bash scripts/run_ambrosia.sh` | GPU, then CPU |
 | GSM8K pools and selections | `bash scripts/run_gsm8k.sh` | GPU, then CPU |
-| GSM8K instructed kernel | `python analysis/embed_instructed.py --pool-start 0 --pool-end 20`, then `bash scripts/run_gsm8k_instructed.sh` | GPU, then CPU |
+| GSM8K instructed kernel | `python analysis/embed_instructed.py --pool-start 0 --pool-end 100`, then `bash scripts/run_gsm8k_instructed.sh` | GPU, then CPU |
 | Larger pools | `bash scripts/run_large_pools.sh` | GPU |
 | Beam-search baselines | `METHOD=sbs`, `cps`, or `detbs` `bash scripts/run_beam_baselines.sh` | GPU |
 | All figures and tables | `bash scripts/make_figures.sh` | CPU |

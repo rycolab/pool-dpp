@@ -1,6 +1,6 @@
 #!/bin/bash
 # GSM8K pools and selections (fig:gsm8k_pareto): Gemma-2-9B-Instruct, Qwen3-Embedding-0.6B,
-# K=10, N=100, 20 pools under cache-gsm8k/pool{i}. Resume-safe.
+# K=10, N=100, 100 pools under cache-gsm8k/pool{i}. Resume-safe.
 #
 #   bash scripts/run_gsm8k.sh                        # sample and embed (GPU), then estimate (CPU)
 #   STAGES=estimate J=16 bash scripts/run_gsm8k.sh   # estimate only, J pools in parallel
@@ -8,7 +8,7 @@ set -eu
 cd "$(dirname "$0")/.."
 export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1
 
-N_POOLS=${N_POOLS:-20}
+N_POOLS=${N_POOLS:-100}
 STAGES=${STAGES:-"sample estimate"}
 J=${J:-1}
 

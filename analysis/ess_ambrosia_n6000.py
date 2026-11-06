@@ -1,6 +1,6 @@
 """ESS of the figure kernels on Ambrosia at N'=6000 (tab:weights)
 ===============================================================================
-Merges the 30 pools of N=200 into one candidate set per question at sT=1.0 and
+Merges the first 30 pools of N=200 into one candidate set per question at sT=1.0 and
 sT=1.5 (unique strings, counts summed). Reports the ESS at N=200 (pool 0) and
 N=6000 of the PoolDPP-Samp weights plm^(1/T)/q at sT=1.0 and of the PoolDPP-MAP
 weights plm^(1/T) at sT=1.5, and the bound on the KL at

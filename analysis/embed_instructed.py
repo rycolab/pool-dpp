@@ -7,7 +7,7 @@ google__gemma-2-9b-it_qwenins_embeddings.pkl with the same
 plain qwen file (all fields copied, embeddings recomputed).
 
 Usage (one shard per GPU):
-  CUDA_VISIBLE_DEVICES=0 python analysis/embed_instructed.py --pool-start 0 --pool-end 20
+  CUDA_VISIBLE_DEVICES=0 python analysis/embed_instructed.py --pool-start 0 --pool-end 100
 """
 
 import argparse

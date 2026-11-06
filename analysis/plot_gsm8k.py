@@ -270,7 +270,7 @@ def main(n_pools, ci_mode, kernel, knob, out=None, points_out=None):
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
-    p.add_argument("--n-pools", type=int, default=20)
+    p.add_argument("--n-pools", type=int, default=100)
     p.add_argument("--ci-mode", choices=["bootstrap", "pool_t"], default="bootstrap")
     p.add_argument("--kernel", choices=sorted(KERNELS), default="baseline")
     p.add_argument("--knob", choices=["T", "tau"], default="T")

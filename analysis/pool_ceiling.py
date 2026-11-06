@@ -17,9 +17,9 @@ exactly once per question and cached to disk.
 
 Usage:
     OPENBLAS_NUM_THREADS=1 python analysis/pool_ceiling.py \
-        --part A [--n-pools 30] [--workers 4]
+        --part A [--n-pools 100] [--workers 4]
     OPENBLAS_NUM_THREADS=1 python analysis/pool_ceiling.py \
-        --part B [--n-pools 30]
+        --part B [--n-pools 100]
 """
 
 import argparse
@@ -376,7 +376,7 @@ def part_b(n_pools):
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--part", choices=["A", "B"], required=True)
-    p.add_argument("--n-pools", type=int, default=30)
+    p.add_argument("--n-pools", type=int, default=100)
     p.add_argument("--workers", type=int, default=4)
     a = p.parse_args()
     if a.part == "A":
