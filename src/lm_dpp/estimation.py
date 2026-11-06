@@ -12,6 +12,9 @@ Kernels are passed as log row scales, so weights that span thousands of nats sta
 exact. dpp.stable.StableKDPP samples from them and greedy_map compares gains in
 log space. Neither forms a Gram matrix.
 
+A pool whose rows span fewer than k dimensions has Zhat = 0 and no k-DPP. Such a prompt
+redraws its pool from --redraw_dirs (see PoolRedraw), so every prompt contributes.
+
 Two knobs:
   --target_Ts T
       --samp: kappa = plm^(1/T), q = p_sT, w = kappa/q. At sT=1 this is
@@ -196,25 +199,74 @@ def selection_record(prompt, selected, u_sents, logps_t1, embeddings):
             [embeddings[i] for i in selected])
 
 
-def run_kernel_method(embeddings_dict, path_of, log_scales, select, k, label, pool_size=None):
-    """One selection per prompt at every pool temperature, resume-safe. A pool whose rows
-    span fewer than k dimensions has no valid set, so that prompt is skipped and reported."""
+class PoolRedraw:
+    """Redraw of a pool with Zhat = 0: the prompt moves to the first of the given pools that has a
+    size-k set. Pools load on first use. The redraw has its own numpy stream, keyed by the method's
+    seed, so it leaves every other prompt's draws unchanged and a resumed run matches a full run."""
+
+    def __init__(self, cache_dirs, model_name):
+        self.paths = [os.path.join(d, f"{model_name}_embeddings.pkl") for d in cache_dirs]
+        missing = [p for p in self.paths if not os.path.exists(p)]
+        if missing:
+            raise FileNotFoundError(f"redraw pools not found: {missing}")
+        self.pools = {}
+        self.seed = 0
+
+    def select(self, sT, prompt, log_scales, select, k, label, pool_size=None):
+        """(path, u_sents, logps_t1, embeddings, selected) from the first pool with a size-k set."""
+        state = np.random.get_state()
+        np.random.seed(zlib.crc32(f"{self.seed}|{label}|{fmt(sT)}|{prompt}".encode()))
+        try:
+            for path in self.paths:
+                if path not in self.pools:
+                    self.pools[path] = cached_ddict(path, read_only=True)
+                bucket = self.pools[path].get(sT, {})
+                if prompt not in bucket:
+                    continue
+                for _, u_sents, counts, logps, logps_t1, embeddings in iter_prompt_data(
+                        {prompt: bucket[prompt]}, pool_size):
+                    selected = select(log_scales(sT, counts, logps, logps_t1), embeddings, k)
+                    if len(selected) == k:
+                        return path, u_sents, logps_t1, embeddings, selected
+        finally:
+            np.random.set_state(state)
+        raise RuntimeError(f"{label}: no redraw pool has a size-{k} set at sT={fmt(sT)} for prompt={prompt[:40]!r}")
+
+
+def run_kernel_method(embeddings_dict, path_of, log_scales, select, k, label, pool_size=None, redraw=None):
+    """One selection per prompt at every pool temperature, resume-safe. A prompt whose pool has
+    no size-k set redraws its pool, and without --redraw_dirs the run stops: no prompt is dropped."""
     print(f"  {label}:", end=" ", flush=True)
+
+    def redrawn(sT, prompt):
+        if redraw is None:
+            raise RuntimeError(f"{label}: Zhat = 0 at sT={fmt(sT)} for prompt={prompt[:40]!r}; pass --redraw_dirs")
+        path, u_sents, logps_t1, embeddings, selected = redraw.select(
+            sT, prompt, log_scales, select, k, label, pool_size)
+        print(f"\n  {label}: Zhat = 0, redrawn from {path} s{fmt(sT)} prompt={prompt[:20]}")
+        return selection_record(prompt, selected, u_sents, logps_t1, embeddings)
+
     for sT in embeddings_dict:
         output_l = cached_list(path_of(sT))
         processed = set(x[0] for x in output_l)
         t0, n_new = time.perf_counter(), 0
+        seen = set()
         for prompt, u_sents, counts, logps, logps_t1, embeddings in iter_prompt_data(
                 embeddings_dict[sT], pool_size):
+            seen.add(prompt)
             if prompt in processed:
                 continue
             log_s = log_scales(sT, counts, logps, logps_t1)
             selected = select(log_s, embeddings, k)
             if len(selected) < k:
-                print(f"\n  ! {label}: rank < k, skipped s{fmt(sT)} prompt={prompt[:20]}")
-                continue
-            output_l.append(selection_record(prompt, selected, u_sents, logps_t1, embeddings))
+                output_l.append(redrawn(sT, prompt))
+            else:
+                output_l.append(selection_record(prompt, selected, u_sents, logps_t1, embeddings))
             n_new += 1
+        for prompt in embeddings_dict[sT]:  # filtered out by iter_prompt_data: fewer than two strings
+            if prompt not in seen and prompt not in processed:
+                output_l.append(redrawn(sT, prompt))
+                n_new += 1
         output_l._save()
         if n_new:
             print(f"s{fmt(sT)}({(time.perf_counter() - t0) / n_new * 1000:.0f}ms)", end=" ", flush=True)
@@ -228,7 +280,7 @@ def draw_one(log_s, embeddings, k):
 # ---------------------------------------------------------------------------
 # Methods (all write {output}/{model}-{method}/... inside one run dir)
 # ---------------------------------------------------------------------------
-def run_samp(embeddings_dict, output_folder, model_name, k, taus, sigma, pool_size=None):
+def run_samp(embeddings_dict, output_folder, model_name, k, taus, sigma, pool_size=None, redraw=None):
     """PoolDPP-Samp on w = plm^(2*beta), sweeping tau."""
     method_dir = f"{output_folder}/{model_name}-samp"
     for tau in taus:
@@ -236,10 +288,10 @@ def run_samp(embeddings_dict, output_folder, model_name, k, taus, sigma, pool_si
             embeddings_dict,
             lambda sT, tau=tau: f"{method_dir}/tau{fmt(tau)}_s{fmt(sT)}.pkl",
             lambda sT, c, lq, lp, tau=tau: quality_log_scales(lp, tau / sigma[sT], c),
-            draw_one, k, f"samp tau={fmt(tau)}", pool_size)
+            draw_one, k, f"samp tau={fmt(tau)}", pool_size, redraw)
 
 
-def run_samp_T(embeddings_dict, output_folder, model_name, k, target_Ts, pool_size=None):
+def run_samp_T(embeddings_dict, output_folder, model_name, k, target_Ts, pool_size=None, redraw=None):
     """PoolDPP-Samp on w = plm^(1/T) / p_sT, sweeping T."""
     method_dir = f"{output_folder}/{model_name}-samp"
     for T in target_Ts:
@@ -247,11 +299,11 @@ def run_samp_T(embeddings_dict, output_folder, model_name, k, target_Ts, pool_si
             embeddings_dict,
             lambda sT, T=T: f"{method_dir}/T{fmt(T)}_s{fmt(sT)}.pkl",
             lambda sT, c, lq, lp, T=T: target_log_scales(lq, lp, c, T),
-            draw_one, k, f"samp T={fmt(T)}", pool_size)
+            draw_one, k, f"samp T={fmt(T)}", pool_size, redraw)
 
 
 def run_map(embeddings_dict, output_folder, model_name, k, taus, sigma, pool_size=None,
-            target_Ts=None):
+            target_Ts=None, redraw=None):
     """PoolDPP-MAP: greedy MAP on w = plm^(2*beta). Deterministic. Sweeps tau
     (beta = tau / sigma_hat) and/or T (beta = 1 / (2*T))."""
     method_dir = f"{output_folder}/{model_name}-map"
@@ -262,10 +314,10 @@ def run_map(embeddings_dict, output_folder, model_name, k, taus, sigma, pool_siz
             embeddings_dict,
             lambda sT, name=name: f"{method_dir}/{name}_s{fmt(sT)}.pkl",
             lambda sT, c, lq, lp, beta_of=beta_of: quality_log_scales(lp, beta_of(sT)),
-            greedy_map, k, f"map {name}", pool_size)
+            greedy_map, k, f"map {name}", pool_size, redraw)
 
 
-def run_naive(embeddings_dict, output_folder, model_name, k):
+def run_naive(embeddings_dict, output_folder, model_name, k, redraw=None):
     """Naive DPP baseline: diversity-only kernel, the DPP over the raw pool with
     duplicate rows collapsed, i.e. row sqrt(count_i) * emb_i."""
     method_dir = f"{output_folder}/{model_name}-naive"
@@ -273,7 +325,7 @@ def run_naive(embeddings_dict, output_folder, model_name, k):
         embeddings_dict,
         lambda sT: f"{method_dir}/s{fmt(sT)}.pkl",
         lambda sT, c, lq, lp: quality_log_scales(lp, 0.0, c),
-        draw_one, k, "naive")
+        draw_one, k, "naive", redraw=redraw)
 
 
 def ancestral_draw(counts, k):
@@ -374,6 +426,8 @@ def cli():
                         help="Pin one pool sampling temperature (default: all in the cache)")
     parser.add_argument("--pool-size", type=int, default=None,
                         help="Subsample pool to this many items (ablation only)")
+    parser.add_argument("--redraw_dirs", nargs="+", default=None,
+                        help="Other pools of this task, tried in order for a prompt whose pool has no size-k set")
     # PoolDPP
     parser.add_argument("--samp", action="store_true",
                         help="PoolDPP-Samp (exact k-DPP draws); sweep --target_Ts and/or --taus")
@@ -427,29 +481,36 @@ def cli():
           f"pool={args.pool_size or 'full'} | sT={sampling_Ts} -> {args.output_folder}")
 
     pool = os.path.basename(os.path.normpath(args.cache_dir))
+    redraw = PoolRedraw(args.redraw_dirs, args.model_name) if args.redraw_dirs else None
+
+    def seed_method(method, run):
+        seed = method_seed(method, run, pool)
+        np.random.seed(seed)
+        if redraw is not None:
+            redraw.seed = seed
 
     for run in range(args.N):
         run_dir = f"{args.output_folder}/{run}"
         if args.N > 1:
             print(f" run {run}")
         if args.samp and args.taus:
-            np.random.seed(method_seed("samp", run, pool))
+            seed_method("samp", run)
             run_samp(active, run_dir, args.model_name, args.k, args.taus, sigma,
-                     pool_size=args.pool_size)
+                     pool_size=args.pool_size, redraw=redraw)
         if args.samp and args.target_Ts:
-            np.random.seed(method_seed("samp_T", run, pool))
+            seed_method("samp_T", run)
             run_samp_T(active, run_dir, args.model_name, args.k, args.target_Ts,
-                       pool_size=args.pool_size)
+                       pool_size=args.pool_size, redraw=redraw)
         if args.map_ and run == 0:
-            np.random.seed(method_seed("map", run, pool))  # only --pool-size draws from it
+            seed_method("map", run)  # only --pool-size draws from it
             run_map(active, run_dir, args.model_name, args.k, args.taus, sigma,
-                    pool_size=args.pool_size, target_Ts=args.target_Ts)
+                    pool_size=args.pool_size, target_Ts=args.target_Ts, redraw=redraw)
         if args.ancestral:
             np.random.seed(method_seed("ancestral", run, pool))
             run_ancestral(active, run_dir, args.model_name, args.k)
         if args.naive:
-            np.random.seed(method_seed("naive", run, pool))
-            run_naive(active, run_dir, args.model_name, args.k)
+            seed_method("naive", run)
+            run_naive(active, run_dir, args.model_name, args.k, redraw=redraw)
         if args.kmeans:
             np.random.seed(method_seed("kmeans", run, pool))
             run_kmeans(active, run_dir, args.model_name, args.k,

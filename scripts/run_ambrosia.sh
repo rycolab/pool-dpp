@@ -20,9 +20,15 @@ export SAMP_TS="0.428571 0.538462 0.666667 0.818182 1"   # PoolDPP-Samp at sT=1.
 export MAP_TS="10 7.5 3 1"                               # PoolDPP-MAP at sT=1.5
 export CAL="cache-ambrosia/calibration_${EMN}.json"
 
+# A prompt whose pool has fewer than K distinct embeddings (Zhat = 0) redraws from the task's other
+# pools, starting at the next one. No new sampling: those strings also count in their own pool.
+other_pools() { for d in $(seq 1 $((N_POOLS - 1))); do echo "cache-ambrosia/pool$((($1 + d) % N_POOLS))"; done; }
+export -f other_pools
+export N_POOLS
+
 estimate_pool() {
     local CD="cache-ambrosia/pool$1"
-    local E="dpp-estimation --output_folder $CD/est${K}${EMN##*_} --model_name $EMN --cache_dir $CD --k $K"
+    local E="dpp-estimation --output_folder $CD/est${K}${EMN##*_} --model_name $EMN --cache_dir $CD --k $K --redraw_dirs $(other_pools "$1" | tr '\n' ' ')"
     $E --N "$N_RUNS" --ancestral --naive --kmeans
     $E --N "$N_RUNS" --samp --target_Ts $SAMP_TS --sampling_T 1.0
     $E --N "$N_RUNS" --samp --taus $TAUS --sampling_T 1.0 --calibration "$CAL"

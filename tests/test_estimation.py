@@ -12,7 +12,7 @@ from unittest import mock
 import numpy as np
 import pytest
 
-from lm_dpp.estimation import (ancestral_draw, cli, greedy_map, method_seed, quality_log_scales, sample_dpp,
+from lm_dpp.estimation import (PoolRedraw, ancestral_draw, cli, greedy_map, method_seed, quality_log_scales, sample_dpp,
                                sample_kmeans_for_prompt, sigma_hat_from_embeddings, target_log_scales)
 from lm_dpp.utils.cached import cached_ddict
 
@@ -205,3 +205,73 @@ def test_cli_rejects_unknown_sampling_T(tmp_path):
     with pytest.raises(ValueError, match="not in cache"):
         run_cli("--output_folder", tmp_path / "out", "--model_name", MODEL, "--cache_dir", tmp_path,
                 "--k", 3, "--ancestral", "--sampling_T", 99.0)
+
+
+def degenerate_pools(root, n_prompts=5, k=3):
+    """pool0 and pool1 with the same prompts. In pool0, one prompt spans 2 directions and has no size-k set."""
+    caches = []
+    for name in ("pool0", "pool1"):
+        cache = root / name
+        cache.mkdir(parents=True)
+        fake_cache(cache, sampling_Ts=[1.0], n_prompts=n_prompts)
+        caches.append(cache)
+    path = caches[0] / f"{MODEL}_embeddings.pkl"
+    data = pickle.load(open(path, "rb"))
+    bad = sorted(data[1.0])[1]
+    row = data[1.0][bad]
+    E = np.array(row["embeddings"], float)
+    E[1::2], E[::2] = E[1], E[0]
+    row["embeddings"] = E
+    pickle.dump(data, open(path, "wb"))
+    return caches, bad
+
+
+def selections(cache, *args, out="out", method="samp", name="T1_s1.pkl", run=0, k=3):
+    run_cli("--output_folder", cache / out, "--model_name", MODEL, "--cache_dir", cache, "--k", str(k), *args)
+    return {x[0]: list(x[1]) for x in pickle.load(open(cache / out / str(run) / f"{MODEL}-{method}" / name, "rb"))}
+
+
+def test_zhat_zero_without_redraw_pools_stops_the_run(tmp_path):
+    (pool0, _), _ = degenerate_pools(tmp_path)
+    with pytest.raises(RuntimeError, match="redraw_dirs"):
+        selections(pool0, "--N", "1", "--samp", "--target_Ts", "1")
+
+
+@pytest.mark.parametrize("flags,method,name", [(["--N", "2", "--samp", "--target_Ts", "1"], "samp", "T1_s1.pkl"),
+                                               (["--N", "1", "--map", "--target_Ts", "2"], "map", "T2_s1.pkl"),
+                                               (["--N", "2", "--naive"], "naive", "s1.pkl")])
+def test_redraw_fills_the_prompt_from_the_other_pool(tmp_path, flags, method, name):
+    (pool0, pool1), bad = degenerate_pools(tmp_path)
+    got = selections(pool0, *flags, "--redraw_dirs", pool1, method=method, name=name)
+    other = pickle.load(open(pool1 / f"{MODEL}_embeddings.pkl", "rb"))[1.0]
+    own = pickle.load(open(pool0 / f"{MODEL}_embeddings.pkl", "rb"))[1.0]
+    assert set(got) == set(own)
+    assert len(got[bad]) == 3
+    assert set(got[bad]) <= set(other[bad]["u_sents"].tolist())
+
+
+def test_redraw_leaves_other_prompts_unchanged(tmp_path):
+    (pool0, pool1), bad = degenerate_pools(tmp_path)
+    flags = ["--N", "1", "--samp", "--target_Ts", "1", "--redraw_dirs", pool1]
+    real = selections(pool0, *flags, out="real")
+    other = pickle.load(open(pool1 / f"{MODEL}_embeddings.pkl", "rb"))[1.0]
+
+    def no_randomness(self, sT, prompt, log_scales, select, k, label, pool_size=None):
+        d = other[prompt]
+        return "stub", d["u_sents"], d["logps_t1"], d["embeddings"], [0, 1, 2]
+
+    with mock.patch.object(PoolRedraw, "select", no_randomness):
+        stub = selections(pool0, *flags, out="stub")
+    assert real[bad] != stub[bad]
+    assert {p: v for p, v in real.items() if p != bad} == {p: v for p, v in stub.items() if p != bad}
+
+
+def test_a_resumed_fill_matches_a_full_run(tmp_path):
+    (pool0, pool1), bad = degenerate_pools(tmp_path)
+    flags = ["--N", "1", "--samp", "--target_Ts", "1", "--redraw_dirs", pool1]
+    full = selections(pool0, *flags, out="full")
+    done = pool0 / "fill" / "0" / f"{MODEL}-samp" / "T1_s1.pkl"
+    done.parent.mkdir(parents=True)
+    kept = [x for x in pickle.load(open(pool0 / "full" / "0" / f"{MODEL}-samp" / "T1_s1.pkl", "rb")) if x[0] != bad]
+    pickle.dump(kept, open(done, "wb"))
+    assert selections(pool0, *flags, out="fill") == full
