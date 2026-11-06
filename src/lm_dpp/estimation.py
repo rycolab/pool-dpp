@@ -41,7 +41,7 @@ import zlib
 
 import numpy as np
 
-from dpp.stable import StableKDPP
+from dpp.stable import RANK_TOL, StableKDPP
 from lm_dpp.utils.cached import cached_ddict, cached_list
 
 MAD_TO_SIGMA = 1.4826
@@ -200,37 +200,45 @@ def selection_record(prompt, selected, u_sents, logps_t1, embeddings):
 
 
 class PoolRedraw:
-    """Redraw of a pool with Zhat = 0: the prompt moves to the first of the given pools that has a
-    size-k set. Pools load on first use. The redraw has its own numpy stream, keyed by the method's
-    seed, so it leaves every other prompt's draws unchanged and a resumed run matches a full run."""
+    """Redraw of a pool with Zhat = 0: the prompt moves to the first of the given pools whose rows
+    span k dimensions. Zhat > 0 does not depend on the weights, so the choice of pool is the same for
+    every kernel and uses no randomness. Pool files are large, so only the chosen prompt's row stays
+    in memory. The selection has its own numpy stream, keyed by the method's seed, so it leaves
+    every other prompt's draws unchanged and a resumed run matches a full run."""
 
     def __init__(self, cache_dirs, model_name):
         self.paths = [os.path.join(d, f"{model_name}_embeddings.pkl") for d in cache_dirs]
         missing = [p for p in self.paths if not os.path.exists(p)]
         if missing:
             raise FileNotFoundError(f"redraw pools not found: {missing}")
-        self.pools = {}
+        self.found = {}
         self.seed = 0
 
+    def first_valid(self, sT, prompt, k):
+        """(path, row) of the first pool where this prompt's embeddings span k dimensions."""
+        if (sT, prompt) not in self.found:
+            for path in self.paths:
+                row = cached_ddict(path, read_only=True).get(sT, {}).get(prompt)
+                if row is not None and np.linalg.matrix_rank(np.asarray(row["embeddings"], float), tol=RANK_TOL) >= k:
+                    self.found[(sT, prompt)] = path, row
+                    break
+            else:
+                raise RuntimeError(f"no redraw pool spans {k} dimensions at sT={fmt(sT)} for prompt={prompt[:40]!r}")
+        return self.found[(sT, prompt)]
+
     def select(self, sT, prompt, log_scales, select, k, label, pool_size=None):
-        """(path, u_sents, logps_t1, embeddings, selected) from the first pool with a size-k set."""
+        """(path, u_sents, logps_t1, embeddings, selected) from the first valid pool."""
+        path, row = self.first_valid(sT, prompt, k)
         state = np.random.get_state()
         np.random.seed(zlib.crc32(f"{self.seed}|{label}|{fmt(sT)}|{prompt}".encode()))
         try:
-            for path in self.paths:
-                if path not in self.pools:
-                    self.pools[path] = cached_ddict(path, read_only=True)
-                bucket = self.pools[path].get(sT, {})
-                if prompt not in bucket:
-                    continue
-                for _, u_sents, counts, logps, logps_t1, embeddings in iter_prompt_data(
-                        {prompt: bucket[prompt]}, pool_size):
-                    selected = select(log_scales(sT, counts, logps, logps_t1), embeddings, k)
-                    if len(selected) == k:
-                        return path, u_sents, logps_t1, embeddings, selected
+            _, u_sents, counts, logps, logps_t1, embeddings = next(iter_prompt_data({prompt: row}, pool_size))
+            selected = select(log_scales(sT, counts, logps, logps_t1), embeddings, k)
         finally:
             np.random.set_state(state)
-        raise RuntimeError(f"{label}: no redraw pool has a size-{k} set at sT={fmt(sT)} for prompt={prompt[:40]!r}")
+        if len(selected) < k:
+            raise RuntimeError(f"{label}: {path} spans {k} dimensions but selected {len(selected)} at sT={fmt(sT)}")
+        return path, u_sents, logps_t1, embeddings, selected
 
 
 def run_kernel_method(embeddings_dict, path_of, log_scales, select, k, label, pool_size=None, redraw=None):

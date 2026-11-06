@@ -9,6 +9,7 @@ cd "$(dirname "$0")/.."
 export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1
 
 N_POOLS=${N_POOLS:-30}
+N_EXTRA=${N_EXTRA:-50}    # sampled only to serve redraws
 STAGES=${STAGES:-"sample estimate"}
 J=${J:-1}
 
@@ -20,11 +21,15 @@ export SAMP_TS="0.428571 0.538462 0.666667 0.818182 1"   # PoolDPP-Samp at sT=1.
 export MAP_TS="10 7.5 3 1"                               # PoolDPP-MAP at sT=1.5
 export CAL="cache-ambrosia/calibration_${EMN}.json"
 
-# A prompt whose pool has fewer than K distinct embeddings (Zhat = 0) redraws from the task's other
-# pools, starting at the next one. No new sampling: those strings also count in their own pool.
-other_pools() { for d in $(seq 1 $((N_POOLS - 1))); do echo "cache-ambrosia/pool$((($1 + d) % N_POOLS))"; done; }
+# A prompt whose pool has fewer than K distinct embeddings (Zhat = 0) redraws its pool. Extra pools come
+# first, since their strings count nowhere else, each pool starting at a different one. Then the other pools.
+other_pools() {
+    { for d in $(seq 0 $((N_EXTRA - 1))); do echo "cache-ambrosia/pool$((N_POOLS + ($1 + d) % N_EXTRA))"; done
+      for d in $(seq 1 $((N_POOLS - 1))); do echo "cache-ambrosia/pool$((($1 + d) % N_POOLS))"; done
+    } | while read -r c; do [ -f "$c/${EMN}_embeddings.pkl" ] && echo "$c"; done
+}
 export -f other_pools
-export N_POOLS
+export N_POOLS N_EXTRA
 
 estimate_pool() {
     local CD="cache-ambrosia/pool$1"
@@ -33,13 +38,13 @@ estimate_pool() {
     $E --N "$N_RUNS" --samp --target_Ts $SAMP_TS --sampling_T 1.0
     $E --N "$N_RUNS" --samp --taus $TAUS --sampling_T 1.0 --calibration "$CAL"
     $E --N 1 --map --target_Ts $MAP_TS --sampling_T 1.5
-    $E --N 1 --map --taus $TAUS --calibration "$CAL"
+    $E --N 1 --map --taus $TAUS --sampling_T 1.5 --calibration "$CAL"
     echo "POOL_DONE ambrosia $1"
 }
 export -f estimate_pool
 
 case " $STAGES " in *" sample "*)
-    for i in $(seq 0 $((N_POOLS - 1))); do
+    for i in $(seq 0 $((N_POOLS + N_EXTRA - 1))); do
         CD="cache-ambrosia/pool$i"
         dpp-sample --mode ambrosia-top100 --chat-template --n-samples 200 \
             --temperatures 0.6 0.7 1.0 1.2 1.25 1.3 1.5 --max-new-tokens 800 \

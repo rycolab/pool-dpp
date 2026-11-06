@@ -275,3 +275,24 @@ def test_a_resumed_fill_matches_a_full_run(tmp_path):
     kept = [x for x in pickle.load(open(pool0 / "full" / "0" / f"{MODEL}-samp" / "T1_s1.pkl", "rb")) if x[0] != bad]
     pickle.dump(kept, open(done, "wb"))
     assert selections(pool0, *flags, out="fill") == full
+
+
+def test_redraw_skips_pools_that_are_also_degenerate(tmp_path):
+    (pool0, pool1), bad = degenerate_pools(tmp_path)
+    pool2 = tmp_path / "pool2"
+    shutil.copytree(pool1, pool2)
+    d = pickle.load(open(pool0 / f"{MODEL}_embeddings.pkl", "rb"))
+    other = pickle.load(open(pool1 / f"{MODEL}_embeddings.pkl", "rb"))
+    other[1.0][bad] = d[1.0][bad]
+    pickle.dump(other, open(pool1 / f"{MODEL}_embeddings.pkl", "wb"))
+    good = pickle.load(open(pool2 / f"{MODEL}_embeddings.pkl", "rb"))[1.0][bad]
+    got = selections(pool0, "--N", "1", "--samp", "--target_Ts", "1", "--redraw_dirs", pool1, pool2)
+    assert set(got[bad]) <= set(good["u_sents"].tolist())
+
+
+def test_redraw_stops_when_no_pool_is_valid(tmp_path):
+    (pool0, pool1), bad = degenerate_pools(tmp_path)
+    shutil.copy(pool0 / f"{MODEL}_embeddings.pkl", pool1 / f"{MODEL}_embeddings.pkl")
+    with pytest.raises(RuntimeError, match="no redraw pool"):
+        selections(pool0, "--N", "1", "--samp", "--target_Ts", "1", "--redraw_dirs", pool1)
+
