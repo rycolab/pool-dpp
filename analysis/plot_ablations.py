@@ -6,12 +6,11 @@ scripts/run_fineweb_ablations.sh on cache-fineweb/:
   est10minilm_pool{N}/          pool-size ablation (K=10)
   est{K}minilm/                 subset-size ablation (N=400)
   est10{emb}/                   LM x embedding grid
-The PoolDPP-Samp arm holds sT=1.0 and tau=3; PoolDPP-MAP appears in the grid
-panel via the same tau.
+The pool-size and K panels hold sT=1.0, PoolDPP-Samp at T=0.82 and PoolDPP-MAP at T=50. The grid sweeps T.
 
 Also fig:abl_multimodel (intrinsic_multimodel.pdf): Gemma-2-9B, Qwen3-8B and
 Llama-3.1-8B with MiniLM at K=10, all four headline methods (Ancestral and
-k-Means sweep sT; PoolDPP-Samp and -MAP hold sT=1.0 and sweep tau).
+k-Means sweep sT; PoolDPP-Samp and -MAP hold sT=1.0 and sweep T).
 
 Outputs: {out-dir}/ablation_{pool_size,k_size,lm_emb}.pdf, intrinsic_multimodel.pdf
 (default out-dir analysis)
@@ -35,8 +34,10 @@ OUT_DIR = Path(SCRIPT_DIR)
 
 MODEL_DEFAULT = "google__gemma-2-9b-it_minilm"
 ST = 1.0
-TAU_HELD = 3
-TAU_MAP = 0.3   # MAP arm of the pool/K ablations: old T=50 anchor, tau = sigma_hat/(2*50) ~ 0.24 -> grid 0.3
+SAMP_T = 0.818182   # held in the pool-size and K panels
+MAP_T = 50
+SAMP_TS = [0.428571, 0.666667, 0.818182, 1, 1.22222]   # the grids of scripts/run_fineweb.sh
+MAP_TS = [500, 100, 50, 25, 10]
 N_RUNS = 10
 
 COLORS = {"Ancestral": "#1f77b4", "K-Means": "#9467bd", "PoolDPP-Samp": "#ff7f0e",
@@ -82,15 +83,15 @@ def per_run_metrics(data):
     return np.nanmean(qs) if qs else np.nan, np.nanmean(ds) if ds else np.nan
 
 
-def method_path(rd, model, mt, st=ST, tau=TAU_HELD):
+def method_path(rd, model, mt, st=ST, T=SAMP_T):
     if mt == "ancestral":
         return rd / f"{model}-ancestral" / f"s{fmt(st)}.pkl"
     if mt == "kmeans":
         return rd / f"{model}-kmeans" / f"s{fmt(st)}.pkl"
     if mt == "samp":
-        return rd / f"{model}-samp" / f"tau{fmt(tau)}_s{fmt(st)}.pkl"
+        return rd / f"{model}-samp" / f"T{fmt(T)}_s{fmt(st)}.pkl"
     if mt == "map":
-        return rd / f"{model}-map" / f"tau{fmt(tau)}_s{fmt(st)}.pkl"
+        return rd / f"{model}-map" / f"T{fmt(T)}_s{fmt(st)}.pkl"
     raise ValueError(mt)
 
 
@@ -122,7 +123,7 @@ def plot_xy(ax, xs, results, ylabel, xlabel):
 
 
 ARMS = [("Ancestral", "ancestral", {}), ("K-Means", "kmeans", {}), ("PoolDPP-Samp", "samp", {}),
-        ("PoolDPP-MAP", "map", {"tau": TAU_MAP})]
+        ("PoolDPP-MAP", "map", {"T": MAP_T})]
 
 
 def sweep_ablation(values, est_for, out_name, xlabel, second_panel):
@@ -162,7 +163,6 @@ def lm_emb_grid():
            ("Qwen3-8B", "Qwen__Qwen3-8B")]
     embs = [("MiniLM-L6", "minilm"), ("Qwen3-Emb", "qwen")]
     st_sweep = [0.6, 0.8, 1.0, 1.2, 1.5]
-    taus = [0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30]
 
     fig, axes = plt.subplots(2, 2, figsize=(5.5, 4.0))
     for ri, (lm_name, lm_pre) in enumerate(lms):
@@ -181,7 +181,7 @@ def lm_emb_grid():
                                 marker=MARKERS[name], markersize=3, capsize=1.5,
                                 capthick=0.4, elinewidth=0.4, linewidth=1,
                                 label=name, alpha=0.85)
-            pts = [collect(est, "samp", model=model, tau=tau) for tau in taus]
+            pts = [collect(est, "samp", model=model, T=T) for T in SAMP_TS]
             good = [p for p in pts if p[4]]
             if good:
                 xs = [p[2] for p in good]
@@ -192,7 +192,7 @@ def lm_emb_grid():
                             marker="o", markersize=3, capsize=1.5, capthick=0.4,
                             elinewidth=0.4, linewidth=1, label="PoolDPP-Samp",
                             alpha=0.85)
-            pts = [collect(est, "map", model=model, tau=tau) for tau in taus]
+            pts = [collect(est, "map", model=model, T=T) for T in MAP_TS]
             good = [p for p in pts if p[4]]
             if good:
                 ax.errorbar([p[2] for p in good], [p[0] for p in good],
@@ -217,7 +217,6 @@ def multimodel():
            ("Qwen3-8B", "Qwen__Qwen3-8B"),
            ("Llama-3.1-8B", "meta-llama__Llama-3.1-8B-Instruct")]
     st_sweep = [0.6, 0.8, 1.0, 1.2, 1.5]
-    taus = [0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30]
     est = BASE / "est10minilm"
     present = [(n, m) for n, m in lms
                if (est / "0" / f"{m}_minilm-samp").is_dir()]
@@ -229,8 +228,8 @@ def multimodel():
         model = f"{lm_pre}_minilm"
         for name, mt, sweep, key in [("Ancestral", "ancestral", st_sweep, "st"),
                                      ("K-Means", "kmeans", st_sweep, "st"),
-                                     ("PoolDPP-Samp", "samp", taus, "tau"),
-                                     ("PoolDPP-MAP", "map", taus, "tau")]:
+                                     ("PoolDPP-Samp", "samp", SAMP_TS, "T"),
+                                     ("PoolDPP-MAP", "map", MAP_TS, "T")]:
             pts = [collect(est, mt, model=model, **{key: v}) for v in sweep]
             good = [p for p in pts if p[4]]
             if not good:
