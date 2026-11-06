@@ -386,3 +386,30 @@ if __name__ == "__main__":
               f"{b['upper_hoeffding']:9.4g} {b['log1p_exact']:9.4g} {b['hybrid_m1']:9.4g} "
               f"{b['closed_m1']:9.4g} {b['theta_m1']:9.4g} {b['hybrid_r1']:9.4g} "
               f"{b['closed_r1']:9.4g} {e['m1']:7.3f} {e['r1']:8.3f}")
+
+
+def test_graded_weights_match_brute_force():
+    """Weights spanning 200 nats. C = B^T B cannot resolve the small eigenvalues in double
+    precision; the graded path must still match the sum over subsets, taken in log space."""
+    rng = np.random.default_rng(0)
+    n, K = 8, 5
+    Phi = rng.normal(size=(n, n))
+    Phi /= np.linalg.norm(Phi, axis=1, keepdims=True)
+    log_rho = -np.linspace(0.0, 200.0, n)
+    logs, members = [], []
+    for S in itertools.combinations(range(n), K):
+        S = list(S)
+        logs.append(log_rho[S].sum() + np.linalg.slogdet(Phi[S] @ Phi[S].T)[1])
+        members.append(S)
+    logs = np.array(logs)
+    log_Z = np.logaddexp.reduce(logs)
+    P1 = np.array([np.exp(np.logaddexp.reduce(logs[[i in S for S in members]]) - log_Z) for i in range(n)])
+
+    tgt = be.exact_target(Phi, np.exp(log_rho), K)
+    assert tgt["logZ"] == pytest.approx(log_Z, abs=1e-8)
+    np.testing.assert_allclose(tgt["P1"], P1, rtol=1e-8, atol=1e-12)
+    assert tgt["sumP1"] == pytest.approx(K, rel=1e-10)
+
+    # pool_logzhat has rows sqrt(rho * count / M), so log Zhat = log alpha + log Z - K log M
+    log_zhat = be.pool_logzhat(Phi, np.exp(log_rho), np.ones(n), K)
+    assert log_zhat == pytest.approx(be.log_alpha(n, K) + log_Z - K * math.log(n), abs=1e-8)

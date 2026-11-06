@@ -13,8 +13,8 @@ sT=1.2, on four axes:
 
 MBR/MMR/quality-topK are computed from the pool embeddings; PoolDPP-MAP,
 PoolDPP-Samp, k-Means, Ancestral, Naive are read from the unified est layout
-(est10{emb}/{run}/{model}-{method}/tau{tau}_s1.2.pkl or s1.2.pkl), every tau
-of the shared grid.
+(est10{emb}/{run}/{model}-{method}/T{T}_s1.2.pkl or s1.2.pkl), every T of the
+figure's grids.
 
 Uncertainty: each metric is averaged within a pool (over questions and run
 dirs), then reported as the mean over the 20 independent pools with a 95%
@@ -46,7 +46,8 @@ EST = "est10qwen"
 ST = 1.2
 K = 10
 N_POOLS = 20
-TAUS = [0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30]
+SAMP_TS = [0.428571, 0.666667, 0.818182, 1, 1.03, 1.05, 1.07, 1.1, 1.22222]
+MAP_TS = [2.5, 5, 10, 15, 20, 25, 50, 100, 500]
 ANS_RE = re.compile(r"####\s*\$?\s*(-?\d[\d,]*(?:\.\d+)?)")
 
 
@@ -66,10 +67,10 @@ def est_methods(model):
         [("Ancestral", f"{model}-ancestral", f"s{fmt(ST)}.pkl")]
         + [("k-Means", f"{model}-kmeans", f"s{fmt(ST)}.pkl")]
         + [("Naive-DPP", f"{model}-naive", f"s{fmt(ST)}.pkl")]
-        + [(f"PoolDPP-Samp tau={fmt(t)}", f"{model}-samp", f"tau{fmt(t)}_s{fmt(ST)}.pkl")
-           for t in TAUS]
-        + [(f"PoolDPP-MAP tau={fmt(t)}", f"{model}-map", f"tau{fmt(t)}_s{fmt(ST)}.pkl")
-           for t in TAUS]
+        + [(f"PoolDPP-Samp T={fmt(t)}", f"{model}-samp", f"T{fmt(t)}_s{fmt(ST)}.pkl")
+           for t in SAMP_TS]
+        + [(f"PoolDPP-MAP T={fmt(t)}", f"{model}-map", f"T{fmt(t)}_s{fmt(ST)}.pkl")
+           for t in MAP_TS]
     )
 
 

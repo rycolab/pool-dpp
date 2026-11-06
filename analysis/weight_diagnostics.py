@@ -1,19 +1,18 @@
 """
-Weight diagnostics for the unified quality kernel (tab:weights)
-=====================================================================
-Per-task, per-anchor, per-tau distributions of the importance-weight ESS for the
-unified tilted target,
+Weight diagnostics of the frontier kernels (tab:weights)
+========================================================
+Per task and T on one pool, the weights of the figure's kernel at that task's local
+temperature sT:
 
-    w(y) = plm(y)^(2*beta),   beta = tau / sigma_hat(task, LM, sT),
+    PoolDPP-Samp  w(y) = plm(y)^(1/T) / q(y)
+    PoolDPP-MAP   w(y) = plm(y)^(1/T)         (Ambrosia at sT=1.5)
 
-with sigma_hat read from the calibration JSON written by
-`dpp-estimation --calibrate`. Weights are bounded above by construction (w <= 1 before normalization).
-
-Per (task, sT, tau) we report over prompts:
+With wbar the weights self-normalized over the N draws of a prompt, ESS = 1 / sum_n wbar_n^2
+and the sup ratio is N max_n wbar_n. Per (task, sT, T) we report over prompts:
     ESS mean/N, median, q25/q75, min; #prompts with ESS < K;
-    max normalized weight; log-weight range 2*beta*(max lp1 - min lp1).
+    median of max wbar; mean of Var(wbar); mean sup ratio; median log-weight range.
 
-Output: analysis/weight_diagnostics.json (+ a LaTeX tabular on stdout).
+Output: analysis/weight_diagnostics.json
 
 Usage:
     OPENBLAS_NUM_THREADS=1 python analysis/weight_diagnostics.py
@@ -28,16 +27,15 @@ import numpy as np
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(SCRIPT_DIR)
 
-TAUS = [0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30]
-
-# task, embeddings pkl, calibration json, anchor sTs, K
+FINEWEB = "cache-fineweb/google__gemma-2-9b-it_minilm_embeddings.pkl"
+AMBROSIA = "cache-ambrosia/pool0/google__gemma-2-9b-it_minilm_embeddings.pkl"
+GSM8K = "cache-gsm8k/pool0/google__gemma-2-9b-it_qwen_embeddings.pkl"
+# task, embeddings pkl, sT, K, weight divides by q, T grid of the figure
 CONFIGS = [
-    ("fineweb", "cache-fineweb/google__gemma-2-9b-it_minilm_embeddings.pkl",
-     "cache-fineweb/calibration_google__gemma-2-9b-it_minilm.json", [1.0], 10),
-    ("ambrosia", "cache-ambrosia/pool0/google__gemma-2-9b-it_minilm_embeddings.pkl",
-     "cache-ambrosia/calibration_google__gemma-2-9b-it_minilm.json", [1.0, 1.5], 3),
-    ("gsm8k", "cache-gsm8k/pool0/google__gemma-2-9b-it_qwen_embeddings.pkl",
-     "cache-gsm8k/calibration_google__gemma-2-9b-it_qwen.json", [1.2], 10),
+    ("gsm8k", GSM8K, 1.2, 10, True, [0.428571, 0.666667, 0.818182, 1, 1.03, 1.05, 1.07, 1.1, 1.22222]),
+    ("fineweb", FINEWEB, 1.0, 10, True, [0.428571, 0.666667, 0.818182, 1, 1.22222]),
+    ("ambrosia", AMBROSIA, 1.0, 3, True, [0.428571, 0.538462, 0.666667, 0.818182, 1]),
+    ("ambrosia", AMBROSIA, 1.5, 3, False, [10, 7.5, 3, 1]),
 ]
 
 
@@ -45,82 +43,58 @@ def fmt(x):
     return f"{float(x):g}"
 
 
-def per_prompt_ess(lp1, counts, beta):
-    lp1 = np.asarray(lp1, dtype=np.float64)
-    c = np.asarray(counts, dtype=np.float64)
-    lw = 2.0 * beta * lp1
+def per_prompt(d, T, uses_q):
+    lp1 = np.asarray(d["logps_t1"], dtype=np.float64)
+    c = np.asarray(d["counts"], dtype=np.float64)
+    lw = lp1 / T
+    if uses_q:
+        lw = lw - np.asarray(d["logps"], dtype=np.float64)
     w = np.exp(lw - lw.max())
-    tot = (w * c).sum()
-    wbar = w / tot
-    ess = 1.0 / (c * wbar ** 2).sum()
-    return ess, float(wbar.max()), float(2.0 * beta * (lp1.max() - lp1.min()))
+    wbar = w / (w * c).sum()
+    N = c.sum()
+    return dict(ess=1.0 / (c * wbar ** 2).sum(), max_wbar=float(wbar.max()),
+                var_wbar=float((c * wbar ** 2).sum() / N - 1.0 / N ** 2),
+                sup_ratio=float(N * wbar.max()), range=float(lw.max() - lw.min()), N=float(N))
 
 
 def main():
     out = {}
-    for task, rel, cal_rel, sTs, K in CONFIGS:
-        emb_path = os.path.join(ROOT_DIR, rel)
-        cal_path = os.path.join(ROOT_DIR, cal_rel)
-        if not (os.path.exists(emb_path) and os.path.exists(cal_path)):
-            print(f"[skip] {task}: missing {rel} or calibration")
+    for task, rel, sT, K, uses_q, Ts in CONFIGS:
+        path = os.path.join(ROOT_DIR, rel)
+        if not os.path.exists(path):
+            print(f"[skip] {task}: missing {rel}")
             continue
-        with open(emb_path, "rb") as f:
-            emb_all = pickle.load(f)
-        with open(cal_path) as f:
-            sigma = {float(k): float(v) for k, v in json.load(f)["sigma_hat"].items()}
-        for sT in sTs:
-            emb = emb_all[sT]
-            for tau in TAUS:
-                beta = tau / sigma[sT]
-                ess_l, maxw_l, rng_l, N = [], [], [], None
-                for d in emb.values():
-                    lp1 = np.asarray(d["logps_t1"])
-                    if len(lp1) < 2:
-                        continue
-                    ess, maxw, rng = per_prompt_ess(lp1, d["counts"], beta)
-                    ess_l.append(ess)
-                    maxw_l.append(maxw)
-                    rng_l.append(rng)
-                    N = float(np.sum(d["counts"]))
-                ess = np.array(ess_l)
-                key = f"{task}|sT={fmt(sT)}|tau={fmt(tau)}"
-                out[key] = {
-                    "n_prompts": len(ess), "N": N, "K": K,
-                    "beta": beta,
-                    "ess_mean_over_N": float(ess.mean() / N),
-                    "ess_median": float(np.median(ess)),
-                    "ess_q25": float(np.quantile(ess, 0.25)),
-                    "ess_q75": float(np.quantile(ess, 0.75)),
-                    "ess_min": float(ess.min()),
-                    "n_collapsed_lt_K": int((ess < K).sum()),
-                    "max_normalized_weight_median": float(np.median(maxw_l)),
-                    "logw_range_median": float(np.median(rng_l)),
-                }
-                o = out[key]
-                print(f"{key:30s} ESS/N={o['ess_mean_over_N']:.3f} "
-                      f"med={o['ess_median']:7.1f} [{o['ess_q25']:7.1f},{o['ess_q75']:7.1f}] "
-                      f"min={o['ess_min']:6.1f} coll<K={o['n_collapsed_lt_K']:2d}/{o['n_prompts']} "
-                      f"maxw={o['max_normalized_weight_median']:.3f} "
-                      f"range={o['logw_range_median']:5.1f} nats")
+        with open(path, "rb") as f:
+            emb = pickle.load(f)[sT]
+        for T in Ts:
+            rows = [per_prompt(d, T, uses_q) for d in emb.values() if len(d["logps_t1"]) >= 2]
+            ess = np.array([r["ess"] for r in rows])
+            N = rows[0]["N"]
+            key = f"{task}|sT={fmt(sT)}|T={fmt(T)}"
+            o = out[key] = {
+                "n_prompts": len(ess), "N": N, "K": K, "mode": "samp" if uses_q else "map",
+                "ess_mean_over_N": float(ess.mean() / N),
+                "ess_median": float(np.median(ess)),
+                "ess_q25": float(np.quantile(ess, 0.25)),
+                "ess_q75": float(np.quantile(ess, 0.75)),
+                "ess_min": float(ess.min()),
+                "n_collapsed_lt_K": int((ess < K).sum()),
+                "max_normalized_weight_median": float(np.median([r["max_wbar"] for r in rows])),
+                "var_normalized_weight_mean": float(np.mean([r["var_wbar"] for r in rows])),
+                "sup_ratio_mean": float(np.mean([r["sup_ratio"] for r in rows])),
+                "logw_range_median": float(np.median([r["range"] for r in rows])),
+            }
+            print(f"{key:30s} ESS/N={o['ess_mean_over_N']:.3f} "
+                  f"med={o['ess_median']:7.1f} [{o['ess_q25']:7.1f},{o['ess_q75']:7.1f}] "
+                  f"min={o['ess_min']:6.1f} coll<K={o['n_collapsed_lt_K']:2d}/{o['n_prompts']} "
+                  f"maxw={o['max_normalized_weight_median']:.3f} "
+                  f"1e4var={1e4 * o['var_normalized_weight_mean']:.3f} "
+                  f"sup={o['sup_ratio_mean']:.1f} range={o['logw_range_median']:5.1f} nats")
 
     dest = os.path.join(SCRIPT_DIR, "weight_diagnostics.json")
     with open(dest, "w") as f:
         json.dump(out, f, indent=1)
-    print(f"\nSaved {dest}\n")
-
-    # LaTeX tabular for the appendix (median ESS with collapse counts)
-    print("% ---- appendix table: per-anchor ESS (unified scheme) ----")
-    print(r"\begin{tabular}{llrrrrr}")
-    print(r"\toprule")
-    print(r"task & anchor & $\tautilt$ & ESS med & [q25, q75] & min & \#ESS$<K$ \\")
-    print(r"\midrule")
-    for key, o in out.items():
-        task, sT, tau = key.split("|")
-        print(f"{task} & {sT.replace('sT=', '$s_T$=')} & {tau.replace('tau=', '')} & "
-              f"{o['ess_median']:.1f} & [{o['ess_q25']:.1f}, {o['ess_q75']:.1f}] & "
-              f"{o['ess_min']:.1f} & {o['n_collapsed_lt_K']}/{o['n_prompts']} \\\\")
-    print(r"\bottomrule")
-    print(r"\end{tabular}")
+    print(f"\nSaved {dest}")
 
 
 if __name__ == "__main__":

@@ -20,9 +20,9 @@ frontiers() {
 }
 ablations() { python analysis/plot_ablations.py; }
 bounds() {
-    python analysis/bound_empirical.py --task ambrosia --stage all --taus 0.003 1 --n-pools 30
-    python analysis/bound_empirical.py --task fineweb --stage all --taus 0.03 3
-    python analysis/bound_empirical.py --task gsm8k --stage all --taus 0.03 1
+    python analysis/bound_empirical.py --task ambrosia --stage all --Ts 0.666667 1 --n-pools 30 --workers "$CPUS"
+    python analysis/bound_empirical.py --task fineweb --stage all --Ts 0.818182 1 --workers "$CPUS"
+    python analysis/bound_empirical.py --task gsm8k --stage all --Ts 1 1.05 --workers "$CPUS"
     python analysis/bound_required_n.py
     python analysis/bound_tables.py
 }

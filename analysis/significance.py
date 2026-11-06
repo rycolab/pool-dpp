@@ -52,12 +52,11 @@ GSM_MODEL = f"google__gemma-2-9b-it_{GSM_VARIANT}"
 GSM_EST = f"est10{GSM_VARIANT}"
 SUFFIX = "" if GSM_VARIANT == "qwen" else f"_{GSM_VARIANT}"
 
-# ---- method tables, mirroring the headline plots (unified tau layout) ----
-# Old target-temperature anchors map to tau = sigma_hat / (2*T_old); the
-# nearest shared-grid points (log scale) are: Ambrosia Samp T=500 -> tau 0.004
-# -> 0.003; Ambrosia MAP T=10 -> 2.8 -> 3; GSM8K Samp/MAP T=500 -> 0.024 ->
-# 0.03; GSM8K MAP T=10 -> 1.2 -> 1; T=2.5 -> 4.8 -> 3.
-TAUS = [0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30]
+# ---- method tables, mirroring the frontier figures ----
+AMB_SAMP_TS = [0.428571, 0.538462, 0.666667, 0.818182, 1]
+AMB_MAP_TS = [10, 7.5, 3, 1]
+GSM_SAMP_TS = [0.428571, 0.666667, 0.818182, 1, 1.03, 1.05, 1.07, 1.1, 1.22222]
+GSM_MAP_TS = [2.5, 5, 10, 15, 20, 25, 50, 100, 500]
 
 
 def fmt(x):
@@ -71,10 +70,8 @@ AMB_METHODS = (
        for sT in [0.6, 0.7, 1.0, 1.2, 1.25, 1.3]]
     + [("Naive DPP", sT, f"{AMB_MODEL}-naive", f"s{fmt(sT)}.pkl")
        for sT in [0.6, 0.7, 1.0, 1.2, 1.25]]
-    + [("PoolDPP-Samp", tau, f"{AMB_MODEL}-samp", f"tau{fmt(tau)}_s1.pkl")
-       for tau in TAUS]
-    + [("PoolDPP-MAP", tau, f"{AMB_MODEL}-map", f"tau{fmt(tau)}_s1.5.pkl")
-       for tau in TAUS]
+    + [("PoolDPP-Samp", T, f"{AMB_MODEL}-samp", f"T{fmt(T)}_s1.pkl") for T in AMB_SAMP_TS]
+    + [("PoolDPP-MAP", T, f"{AMB_MODEL}-map", f"T{fmt(T)}_s1.5.pkl") for T in AMB_MAP_TS]
 )
 
 GSM_METHODS = (
@@ -84,10 +81,8 @@ GSM_METHODS = (
        for sT in [0.5, 0.8, 1.0, 1.2]]
     + [("Naive-DPP", sT, f"{GSM_MODEL}-naive", f"s{fmt(sT)}.pkl")
        for sT in [0.5, 0.8, 1.0]]
-    + [("PoolDPP-Samp", tau, f"{GSM_MODEL}-samp", f"tau{fmt(tau)}_s1.2.pkl")
-       for tau in TAUS]
-    + [("PoolDPP-MAP", tau, f"{GSM_MODEL}-map", f"tau{fmt(tau)}_s1.2.pkl")
-       for tau in TAUS]
+    + [("PoolDPP-Samp", T, f"{GSM_MODEL}-samp", f"T{fmt(T)}_s1.2.pkl") for T in GSM_SAMP_TS]
+    + [("PoolDPP-MAP", T, f"{GSM_MODEL}-map", f"T{fmt(T)}_s1.2.pkl") for T in GSM_MAP_TS]
 )
 
 
@@ -310,68 +305,50 @@ def main():
         print(f"\n=== {task}: paired tests ===")
         if task == "ambrosia":
             comparisons = [
-                # tau anchors: Samp tau=0.003 ~ old T=500 (the headline point);
-                # MAP tau=3 ~ old tT=10.
-                ("MAP(tau=3,sT=1.5) vs k-Means(sT=1.3)",
-                 ("PoolDPP-MAP", "3"), ("k-Means", "1.3")),
-                ("MAP(tau=3,sT=1.5) vs Ancestral(sT=1.3)",
-                 ("PoolDPP-MAP", "3"), ("Ancestral", "1.3")),
-                ("Samp(tau=0.003,sT=1.0) vs k-Means(sT=1.0) [matched sT]",
-                 ("PoolDPP-Samp", "0.003"), ("k-Means", "1.0")),
-                ("Samp(tau=0.003,sT=1.0) vs Ancestral(sT=1.0) [matched sT]",
-                 ("PoolDPP-Samp", "0.003"), ("Ancestral", "1.0")),
-                ("Samp(tau=0.003,sT=1.0) vs Naive(sT=1.0) [matched sT]",
-                 ("PoolDPP-Samp", "0.003"), ("Naive DPP", "1.0")),
-                ("MAP(tau=3) vs Samp(tau=0.003)",
-                 ("PoolDPP-MAP", "3"), ("PoolDPP-Samp", "0.003")),
-                # frontier tilts of the unified kernel, and each
-                # baseline at its own best-recall local temperature (1.0)
-                ("Samp(tau=1,sT=1.0) vs Ancestral(sT=1.0) [matched sT]",
-                 ("PoolDPP-Samp", "1"), ("Ancestral", "1.0")),
-                ("Samp(tau=1,sT=1.0) vs k-Means(sT=1.0) [matched sT]",
-                 ("PoolDPP-Samp", "1"), ("k-Means", "1.0")),
-                ("Samp(tau=1,sT=1.0) vs Naive(sT=1.0) [matched sT]",
-                 ("PoolDPP-Samp", "1"), ("Naive DPP", "1.0")),
-                ("Samp(tau=0.3,sT=1.0) vs Ancestral(sT=1.0) [matched sT]",
-                 ("PoolDPP-Samp", "0.3"), ("Ancestral", "1.0")),
-                ("Samp(tau=0.3,sT=1.0) vs k-Means(sT=1.0) [matched sT]",
-                 ("PoolDPP-Samp", "0.3"), ("k-Means", "1.0")),
-                ("MAP(tau=3,sT=1.5) vs k-Means(sT=1.0) [k-means best recall]",
-                 ("PoolDPP-MAP", "3"), ("k-Means", "1.0")),
-                ("MAP(tau=3,sT=1.5) vs Ancestral(sT=1.0) [ancestral best recall]",
-                 ("PoolDPP-MAP", "3"), ("Ancestral", "1.0")),
-                ("MAP(tau=3,sT=1.5) vs Samp(tau=1,sT=1.0)",
-                 ("PoolDPP-MAP", "3"), ("PoolDPP-Samp", "1")),
+                # each baseline at its own best-recall local temperature (1.0)
+                ("Samp(T=0.666667,sT=1.0) vs Ancestral(sT=1.0) [matched sT]",
+                 ("PoolDPP-Samp", "0.666667"), ("Ancestral", "1.0")),
+                ("Samp(T=0.666667,sT=1.0) vs k-Means(sT=1.0) [matched sT]",
+                 ("PoolDPP-Samp", "0.666667"), ("k-Means", "1.0")),
+                ("Samp(T=0.666667,sT=1.0) vs Naive(sT=1.0) [matched sT]",
+                 ("PoolDPP-Samp", "0.666667"), ("Naive DPP", "1.0")),
+                ("Samp(T=0.818182,sT=1.0) vs Ancestral(sT=1.0) [matched sT]",
+                 ("PoolDPP-Samp", "0.818182"), ("Ancestral", "1.0")),
+                ("Samp(T=0.818182,sT=1.0) vs k-Means(sT=1.0) [matched sT]",
+                 ("PoolDPP-Samp", "0.818182"), ("k-Means", "1.0")),
+                ("Samp(T=0.818182,sT=1.0) vs Naive(sT=1.0) [matched sT]",
+                 ("PoolDPP-Samp", "0.818182"), ("Naive DPP", "1.0")),
+                ("MAP(T=10,sT=1.5) vs k-Means(sT=1.0) [k-means best recall]",
+                 ("PoolDPP-MAP", "10"), ("k-Means", "1.0")),
+                ("MAP(T=10,sT=1.5) vs Ancestral(sT=1.0) [ancestral best recall]",
+                 ("PoolDPP-MAP", "10"), ("Ancestral", "1.0")),
+                ("MAP(T=10,sT=1.5) vs Samp(T=0.818182,sT=1.0)",
+                 ("PoolDPP-MAP", "10"), ("PoolDPP-Samp", "0.818182")),
             ]
-            note = ("PoolDPP-MAP is anchored at sT=1.5 and PoolDPP-Samp at "
-                    "sT=1.0 in the headline figure, so 'matched T' is only "
-                    "exact for the Samp comparisons; MAP is compared against "
-                    "each baseline at that baseline's best sT. tau anchors "
-                    "correspond to the old T anchors via tau = sigma_hat/(2T).")
+            note = ("PoolDPP-MAP is anchored at sT=1.5 and PoolDPP-Samp at sT=1.0, as in the "
+                    "figure, so 'matched' applies to the Samp comparisons only; MAP is compared "
+                    "against each baseline at that baseline's best sT.")
         else:
             comparisons = [
-                # tau anchors: 0.03 ~ old T=500, 1 ~ old T=10, 3 ~ old T=2.5.
-                ("MAP(tau=0.03) vs k-Means(sT=1.2) [matched sT=1.2]",
-                 ("PoolDPP-MAP", "0.03"), ("k-Means", "1.2")),
-                ("MAP(tau=0.03) vs Ancestral(sT=1.2) [matched sT=1.2]",
-                 ("PoolDPP-MAP", "0.03"), ("Ancestral", "1.2")),
-                ("MAP(tau=1) vs k-Means(sT=1.2) [moderate tilt, matched sT]",
-                 ("PoolDPP-MAP", "1"), ("k-Means", "1.2")),
-                ("MAP(tau=1) vs Ancestral(sT=1.2) [moderate tilt, matched sT]",
-                 ("PoolDPP-MAP", "1"), ("Ancestral", "1.2")),
-                ("MAP(tau=3) vs Ancestral(sT=1.2) [sharp tilt, matched sT]",
-                 ("PoolDPP-MAP", "3"), ("Ancestral", "1.2")),
-                ("Samp(tau=0.03) vs Ancestral(sT=1.2) [matched sT=1.2]",
-                 ("PoolDPP-Samp", "0.03"), ("Ancestral", "1.2")),
-                ("Samp(tau=1) vs Ancestral(sT=1.2) [moderate tilt]",
+                ("Samp(T=1.05) vs Ancestral(sT=1.2) [matched sT=1.2]",
+                 ("PoolDPP-Samp", "1.05"), ("Ancestral", "1.2")),
+                ("Samp(T=1) vs Ancestral(sT=1.2) [matched sT=1.2]",
                  ("PoolDPP-Samp", "1"), ("Ancestral", "1.2")),
-                ("MAP(tau=0.03) vs MAP(tau=1) [diversity vs moderate]",
-                 ("PoolDPP-MAP", "0.03"), ("PoolDPP-MAP", "1")),
+                ("Samp(T=1.05) vs k-Means(sT=1.2) [matched sT=1.2]",
+                 ("PoolDPP-Samp", "1.05"), ("k-Means", "1.2")),
+                ("MAP(T=500) vs Ancestral(sT=1.2) [matched sT=1.2]",
+                 ("PoolDPP-MAP", "500"), ("Ancestral", "1.2")),
+                ("MAP(T=500) vs k-Means(sT=1.2) [matched sT=1.2]",
+                 ("PoolDPP-MAP", "500"), ("k-Means", "1.2")),
+                ("MAP(T=10) vs Ancestral(sT=1.2) [matched sT=1.2]",
+                 ("PoolDPP-MAP", "10"), ("Ancestral", "1.2")),
+                ("MAP(T=10) vs k-Means(sT=1.2) [matched sT=1.2]",
+                 ("PoolDPP-MAP", "10"), ("k-Means", "1.2")),
+                ("MAP(T=500) vs MAP(T=10)",
+                 ("PoolDPP-MAP", "500"), ("PoolDPP-MAP", "10")),
             ]
-            note = ("All PoolDPP variants are anchored at sT=1.2, so every "
-                    "comparison against a baseline at sT=1.2 is exactly "
-                    "matched in sampling temperature. tau anchors correspond "
-                    "to the old T anchors via tau = sigma_hat/(2T).")
+            note = ("All PoolDPP variants are anchored at sT=1.2, so every comparison against a "
+                    "baseline at sT=1.2 is exactly matched in sampling temperature.")
         res = analyze(task, cells, comparisons, note)
         dest = os.path.join(SCRIPT_DIR, f"significance_{task}{SUFFIX if task == 'gsm8k' else ''}.json")
         with open(dest, "w") as f:

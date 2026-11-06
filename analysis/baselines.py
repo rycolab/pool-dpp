@@ -58,7 +58,12 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(SCRIPT_DIR)
 
 LAMBDAS = [0.0, 0.1, 0.3, 0.5, 0.7, 0.9, 1.0]
-TAUS = [0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30]
+# T grids of the frontier figures
+SAMP_TS = {"fineweb": [0.428571, 0.666667, 0.818182, 1, 1.22222],
+           "ambrosia": [0.428571, 0.538462, 0.666667, 0.818182, 1],
+           "gsm8k": [0.428571, 0.666667, 0.818182, 1, 1.03, 1.05, 1.07, 1.1, 1.22222]}
+MAP_TS = {"fineweb": [500, 100, 50, 25, 10], "ambrosia": [10, 7.5, 3, 1],
+          "gsm8k": [2.5, 5, 10, 15, 20, 25, 50, 100, 500]}
 
 
 def fmt(x):
@@ -166,17 +171,16 @@ def est_items(est, model, spec):
                     yield item
 
 
-def est_specs(st_base, samp_st, map_st, taus=TAUS):
+def est_specs(task, st_base, samp_st, map_st):
     """Headline est-dir rows: label -> (method, fname)."""
     out = {}
     for sT in st_base:
         out[f"est:Ancestral|sT={fmt(sT)}"] = ("ancestral", f"s{fmt(sT)}.pkl")
         out[f"est:k-Means|sT={fmt(sT)}"] = ("kmeans", f"s{fmt(sT)}.pkl")
-    for tau in taus:
-        out[f"est:PoolDPP-Samp|tau={fmt(tau)}|sT={fmt(samp_st)}"] = (
-            "samp", f"tau{fmt(tau)}_s{fmt(samp_st)}.pkl")
-        out[f"est:PoolDPP-MAP|tau={fmt(tau)}|sT={fmt(map_st)}"] = (
-            "map", f"tau{fmt(tau)}_s{fmt(map_st)}.pkl")
+    for T in SAMP_TS[task]:
+        out[f"est:PoolDPP-Samp|T={fmt(T)}|sT={fmt(samp_st)}"] = ("samp", f"T{fmt(T)}_s{fmt(samp_st)}.pkl")
+    for T in MAP_TS[task]:
+        out[f"est:PoolDPP-MAP|T={fmt(T)}|sT={fmt(map_st)}"] = ("map", f"T{fmt(T)}_s{fmt(map_st)}.pkl")
     return out
 
 
@@ -210,7 +214,7 @@ def run_fineweb(k=10, sT=1.0, pool_dirs=None, est_rows=True):
         del emb
         est = os.path.join(pd, "est10minilm")
         if est_rows and os.path.isdir(est):
-            for lab, spec in est_specs([0.6, 0.8, 1.0, 1.2, 1.5], sT, sT).items():
+            for lab, spec in est_specs("fineweb", [0.6, 0.8, 1.0, 1.2, 1.5], sT, sT).items():
                 for _, sents, lp, E in est_items(est, model, spec):
                     if len(sents) < 2:
                         continue
@@ -272,7 +276,7 @@ def run_ambrosia(n_pools=30, k=3, sTs=(1.0, 1.2, 1.5), cache="cache-ambrosia",
         del emb
         est = os.path.join(ROOT_DIR, cache, f"pool{pi}", "est3minilm")
         if est_rows and os.path.isdir(est):
-            for lab, spec in est_specs([0.6, 0.7, 1.0, 1.2, 1.25, 1.3, 1.5],
+            for lab, spec in est_specs("ambrosia", [0.6, 0.7, 1.0, 1.2, 1.25, 1.3, 1.5],
                                        1.0, 1.5).items():
                 for pt, sents, _, _ in est_items(est, model, spec):
                     q = parse_q(pt)
@@ -321,7 +325,7 @@ def run_gsm8k(n_pools=20, k=10, sT=1.2, cache="cache-gsm8k", est_rows=True):
         del emb
         est = os.path.join(ROOT_DIR, cache, f"pool{pi}", "est10qwen")
         if est_rows and os.path.isdir(est):
-            for lab, spec in est_specs([sT], sT, sT).items():
+            for lab, spec in est_specs("gsm8k", [sT], sT, sT).items():
                 for pt, sents, _, _ in est_items(est, model, spec):
                     gold = gold_of.get(pt)
                     if gold is None or not sents:

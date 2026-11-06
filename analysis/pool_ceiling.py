@@ -46,8 +46,9 @@ ST_SWEEP = [0.6, 0.7, 1.0, 1.2, 1.25, 1.3, 1.5]
 N_SWEEP = [25, 100, 200]          # 200 = full Ambrosia pool
 N_SUBSAMPLE_DRAWS = 10            # random draws averaged for N < full pool
 
-# Method sweeps, mirroring analysis/plot_ambrosia.py (unified tau layout)
-TAUS = [0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30]
+# Method sweeps, mirroring analysis/plot_ambrosia.py
+SAMP_TS = [0.428571, 0.538462, 0.666667, 0.818182, 1]
+MAP_TS = [10, 7.5, 3, 1]
 SAMP_ST_HELD = 1.0
 MAP_ST_HELD = 1.5
 ST_SWEEP_BASE = [0.6, 0.7, 1.0, 1.2, 1.25, 1.3]
@@ -311,12 +312,12 @@ def part_b(n_pools):
         methods.append(("k-Means", sT, f"{MODEL}-kmeans", f"s{fmt(sT)}.pkl", sT))
     for sT in ST_SWEEP_NAIVE:
         methods.append(("Naive DPP", sT, f"{MODEL}-naive", f"s{fmt(sT)}.pkl", sT))
-    for tau in TAUS:
-        methods.append(("PoolDPP-Samp", fmt(tau), f"{MODEL}-samp",
-                        f"tau{fmt(tau)}_s{fmt(SAMP_ST_HELD)}.pkl", SAMP_ST_HELD))
-    for tau in TAUS:
-        methods.append(("PoolDPP-MAP", fmt(tau), f"{MODEL}-map",
-                        f"tau{fmt(tau)}_s{fmt(MAP_ST_HELD)}.pkl", MAP_ST_HELD))
+    for T in SAMP_TS:
+        methods.append(("PoolDPP-Samp", fmt(T), f"{MODEL}-samp",
+                        f"T{fmt(T)}_s{fmt(SAMP_ST_HELD)}.pkl", SAMP_ST_HELD))
+    for T in MAP_TS:
+        methods.append(("PoolDPP-MAP", fmt(T), f"{MODEL}-map",
+                        f"T{fmt(T)}_s{fmt(MAP_ST_HELD)}.pkl", MAP_ST_HELD))
 
     results = defaultdict(list)
     for name, knob, sub, fname, sT in methods:

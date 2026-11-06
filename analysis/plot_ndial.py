@@ -21,8 +21,7 @@ the dot checks that the two scripts agree; it is not an independent
 measurement on the N=2,500 pools. (The earlier docstring called it a
 cross-check against the fresh N=2,500 run.)
 
-Inputs: analysis/bound_raw_gsm8k.json at the anchors tau=1 (moderate tilt) and
-tau=0.03 (diversity tilt).
+Inputs: analysis/bound_raw_gsm8k.json at T=1 and T=1.05.
 
 Output: --out (default analysis/ndial_gsm8k.pdf) + the table
 values on stdout and in analysis/ndial_gsm8k.json, with keys
@@ -63,8 +62,7 @@ def main():
     ap.add_argument("--out", default=os.path.join(SCRIPT_DIR, "ndial_gsm8k.pdf"))
     a = ap.parse_args()
     raw_name = "bound_raw_gsm8k.json"
-    curves = [("gsm8k|tau|tau=1", "#d62728", r"moderate tilt ($\tau=1$)"),
-              ("gsm8k|tau|tau=0.03", "#1f77b4", r"diversity tilt ($\tau=0.03$)")]
+    curves = [("gsm8k|T=1", "#d62728", r"$T=1$"), ("gsm8k|T=1.05", "#1f77b4", r"$T=1.05$")]
     with open(os.path.join(SCRIPT_DIR, raw_name)) as f:
         raw = json.load(f)
     n2500_path = os.path.join(SCRIPT_DIR, "gsm8k_n2500.json")

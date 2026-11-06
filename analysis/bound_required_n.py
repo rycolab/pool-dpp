@@ -40,7 +40,7 @@ pool size; n_at_K counts these prompts), and a prompt that does not reach the
 target by --M-hi raises an error. The answers agree with the old code whenever
 the crossing is above K^2 - 1.
 
-Output keys (analysis/bound_required_n.json), per "{task}|tau|tau=..." setting:
+Output keys (analysis/bound_required_n.json), per "{task}|T=..." setting:
   "KL<={target}|necessary_hoeffding"   lower bound on the required M from (K^2/M) chi2_1
                                        (new, primary)
   "KL<={target}|necessary_leading"     lower bound on the required M from a_1(M) chi2_1

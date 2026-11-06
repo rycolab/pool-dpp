@@ -91,9 +91,8 @@ Three tests, all on the real caches at the experimental K, D and pool size:
       m-independent Var(u_c): slope -1 in log-log once m >> K^2, steeper below.
 
 Weights. log w below is the L-ensemble (diagonal) weight: rho = w enters the
-pool B-rows as sqrt(rho), so L_yy = rho_y |phi_y|^2. dpp-estimation builds B-rows
-plm^beta * phi with beta = tau / sigma_hat(sT), so the L weight is
-log w = 2 * beta * logp_t1 = (2 tau / sigma_hat) * logp_t1.
+pool B-rows as sqrt(rho), so L_yy = rho_y |phi_y|^2. PoolDPP-Samp at T has
+log w = logp_t1 / T - logp.
 All quantities in the bound are invariant to the global scale of kappa; we fix
 the gauge E_q[rho] = 1 (so kappa_Sigma = 1).
 
@@ -114,6 +113,7 @@ import hashlib
 import itertools
 import json
 import math
+import multiprocessing
 import os
 import pickle
 import sys
@@ -124,9 +124,14 @@ import numpy as np
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(SCRIPT_DIR)
 sys.path.insert(0, SCRIPT_DIR)
+sys.path.insert(0, os.path.join(ROOT_DIR, "src"))
 
 import bound_formulas as bf  # noqa: E402
+from dpp.stable import StableKDPP  # noqa: E402
 SCRATCH = os.environ.get("BOUND_SCRATCH", os.path.join(SCRIPT_DIR, "bound_work"))
+# e_K from eigvalsh is accurate while the K-th eigenvalue is well above rounding noise (1e-16 of the top).
+EIG_FLOOR = 1e-8
+_POOLED = None  # prompt -> ground set, shared with the worker processes by fork
 
 CONFIGS = {
     "ambrosia": dict(
@@ -224,16 +229,15 @@ def a_coeffs(M, K):
 # --------------------------------------------------------------------------
 # instance construction
 # --------------------------------------------------------------------------
-def log_w(logps, logps_t1, scheme, knob, sigma=None):
-    """log of the L-ensemble weight rho (B-rows carry sqrt(rho)): knob = tau,
-    log rho = 2 * (tau / sigma_hat) * logp_t1."""
-    return (2.0 * knob / sigma) * logps_t1
+def log_w(logps, logps_t1, T):
+    """log of the L-ensemble weight rho of PoolDPP-Samp, plm^(1/T) / q."""
+    return logps_t1 / T - logps
 
 
-def build_instance(Phi, cnt_tot, logps, logps_t1, scheme, tT, sigma=None):
+def build_instance(Phi, cnt_tot, logps, logps_t1, T):
     """Ground-set instance: q empirical, rho = w (gauge E_q[rho]=1), kappa=rho*q."""
     q = cnt_tot / cnt_tot.sum()
-    lw = log_w(logps, logps_t1, scheme, tT, sigma)
+    lw = log_w(logps, logps_t1, T)
     lw = lw - lw.max()
     rho = np.exp(lw)
     rho = rho / float(q @ rho)              # gauge: E_q[rho] = 1
@@ -241,27 +245,27 @@ def build_instance(Phi, cnt_tot, logps, logps_t1, scheme, tT, sigma=None):
     return q, rho, kappa
 
 
-def exact_target(Phi, kappa, K, tol=1e-12):
-    """Exact target quantities: log Z, one-point inclusion marginals P_1.
+def stable_log_e_K(log_s, Phi, K):
+    """log e_K of the spectrum of B B^T for rows exp(log_s_i) Phi_i, or None if it is zero or the
+    rows need tiers. The graded SVD stays accurate however far the scales spread, and rows that
+    share a direction are merged, because a pair of them adds a singular value of rounding noise."""
+    dpp = StableKDPP(log_s, Phi, K)
+    if dpp.tiers is None or len(dpp.tiers[1]) < K:
+        return None
+    return log_esp_prefix_suffix(2.0 * dpp.tiers[1], K)[0]
 
-    C = sum_y kappa_y phi_y phi_y^T; Z = e_K(eig C);
-    P_1(y) Z = kappa_y sum_d <v_d,phi_y>^2 e_{K-1}(lambda_{-d}).
-    """
-    A = Phi * np.sqrt(kappa)[:, None]
-    C = A.T @ A
-    lam, V = np.linalg.eigh(C)
-    lam = np.clip(lam, 0.0, None)
-    keep = lam > tol * max(lam.max(), 1e-300)
-    lam_k, V_k = lam[keep], V[:, keep]
-    if keep.sum() < K:
+
+def exact_target(Phi, kappa, K):
+    """Exact target quantities: log Z, one-point inclusion marginals P_1. Computed from the graded
+    SVD: weights plm^(1/T)/q span more nats than a matrix C = B^T B can resolve in double precision."""
+    with np.errstate(divide="ignore"):
+        dpp = StableKDPP(0.5 * np.log(kappa), Phi, K)
+    P1 = dpp.inclusion_probs()
+    if P1 is None:
         return None
-    log_eK, loo = log_esp_prefix_suffix(np.log(lam_k), K)
-    if not np.isfinite(log_eK):
-        return None
-    omega = np.exp(loo - log_eK)                       # e_{K-1}(lam_-d)/e_K
-    proj2 = (Phi @ V_k) ** 2                           # <v_d, phi_y>^2
-    P1 = kappa * (proj2 @ omega)
-    return dict(logZ=log_eK, P1=P1, lam=lam_k, sumP1=float(P1.sum()))
+    ls = dpp.tiers[1]
+    return dict(logZ=log_esp_prefix_suffix(2.0 * ls, K)[0], P1=P1, lam=np.exp(2.0 * ls),
+                sumP1=float(P1.sum()))
 
 
 def mc_relvar(Phi, rho, q, K, M, logZ, R, rng, batch=256):
@@ -278,6 +282,11 @@ def mc_relvar(Phi, rho, q, K, M, logZ, R, rng, batch=256):
             Br = Phi[ii] * np.sqrt(rho[ii] / M)[:, None]
             eigs[r] = np.clip(np.linalg.eigvalsh(Br @ Br.T), 0.0, None)
         le = batch_log_e_k(eigs, K)
+        for r in np.flatnonzero(eigs[:, -K] <= EIG_FLOOR * eigs[:, -1]):
+            ii = idx[r]
+            with np.errstate(divide="ignore"):
+                lz = stable_log_e_K(0.5 * np.log(rho[ii] / M), Phi[ii], K)
+            le[r] = -np.inf if lz is None else lz
         vals.append(np.exp(le + la - logZ))
         done += b
     v = np.concatenate(vals)
@@ -302,9 +311,13 @@ def pool_logzhat(Phi, rho, cnt_row, K):
     # nonzero spectra of A A^T and A^T A coincide; eigendecompose the smaller
     G = A @ A.T if A.shape[0] <= A.shape[1] else A.T @ A
     lam = np.clip(np.linalg.eigvalsh(G), 0.0, None)
-    lam = lam[lam > 0]
     if len(lam) < K:
         return None
+    if lam[-K] <= EIG_FLOOR * lam[-1]:
+        with np.errstate(divide="ignore"):
+            log_eK = stable_log_e_K(0.5 * np.log(rho[sel] * cnt_row[sel] / M), Phi[sel], K)
+        return None if log_eK is None else log_eK + log_alpha(int(M), K)
+    lam = lam[lam > 0]
     log_eK, _ = log_esp_prefix_suffix(np.log(lam), K)
     if not np.isfinite(log_eK):
         return None
@@ -492,8 +505,7 @@ def extract(task):
 # --------------------------------------------------------------------------
 def t1_enumeration(task, pooled, rng, cases):
     cfg = CONFIGS[task]
-    scheme, tT = cfg["sweeps"][0]
-    sigma = cfg.get("sigma")
+    temperature = cfg["sweeps"][0]
     res = []
     prompts = sorted(pooled)
     for (nY, K, M, d_sub) in cases:
@@ -509,9 +521,7 @@ def t1_enumeration(task, pooled, rng, cases):
             Phi = Phi[:, :d_sub]
             nrm = np.linalg.norm(Phi, axis=1, keepdims=True)
             Phi = Phi / np.where(nrm > 0, nrm, 1.0)     # keep unit features
-        q, rho, kappa = build_instance(
-            Phi, tot[sel], rec["logps"][sel], rec["logps_t1"][sel], scheme, tT,
-            sigma)
+        q, rho, kappa = build_instance(Phi, tot[sel], rec["logps"][sel], rec["logps_t1"][sel], temperature)
 
         tgt = exact_target(Phi, kappa, K)
         if tgt is None:
@@ -615,129 +625,123 @@ def t1_enumeration(task, pooled, rng, cases):
 # --------------------------------------------------------------------------
 # T2 / T3
 # --------------------------------------------------------------------------
-def analyze(task, max_prompts, R_mc, n_sub_rep, seed=0):
+def analyze(task, max_prompts, R_mc, workers, seed=0):
+    global _POOLED
+    cfg = CONFIGS[task]
+    with open(pooled_path(task), "rb") as f:
+        _POOLED = pickle.load(f)
+    prompts = sorted(_POOLED)[:max_prompts]
+    print(f"[analyze] {task}: {len(prompts)} prompts, K={cfg['K']}, M_exp={cfg['M_exp']}, "
+          f"R_mc={R_mc}, workers={workers}", flush=True)
+    per_setting = {}
+    with multiprocessing.get_context("fork").Pool(workers) as pool:
+        for T in cfg["sweeps"]:
+            jobs = [(task, pt, ip, T, R_mc, seed) for ip, pt in enumerate(prompts)]
+            rows = [r for r in pool.map(analyze_prompt, jobs, chunksize=1) if r is not None]
+            print(f"[analyze] {setting_key(task, T)}: {len(rows)} of {len(prompts)} prompts", flush=True)
+            per_setting[setting_key(task, T)] = rows
+    return per_setting
+
+
+def analyze_prompt(job):
+    """Bound row of one prompt at one T. Each prompt has its own stream, so results do not depend
+    on the number of workers."""
+    task, pt, ip, T, R_mc, seed = job
     cfg = CONFIGS[task]
     K, M_exp = cfg["K"], cfg["M_exp"]
-    path = pooled_path(task)
-    with open(path, "rb") as f:
-        pooled = pickle.load(f)
-    rng = np.random.default_rng(seed)
-    prompts = sorted(pooled)[:max_prompts]
-    print(f"[analyze] {task}: {len(prompts)} prompts, K={K}, M_exp={M_exp}, "
-          f"R_mc={R_mc}", flush=True)
+    rng = np.random.default_rng([seed, ip])
+    rec = _POOLED[pt]
+    Phi, Cnt = rec["Phi"], rec["Cnt"]
+    tot = Cnt.sum(0)
+    q, rho, kappa = build_instance(Phi, tot, rec["logps"], rec["logps_t1"], T)
+    tgt = exact_target(Phi, kappa, K)
+    if tgt is None:
+        print(f"  [{setting_key(task, T)}] p{ip}: no target (rows need tiers), skipped", flush=True)
+        return None
+    logZ = tgt["logZ"]
+    pi1 = tgt["P1"] / K
+    m1 = float((pi1 ** 2 / q).sum())       # E_q[u_1^2]
+    chi2_1 = m1 - 1.0                      # Var_q(u_1) (E_q[u_1] = 1)
+    r1 = float((pi1 / q).max())            # sup u_1, secondary
 
-    per_setting = {}
-    sigma = cfg.get("sigma")
-    for scheme, tT in cfg["sweeps"]:
-        rows = []
-        for ip, pt in enumerate(prompts):
-            rec = pooled[pt]
-            Phi, Cnt = rec["Phi"], rec["Cnt"]
-            tot = Cnt.sum(0)
-            q, rho, kappa = build_instance(
-                Phi, tot, rec["logps"], rec["logps_t1"], scheme, tT, sigma)
-            tgt = exact_target(Phi, kappa, K)
-            if tgt is None:
-                continue
-            logZ = tgt["logZ"]
-            pi1 = tgt["P1"] / K
-            m1 = float((pi1 ** 2 / q).sum())       # E_q[u_1^2]
-            chi2_1 = m1 - 1.0                      # Var_q(u_1) (E_q[u_1] = 1)
-            r1 = float((pi1 / q).max())            # sup u_1, secondary
+    ac = a_coeffs(M_exp, K)
+    lead = bf.leading(M_exp, K, chi2_1)                 # lower, secondary
+    lower_h = bf.lower_hoeffding(M_exp, K, chi2_1)      # lower, primary
+    # NA bounds on the c>=2 remainder (bound_formulas.py):
+    #   primary   a_c ((K^c/(K)_c)^2 m1^c - 1)   (second moment)
+    #   secondary a_c (K^c/(K)_c r1^c - 1)       (sup)
+    tail_m1 = bf.na_tail_m1(M_exp, K, chi2_1)
+    tail = bf.na_tail_r1(M_exp, K, chi2_1, r1)
+    bound_hybrid_m1 = bf.kl_hybrid_m1(M_exp, K, chi2_1)
+    bound_simple_m1 = bf.kl_closed_m1(M_exp, K, m1)
+    bound_theta_m1 = bf.kl_theta_m1(M_exp, K, m1)
+    cert_hybrid = bf.kl_hybrid_r1(M_exp, K, chi2_1, r1)
+    cert_simple = bf.kl_closed_r1(M_exp, K, r1)
 
-            ac = a_coeffs(M_exp, K)
-            lead = bf.leading(M_exp, K, chi2_1)                 # lower, secondary
-            lower_h = bf.lower_hoeffding(M_exp, K, chi2_1)      # lower, primary
-            # NA bounds on the c>=2 remainder (bound_formulas.py):
-            #   primary   a_c ((K^c/(K)_c)^2 m1^c - 1)   (second moment)
-            #   secondary a_c (K^c/(K)_c r1^c - 1)       (sup)
-            tail_m1 = bf.na_tail_m1(M_exp, K, chi2_1)
-            tail = bf.na_tail_r1(M_exp, K, chi2_1, r1)
-            bound_hybrid_m1 = bf.kl_hybrid_m1(M_exp, K, chi2_1)
-            bound_simple_m1 = bf.kl_closed_m1(M_exp, K, m1)
-            bound_theta_m1 = bf.kl_theta_m1(M_exp, K, m1)
-            cert_hybrid = bf.kl_hybrid_r1(M_exp, K, chi2_1, r1)
-            cert_simple = bf.kl_closed_r1(M_exp, K, r1)
+    mc = mc_relvar(Phi, rho, q, K, M_exp, logZ, R_mc, rng)
 
-            mc = mc_relvar(Phi, rho, q, K, M_exp, logZ, R_mc, rng)
+    # measured across-pool relvar at the full pool size 
+    logs = [pool_logzhat(Phi, rho, Cnt[r], K) for r in range(Cnt.shape[0])]
+    logs = [x for x in logs if x is not None]
+    meas = relvar_from_logs(logs) if len(logs) >= 10 else None
 
-            # measured across-pool relvar at the full pool size 
-            logs = [pool_logzhat(Phi, rho, Cnt[r], K) for r in range(Cnt.shape[0])]
-            logs = [x for x in logs if x is not None]
-            meas = relvar_from_logs(logs) if len(logs) >= 10 else None
+    # T3: disjoint within-pool blocks -> true-instance relvar at each m,
+    # plus the identity's prediction for the same m on this instance
+    sub, sub_n, pred, pred_lo_h, pred_hi, pred_hi_m1 = {}, {}, {}, {}, {}, {}
+    for m in cfg["M_grid"]:
+        rv, nb = block_relvar(Phi, rho, Cnt, K, m)
+        if rv is not None:
+            sub[m] = rv
+            sub_n[m] = nb
+        pred_lo_h[m] = bf.lower_hoeffding(m, K, chi2_1)     # lower, primary
+        pred[m] = bf.leading(m, K, chi2_1)                  # lower, secondary
+        pred_hi_m1[m] = bf.relvar_bound_m1(m, K, chi2_1)    # upper, primary
+        pred_hi[m] = bf.relvar_bound_r1(m, K, chi2_1, r1)   # upper, secondary
 
-            # T3: disjoint within-pool blocks -> true-instance relvar at each m,
-            # plus the identity's prediction for the same m on this instance
-            sub, sub_n, pred, pred_lo_h, pred_hi, pred_hi_m1 = {}, {}, {}, {}, {}, {}
-            for m in cfg["M_grid"]:
-                rv, nb = block_relvar(Phi, rho, Cnt, K, m)
-                if rv is not None:
-                    sub[m] = rv
-                    sub_n[m] = nb
-                pred_lo_h[m] = bf.lower_hoeffding(m, K, chi2_1)     # lower, primary
-                pred[m] = bf.leading(m, K, chi2_1)                  # lower, secondary
-                pred_hi_m1[m] = bf.relvar_bound_m1(m, K, chi2_1)    # upper, primary
-                pred_hi[m] = bf.relvar_bound_r1(m, K, chi2_1, r1)   # upper, secondary
+    # missing-mass diagnostic (Good-Turing) for the surrogate caveat
+    singles = float((tot == 1).sum())
+    miss = singles / float(tot.sum())
 
-            # missing-mass diagnostic (Good-Turing) for the surrogate caveat
-            singles = float((tot == 1).sum())
-            miss = singles / float(tot.sum())
-
-            rows.append(dict(
-                prompt_hash=abs(hash(pt)) % 10**8, n_uniq=int(rec["n_uniq"]),
-                N_total=int(tot.sum()), missing_mass=miss,
-                logZ=logZ, sumP1=tgt["sumP1"], chi2_1=chi2_1, m1=m1, r1=r1,
-                lower_hoeffding=lower_h,
-                a1=float(ac[0]), leading=lead,
-                na_tail_m1=tail_m1,
-                bound_hybrid_m1_KL=bound_hybrid_m1,
-                bound_simple_m1_KL=bound_simple_m1,
-                bound_theta_m1=bound_theta_m1,
-                na_tail=tail,
-                cert_hybrid_KL=cert_hybrid, cert_simple_KL=cert_simple,
-                mc_relvar=mc["relvar"], mc_se=mc["se_relvar"],
-                mc_mean_ratio=mc["mean_ratio"],
-                measured_relvar=meas, sub_relvar=sub, sub_nblocks=sub_n,
-                pred_lower_hoeffding_by_m=pred_lo_h,
-                pred_leading_by_m=pred, pred_upper_m1_by_m=pred_hi_m1,
-                pred_upper_by_m=pred_hi,
-                iid=iid_diagnostics(Cnt, rec["logps"]),
-            ))
-            if ip % 5 == 0:
-                r = rows[-1]
-                print(f"  [{setting_key(task, scheme, tT)}] p{ip}: nY={r['n_uniq']} "
-                      f"chi2_1={r['chi2_1']:.4g} m1={r['m1']:.4g} "
-                      f"r1={r['r1']:.3g} (secondary) "
-                      f"lead={r['leading']:.4g} MC={r['mc_relvar']:.4g}"
-                      f"+-{r['mc_se']:.2g} meas={r['measured_relvar']} "
-                      f"E[Zhat]/Z={r['mc_mean_ratio']:.4f} "
-                      f"KL bound m1 hybrid={r['bound_hybrid_m1_KL']:.4g} "
-                      f"(r1 hybrid={r['cert_hybrid_KL']:.4g})", flush=True)
-        per_setting[setting_key(task, scheme, tT)] = rows
-    return per_setting
+    row = dict(
+        prompt_hash=abs(hash(pt)) % 10**8, n_uniq=int(rec["n_uniq"]),
+        N_total=int(tot.sum()), missing_mass=miss,
+        logZ=logZ, sumP1=tgt["sumP1"], chi2_1=chi2_1, m1=m1, r1=r1,
+        lower_hoeffding=lower_h,
+        a1=float(ac[0]), leading=lead,
+        na_tail_m1=tail_m1,
+        bound_hybrid_m1_KL=bound_hybrid_m1,
+        bound_simple_m1_KL=bound_simple_m1,
+        bound_theta_m1=bound_theta_m1,
+        na_tail=tail,
+        cert_hybrid_KL=cert_hybrid, cert_simple_KL=cert_simple,
+        mc_relvar=mc["relvar"], mc_se=mc["se_relvar"],
+        mc_mean_ratio=mc["mean_ratio"],
+        measured_relvar=meas, sub_relvar=sub, sub_nblocks=sub_n,
+        pred_lower_hoeffding_by_m=pred_lo_h,
+        pred_leading_by_m=pred, pred_upper_m1_by_m=pred_hi_m1,
+        pred_upper_by_m=pred_hi,
+        iid=iid_diagnostics(Cnt, rec["logps"]),
+    )
+    if ip % 5 == 0:
+        r = row
+        print(f"  [{setting_key(task, T)}] p{ip}: nY={r['n_uniq']} "
+              f"chi2_1={r['chi2_1']:.4g} m1={r['m1']:.4g} "
+              f"r1={r['r1']:.3g} (secondary) "
+              f"lead={r['leading']:.4g} MC={r['mc_relvar']:.4g}"
+              f"+-{r['mc_se']:.2g} meas={r['measured_relvar']} "
+              f"E[Zhat]/Z={r['mc_mean_ratio']:.4f} "
+              f"KL bound m1 hybrid={r['bound_hybrid_m1_KL']:.4g} "
+              f"(r1 hybrid={r['cert_hybrid_KL']:.4g})", flush=True)
+    return row
 
 
 def fmt(x):
     return f"{float(x):g}"
 
 
-def setting_key(task, scheme, knob):
-    """Result key, e.g. 'gsm8k|tau|tau=0.03'."""
-    return f"{task}|{scheme}|tau={fmt(knob)}"
-
-
-def calibration_sigma(task, path=None):
-    """sigma_hat at the task's anchor sT from the calibration JSON that
-    dpp-estimation --calibrate wrote at the cache root."""
-    cfg = CONFIGS[task]
-    if path is None:
-        model_emb = cfg["fname"].replace("_embeddings.pkl", "")
-        path = os.path.join(ROOT_DIR, cfg["cache"], f"calibration_{model_emb}.json")
-    with open(path) as f:
-        sig = {float(k): float(v) for k, v in json.load(f)["sigma_hat"].items()}
-    if cfg["sT"] not in sig:
-        raise ValueError(f"{path} has no sigma_hat for sT={cfg['sT']}")
-    return sig[cfg["sT"]], path
+def setting_key(task, T):
+    """Result key, e.g. 'gsm8k|T=1.05'."""
+    return f"{task}|T={fmt(T)}"
 
 
 def g(v, spec=".4g"):
@@ -889,10 +893,8 @@ def main():
                     choices=["extract", "analyze", "t1", "all"])
     ap.add_argument("--max-prompts", type=int, default=100)
     ap.add_argument("--R-mc", type=int, default=1500)
-    ap.add_argument("--sub-rep", type=int, default=3)
-    ap.add_argument("--taus", nargs="+", type=float, required=True, help="tilt anchors")
-    ap.add_argument("--calibration", default=None,
-                    help="sigma_hat JSON (default {cache}/calibration_{LM}_{emb}.json)")
+    ap.add_argument("--workers", type=int, default=1)
+    ap.add_argument("--Ts", nargs="+", type=float, required=True, help="reweighting temperatures")
     ap.add_argument("--cache", default=None, help="override the task's cache dir")
     ap.add_argument("--n-pools", type=int, default=None)
     ap.add_argument("--pool-files", nargs="+", default=None,
@@ -914,19 +916,12 @@ def main():
             cfg["pool_files"] = [os.path.join(ROOT_DIR, p) for p in args.pool_files]
         if args.no_extra_pools:
             cfg.pop("extra_pool_glob", None)
-        sigma, cal_path = calibration_sigma(task, args.calibration)
-        cfg["sigma"] = sigma
-        cfg["sweeps"] = [("tau", float(t)) for t in args.taus]
+        cfg["sweeps"] = [float(t) for t in args.Ts]
         out[f"{task}|meta"] = dict(
-            scheme="tau", sT=cfg["sT"], K=cfg["K"], N_pool=cfg["M_exp"],
-            sigma_hat=sigma, calibration=os.path.relpath(cal_path, ROOT_DIR),
-            anchors={fmt(t): dict(beta=t / sigma, L_weight_exponent=2 * t / sigma)
-                     for t in args.taus},
+            sT=cfg["sT"], K=cfg["K"], N_pool=cfg["M_exp"], Ts=cfg["sweeps"],
             pool_files=[os.path.relpath(p, ROOT_DIR) for p in pool_files(task)],
-            note="L weight rho = plm^(2 tau/sigma_hat) = B-row plm^beta squared")
-        print(f"[{task}] tau scheme: sigma_hat(sT={cfg['sT']})={sigma:.4f}; "
-              + ", ".join(f"tau={fmt(t)} -> beta={t / sigma:.5g}" for t in args.taus),
-              flush=True)
+            note="L weight rho = plm^(1/T) / q")
+        print(f"[{task}] sT={cfg['sT']}, T in {cfg['sweeps']}", flush=True)
         print(f"[{task}] pools: {len(pool_files(task))} files; extract -> "
               f"{pooled_path(task)}", flush=True)
         if args.stage in ("extract", "all"):
@@ -940,7 +935,7 @@ def main():
                      (6, 2, 5, None), (5, 3, 6, None)]
             out[f"{task}|T1_enumeration"] = t1_enumeration(task, pooled, rng, cases)
         if args.stage in ("analyze", "all"):
-            ps = analyze(task, args.max_prompts, args.R_mc, args.sub_rep)
+            ps = analyze(task, args.max_prompts, args.R_mc, args.workers)
             out.update({k: v for k, v in ps.items()})
             tmp = os.path.join(SCRIPT_DIR, f"bound_raw_{task}.json")
             with open(tmp, "w") as fh:

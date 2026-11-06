@@ -1,8 +1,9 @@
-"""ESS of the unified-kernel weights on Ambrosia at N'=6000 (tab:weights, panel b)
+"""ESS of the figure kernels on Ambrosia at N'=6000 (tab:weights)
 ===============================================================================
 Merges the 30 pools of N=200 into one candidate set per question at sT=1.0 and
-sT=1.5 (unique strings, counts summed). Reports the ESS of the L weights
-plm^(2 tau/sigma_hat) at N=200 (pool 0) and N=6000, and the bound on the KL at
+sT=1.5 (unique strings, counts summed). Reports the ESS at N=200 (pool 0) and
+N=6000 of the PoolDPP-Samp weights plm^(1/T)/q at sT=1.0 and of the PoolDPP-MAP
+weights plm^(1/T) at sT=1.5, and the bound on the KL at
 N=200 and N=6000 from the per-question bound rows (bound_raw_ambrosia.json),
 median over questions:
   "bound_m1|{setting}": median_bound_m1_N200, median_bound_m1_N6000 (new,
@@ -11,9 +12,6 @@ median over questions:
   "cert|{setting}": median_cert_N200, median_cert_N6000 (secondary, meaning
       unchanged): r_1 hybrid log(1 + a_1 chi2_1 + sum_{c>=2} a_c (K^c/(K)_c r_1^c - 1)).
 Formulas in bound_formulas.py.
-
-sigma_hat is the cache-ambrosia calibration (pool 0), the constant the N=200
-runs use, so a tau means the same kernel at both pool sizes.
 
 Output: analysis/ess_ambrosia_n6000.json
 """
@@ -34,7 +32,8 @@ import bound_formulas as bf  # noqa: E402
 MODEL = "google__gemma-2-9b-it_minilm"
 FNAME = f"{MODEL}_embeddings.pkl"
 STS = [1.0, 1.5]
-TAUS = [0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30]
+TS = {1.0: [0.428571, 0.538462, 0.666667, 0.818182, 1], 1.5: [10, 7.5, 3, 1]}
+USES_Q = {1.0: True, 1.5: False}  # PoolDPP-Samp at sT=1.0 divides by q, PoolDPP-MAP at sT=1.5 does not
 K = 3
 N_POOLS = 30
 
@@ -77,14 +76,14 @@ def merge(cache, sT, n_pools):
     return out
 
 
-def ess_summary(per_prompt, beta):
+def ess_summary(per_prompt, T, uses_q):
     ess, N = [], None
     for _, d in per_prompt.items():
         lp1 = np.asarray(d["logps_t1"], dtype=np.float64)
         c = np.asarray(d["counts"], dtype=np.float64)
         if len(lp1) < 2:
             continue
-        lw = 2.0 * beta * lp1
+        lw = lp1 / T - (np.asarray(d["logps"], dtype=np.float64) if uses_q else 0.0)
         w = np.exp(lw - lw.max())
         wbar = w / (w * c).sum()
         ess.append(1.0 / (c * wbar ** 2).sum())
@@ -116,22 +115,17 @@ def run(a):
                for sT in STS}
     print(f"merged {len(merged[1.0])} prompts; mean uniques {n_uniq}; draws {n_draws}")
 
-    with open(os.path.join(ROOT_DIR, a.calibration)) as f:
-        sig = {float(k): float(v) for k, v in json.load(f)["sigma_hat"].items()}
     with open(os.path.join(ROOT_DIR, a.cache, "pool0", FNAME), "rb") as f:
         pool0 = pickle.load(f)
-    out = {"_meta": dict(cache=a.cache, n_pools=a.n_pools,
-                         calibration=a.calibration, sigma_hat={fmt(s): sig[s] for s in STS},
-                         mean_unique=n_uniq, mean_draws=n_draws,
-                         weight="L weight plm^(2 tau/sigma_hat)")}
+    out = {"_meta": dict(cache=a.cache, n_pools=a.n_pools, mean_unique=n_uniq, mean_draws=n_draws,
+                         weight="sT=1: plm^(1/T)/q (Samp); sT=1.5: plm^(1/T) (MAP)")}
     for sT in STS:
-        for tau in TAUS:
-            beta = tau / sig[sT]
-            o = {"N200_pool0": ess_summary(pool0[sT], beta),
-                 "N6000_merged": ess_summary(merged[sT], beta)}
-            out[f"ess|sT={fmt(sT)}|tau={fmt(tau)}"] = o
+        for T in TS[sT]:
+            o = {"N200_pool0": ess_summary(pool0[sT], T, USES_Q[sT]),
+                 "N6000_merged": ess_summary(merged[sT], T, USES_Q[sT])}
+            out[f"ess|sT={fmt(sT)}|T={fmt(T)}"] = o
             m = o["N6000_merged"]
-            print(f"ESS sT={fmt(sT)} tau={fmt(tau)}: N=6000 med={m['ess_median']:8.1f} "
+            print(f"ESS sT={fmt(sT)} T={fmt(T)}: N=6000 med={m['ess_median']:8.1f} "
                   f"[{m['ess_q25']:8.1f},{m['ess_q75']:8.1f}] min={m['ess_min']:7.1f} "
                   f"collapsed<K={m['n_collapsed_lt_K']}/{m['n_prompts']}  "
                   f"(N=200 med={o['N200_pool0']['ess_median']:.1f})")
@@ -168,8 +162,6 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--cache", default="cache-ambrosia")
     ap.add_argument("--n-pools", type=int, default=N_POOLS)
-    ap.add_argument("--calibration",
-                    default="cache-ambrosia/calibration_google__gemma-2-9b-it_minilm.json")
     ap.add_argument("--bound-raw", default="bound_raw_ambrosia.json")
     run(ap.parse_args())
 

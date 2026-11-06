@@ -1,8 +1,8 @@
-"""ESS of the unified-kernel weights on FineWeb at N'=8000 (tab:weights, panel b)
+"""ESS of the PoolDPP-Samp weights on FineWeb at N'=8000 (tab:weights)
 ==============================================================================
 Two pools of 4000 draws per prompt (seeds 101 and 202, sT=1.0), embedded with
 MiniLM and merged per prompt (unique strings, counts summed). Reports the ESS of
-the L weights plm^(2 tau/sigma_hat) for N=4000 (each half) and N=8000 (merged)
+the weights plm^(1/T)/q for N=4000 (each half) and N=8000 (merged)
 next to N=400 (pool 0), the cross/within collision ratio between the halves, and
 the bound on the KL at N in {400, 4000, 8000} from the per-question bound rows
 (bound_raw_fineweb.json), median over questions:
@@ -11,9 +11,6 @@ the bound on the KL at N in {400, 4000, 8000} from the per-question bound rows
   "cert|{setting}" (secondary, meaning unchanged): r_1 hybrid
       log(1 + a_1 chi2_1 + sum_{c>=2} a_c (K^c/(K)_c r_1^c - 1)).
 Formulas in bound_formulas.py.
-
-sigma_hat is the cache-fineweb calibration (pool 0), so a tau means the same
-kernel at every pool size.
 
 Output: analysis/ess_fineweb_n8000.json
 """
@@ -32,7 +29,7 @@ ROOT_DIR = os.path.dirname(SCRIPT_DIR)
 sys.path.insert(0, SCRIPT_DIR)
 
 import bound_formulas as bf  # noqa: E402
-TAUS = [0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30]
+TS = [0.428571, 0.666667, 0.818182, 1, 1.22222]
 K = 10
 MODEL = "google__gemma-2-9b-it_minilm"
 FNAME = f"{MODEL}_embeddings.pkl"
@@ -77,7 +74,7 @@ def merge_two(da, db):
     return out
 
 
-def ess_rows(per_prompt, beta):
+def ess_rows(per_prompt, T):
     rows = []
     for _, d in per_prompt.items():
         lp = np.asarray(d["logps"], dtype=np.float64)
@@ -85,7 +82,7 @@ def ess_rows(per_prompt, beta):
         c = np.asarray(d["counts"], dtype=np.float64)
         if lp.shape != lp1.shape or len(lp) < 2:
             continue
-        lw = 2.0 * beta * lp1
+        lw = lp1 / T - lp
         w = np.exp(lw - lw.max())
         wbar = w / (w * c).sum()
         rows.append(1.0 / (c * wbar ** 2).sum())
@@ -136,22 +133,18 @@ def run(a):
     print(f"merged {len(merged)} prompts; uniques per prompt: "
           f"{np.mean([len(d['u_sents']) for d in merged.values()]):.0f} avg")
 
-    with open(os.path.join(ROOT_DIR, a.calibration)) as f:
-        sigma = {float(k): float(v) for k, v in json.load(f)["sigma_hat"].items()}[1.0]
     pool0 = load(a.pool0_cache)
-    out = {"_meta": dict(halves=a.halves, calibration=a.calibration,
-                         sigma_hat=sigma, weight="L weight plm^(2 tau/sigma_hat)"),
+    out = {"_meta": dict(halves=a.halves, weight="plm^(1/T)/q"),
            "independence_between_halves": cross_within_ratio(da, db)}
     print("independence:", out["independence_between_halves"])
-    for tau in TAUS:
-        beta = tau / sigma
-        row = {"pool0_N400": summarize(ess_rows(pool0, beta), 400),
-               "half_a_N4000": summarize(ess_rows(da, beta), 4000),
-               "half_b_N4000": summarize(ess_rows(db, beta), 4000),
-               "merged_N8000": summarize(ess_rows(merged, beta), 8000)}
-        out[f"tau={fmt(tau)}"] = row
+    for T in TS:
+        row = {"pool0_N400": summarize(ess_rows(pool0, T), 400),
+               "half_a_N4000": summarize(ess_rows(da, T), 4000),
+               "half_b_N4000": summarize(ess_rows(db, T), 4000),
+               "merged_N8000": summarize(ess_rows(merged, T), 8000)}
+        out[f"T={fmt(T)}"] = row
         m = row["merged_N8000"]
-        print(f"tau={fmt(tau)}: N=8000 ESS med={m['ess_median']:7.1f} "
+        print(f"T={fmt(T)}: N=8000 ESS med={m['ess_median']:7.1f} "
               f"[{m['ess_q25']:7.1f},{m['ess_q75']:7.1f}] min={m['ess_min']:6.1f} "
               f"collapsed<K={m['n_collapsed_lt_K']}/{m['n_prompts']}")
     xr = os.path.join(SCRIPT_DIR, a.bound_raw)
@@ -186,8 +179,6 @@ def main():
     ap.add_argument("--halves", nargs=2,
                     default=["cache-fineweb-n8000-a", "cache-fineweb-n8000-b"])
     ap.add_argument("--pool0-cache", default="cache-fineweb")
-    ap.add_argument("--calibration",
-                    default="cache-fineweb/calibration_google__gemma-2-9b-it_minilm.json")
     ap.add_argument("--bound-raw", default="bound_raw_fineweb.json")
     run(ap.parse_args())
 

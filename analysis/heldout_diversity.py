@@ -3,7 +3,7 @@ Non-kernel diversity metrics on FineWeb (tab:intrinsic-heldout)
 ===============================================================
 The FineWeb figure plots mean log-prob
 against log-det of the MiniLM Gram matrix, and PoolDPP-MAP selects by
-maximizing beta*sum(log p) + logdet of exactly that matrix. It is graded on its
+maximizing sum(log p)/T + logdet of exactly that matrix. It is graded on its
 own objective.
 
 This script re-scores the same selected sets with diversity metrics that are
@@ -41,8 +41,9 @@ QWEN_EMB = os.path.join(ROOT_DIR, "cache-fineweb",
                         "google__gemma-2-9b-it_qwen_embeddings.pkl")
 
 ST_SWEEP = [0.6, 0.8, 1.0, 1.2, 1.5]
-# unified layout: PoolDPP-Samp / -MAP hold sT=1.0 and sweep the tilt tau
-TAUS = [0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30]
+# PoolDPP-Samp / -MAP hold sT=1.0 and sweep T on the grids of the figure
+SAMP_TS = [0.428571, 0.666667, 0.818182, 1, 1.22222]
+MAP_TS = [500, 100, 50, 25, 10]
 
 
 def fmt(x):
@@ -53,10 +54,10 @@ METHODS = (
     [("Ancestral", sT, f"{MODEL}-ancestral", f"s{fmt(sT)}.pkl") for sT in ST_SWEEP]
     + [("k-Means", sT, f"{MODEL}-kmeans", f"s{fmt(sT)}.pkl") for sT in ST_SWEEP]
     + [("Naive DPP", sT, f"{MODEL}-naive", f"s{fmt(sT)}.pkl") for sT in ST_SWEEP]
-    + [("PoolDPP-Samp", f"tau={fmt(t)}", f"{MODEL}-samp", f"tau{fmt(t)}_s1.pkl")
-       for t in TAUS]
-    + [("PoolDPP-MAP", f"tau={fmt(t)}", f"{MODEL}-map", f"tau{fmt(t)}_s1.pkl")
-       for t in TAUS]
+    + [("PoolDPP-Samp", f"T={fmt(t)}", f"{MODEL}-samp", f"T{fmt(t)}_s1.pkl")
+       for t in SAMP_TS]
+    + [("PoolDPP-MAP", f"T={fmt(t)}", f"{MODEL}-map", f"T{fmt(t)}_s1.pkl")
+       for t in MAP_TS]
 )
 
 

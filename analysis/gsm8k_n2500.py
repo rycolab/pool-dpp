@@ -3,13 +3,12 @@
 Two workers (seeds 303 and 404, 1,250 draws each at sT=1.2) merged to one pool of
 N=2,500 draws per question.
 
-Kernel: B-rows plm^beta * phi, beta = tau / sigma_hat(sT=1.2) with sigma_hat from
-the cache-gsm8k calibration (the same constant the N=100 pools use), so the L
-weight is plm^(2 beta). The merged pool holds unique strings with summed counts.
+Kernels as in the figures: PoolDPP-Samp w = plm^(1/T)/q, PoolDPP-MAP w = plm^(1/T).
+The merged pool holds unique strings with summed counts.
 
 Reports:
   - the bound on the KL at N in {100, 1250, 2500} from the per-question bound rows
-    of the same tau anchors (bound_raw_gsm8k.json, built from the N=100 pools;
+    of the same T (bound_raw_gsm8k.json, built from the N=100 pools;
     chi2_1 = Var_q(u_1) and r_1 do not depend on N), median over questions:
       key "bound_m1|{setting}" (new, primary): second-moment hybrid
           log(1 + a_1 chi2_1 + sum_{c>=2} a_c ((K^c/(K)_c)^2 m_1^c - 1)),
@@ -20,7 +19,7 @@ Reports:
     from the N=2,500 pools;
   - pass@10 of PoolDPP-MAP per worker (N=1250) and merged (N=2500);
   - pass@10 of PoolDPP-Samp at N=2500;
-  - ESS of the L weights at N=2500;
+  - ESS of the PoolDPP-Samp weights at N=2500;
   - pool ceiling (any correct chain among the 2,500 draws);
   - cross/within collision ratio between the two workers (independence).
 
@@ -45,17 +44,17 @@ sys.path.insert(0, os.path.join(ROOT_DIR, "src"))
 sys.path.insert(0, SCRIPT_DIR)
 
 import bound_formulas as bf  # noqa: E402
-from lm_dpp.estimation import fmt, greedy_map, load_calibration, quality_log_scales, sample_dpp  # noqa: E402
+from lm_dpp.estimation import fmt, greedy_map, quality_log_scales, sample_dpp, target_log_scales  # noqa: E402
 from lm_dpp.utils.math_utils import build_math_prompt, is_correct, load_gsm8k_dataset  # noqa: E402
 
 ST = 1.2
 K = 10
-MAP_TAUS = [0.03, 0.1, 0.3, 1, 3]
-SAMP_TAUS = [0.03, 1]
+MAP_TS = [10, 50, 100, 500]
+SAMP_TS = [1, 1.05]
+ESS_TS = [0.428571, 0.666667, 0.818182, 1, 1.03, 1.05, 1.07, 1.1, 1.22222]
 SAMP_DRAWS = 5
 CACHES = ["cache-gsm8k-n2500-a", "cache-gsm8k-n2500-b"]
 EMB_FNAME = "google__gemma-2-9b-it_qwen_embeddings.pkl"
-CAL = "cache-gsm8k/calibration_google__gemma-2-9b-it_qwen.json"
 BOUND_RAW = "bound_raw_gsm8k.json"
 
 
@@ -75,9 +74,10 @@ def merge_halves(ha, hb):
     for pt in ha:
         if pt not in hb:
             continue
-        idx, sents, phi, lp1, cnt = {}, [], [], [], []
+        idx, sents, phi, lp, lp1, cnt = {}, [], [], [], [], []
         for d in (ha[pt], hb[pt]):
             E = np.asarray(d["embeddings"])
+            L0 = np.asarray(d["logps"], dtype=np.float64)
             L1 = np.asarray(d["logps_t1"], dtype=np.float64)
             C = np.asarray(d["counts"], dtype=np.int64)
             for j, s in enumerate(d["u_sents"]):
@@ -86,17 +86,20 @@ def merge_halves(ha, hb):
                     k = idx[s] = len(sents)
                     sents.append(s)
                     phi.append(E[j])
+                    lp.append(L0[j])
                     lp1.append(L1[j])
                     cnt.append(0)
                 cnt[k] += int(C[j])
         out[pt] = dict(u_sents=sents, embeddings=np.asarray(phi, dtype=np.float64),
-                       logps_t1=np.asarray(lp1), counts=np.asarray(cnt, dtype=np.int64))
+                       logps=np.asarray(lp), logps_t1=np.asarray(lp1),
+                       counts=np.asarray(cnt, dtype=np.int64))
     return out
 
 
 def as_pool(d):
     return dict(u_sents=list(d["u_sents"]),
                 embeddings=np.asarray(d["embeddings"], dtype=np.float64),
+                logps=np.asarray(d["logps"], dtype=np.float64),
                 logps_t1=np.asarray(d["logps_t1"], dtype=np.float64),
                 counts=np.asarray(d["counts"], dtype=np.int64))
 
@@ -122,7 +125,6 @@ def cross_within_ratio(ha, hb):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--caches", nargs=2, default=CACHES)
-    ap.add_argument("--calibration", default=CAL)
     ap.add_argument("--bound-raw", default=os.path.join(SCRIPT_DIR, BOUND_RAW))
     ap.add_argument("--out", default=os.path.join(SCRIPT_DIR, "gsm8k_n2500.json"))
     ap.add_argument("--max-prompts", type=int, default=None, help="smoke tests")
@@ -136,7 +138,6 @@ def main():
         raise SystemExit("GSM8K dataset did not load (HF offline?); refusing to score")
     prompt_to_gold = {build_math_prompt(r["question"]): r["answer"]
                       for _, r in df.iterrows()}
-    sigma = load_calibration(os.path.join(ROOT_DIR, a.calibration))[ST]
 
     halves = []
     for c in a.caches:
@@ -145,13 +146,12 @@ def main():
     prompts = [pt for pt in halves[0] if pt in prompt_to_gold and pt in halves[1]]
     if a.max_prompts:
         prompts = prompts[:a.max_prompts]
-    print(f"{len(prompts)} prompts; sigma_hat(sT={ST})={sigma:.4f}", flush=True)
+    print(f"{len(prompts)} prompts", flush=True)
     merged = merge_halves({p: halves[0][p] for p in prompts},
                           {p: halves[1][p] for p in prompts})
 
     results = {"_meta": dict(
-        caches=a.caches, calibration=a.calibration, sigma_hat=sigma, K=K, sT=ST,
-        kernel="B-rows plm^beta phi, beta = tau/sigma_hat; L weight plm^(2 beta)",
+        caches=a.caches, K=K, sT=ST, kernel="Samp w = plm^(1/T)/q, MAP w = plm^(1/T)",
         n_prompts=len(prompts))}
     results["independence_between_workers"] = cross_within_ratio(halves[0], halves[1])
     print("independence:", results["independence_between_workers"], flush=True)
@@ -191,53 +191,53 @@ def main():
     else:
         print(f"[warn] {a.bound_raw} missing; bounds on the KL skipped", flush=True)
 
-    # L-weight ESS at N=2500
+    # ESS of the PoolDPP-Samp weights at N=2500
     ess_out = {}
-    for tau in sorted(set(MAP_TAUS) | set(SAMP_TAUS)):
-        beta = tau / sigma
+    for T in ESS_TS:
         ess = []
         for pt in prompts:
             d = merged[pt]
             c = d["counts"].astype(np.float64)
-            lw = 2.0 * beta * d["logps_t1"]
+            lw = d["logps_t1"] / T - d["logps"]
             w = np.exp(lw - lw.max())
             wbar = w / (w * c).sum()
             ess.append(1.0 / (c * wbar ** 2).sum())
-        ess_out[fmt(tau)] = {"median": float(np.median(ess)), "min": float(np.min(ess)),
+        ess_out[fmt(T)] = {"median": float(np.median(ess)), "q25": float(np.quantile(ess, 0.25)),
+                           "q75": float(np.quantile(ess, 0.75)), "min": float(np.min(ess)),
                              "n_lt_K": int((np.asarray(ess) < K).sum())}
     results["L_weight_ess_N2500"] = ess_out
 
-    def map_pass(pool, tau):
-        return greedy_map(quality_log_scales(pool["logps_t1"], tau / sigma), pool["embeddings"], K)
+    def map_pass(pool, T):
+        return greedy_map(quality_log_scales(pool["logps_t1"], 1.0 / (2.0 * T)), pool["embeddings"], K)
 
     # per-worker N=1250 and merged N=2500 MAP
     for name, src in [("A_N1250", {p: as_pool(halves[0][p]) for p in prompts}),
                       ("B_N1250", {p: as_pool(halves[1][p]) for p in prompts}),
                       ("merged_N2500", merged)]:
         vals = {}
-        for tau in MAP_TAUS:
+        for T in MAP_TS:
             hits = [float(correct_any(pt, [src[pt]["u_sents"][i]
-                                           for i in map_pass(src[pt], tau)]))
+                                           for i in map_pass(src[pt], T)]))
                     for pt in prompts]
-            vals[fmt(tau)] = float(np.mean(hits))
+            vals[fmt(T)] = float(np.mean(hits))
         results[f"map_pass_at_10|{name}"] = vals
         print(f"MAP {name}: {vals}", flush=True)
 
     # merged N=2500 Samp
     samp = {}
-    for tau in SAMP_TAUS:
+    for T in SAMP_TS:
         vals, n_short = [], 0
         for pt in prompts:
             d = merged[pt]
-            draws = sample_dpp(quality_log_scales(d["logps_t1"], tau / sigma, d["counts"]),
+            draws = sample_dpp(target_log_scales(d["logps"], d["logps_t1"], d["counts"], T),
                                d["embeddings"], K, N=SAMP_DRAWS)
             n_short += sum(len(s) < K for s in draws)
             hits = [float(correct_any(pt, [d["u_sents"][i] for i in s])) for s in draws if len(s) == K]
             if hits:
                 vals.append(float(np.mean(hits)))
-        samp[fmt(tau)] = {"pass_at_10": float(np.mean(vals)), "n_prompts": len(vals),
+        samp[fmt(T)] = {"pass_at_10": float(np.mean(vals)), "n_prompts": len(vals),
                           "n_draws_per_prompt": SAMP_DRAWS, "n_sets_lt_K": n_short}
-        print(f"Samp N=2500 tau={fmt(tau)}: {samp[fmt(tau)]}", flush=True)
+        print(f"Samp N=2500 T={fmt(T)}: {samp[fmt(T)]}", flush=True)
     results["samp_N2500"] = samp
 
     results["ceiling_pass_at_2500"] = float(np.mean(
