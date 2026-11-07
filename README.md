@@ -79,6 +79,6 @@ Selections are written to `cache-{task}/.../est{K}{embedder}/{run}/{lm}_{embedde
 ## Tests
 
 ```bash
-pytest tests/test_estimation.py tests/test_sbs.py tests/test_bounds_m1.py
+pytest tests/test_estimation.py tests/test_sbs.py tests/test_bounds_m1.py tests/test_check_paper_sources.py
 python tests/test_stable.py
 ```
