@@ -1,0 +1,42 @@
+{
+  "Ancestral sT=1.0": {
+    "different_answer": 0.12,
+    "same_answer_diff_derivation": 0.09423728813559322,
+    "surface_only": 0.7857627118644068,
+    "n_pairs": 1475,
+    "n_same_answer": 1298,
+    "n_judge_verdicts": 1298,
+    "judge_agrees_with_det_rule_on_BC": 0.5924499229583975,
+    "anomalies": {}
+  },
+  "k-Means sT=1.0": {
+    "different_answer": 0.15736934820904286,
+    "same_answer_diff_derivation": 0.11509101585437463,
+    "surface_only": 0.7275396359365826,
+    "n_pairs": 1703,
+    "n_same_answer": 1435,
+    "n_judge_verdicts": 1435,
+    "judge_agrees_with_det_rule_on_BC": 0.6034843205574912,
+    "anomalies": {}
+  },
+  "PoolDPP-Samp tT=500": {
+    "different_answer": 0.24507389162561577,
+    "same_answer_diff_derivation": 0.11576354679802955,
+    "surface_only": 0.6391625615763546,
+    "n_pairs": 812,
+    "n_same_answer": 613,
+    "n_judge_verdicts": 613,
+    "judge_agrees_with_det_rule_on_BC": 0.5954323001631321,
+    "anomalies": {}
+  },
+  "PoolDPP-MAP tT=500": {
+    "different_answer": 0.30686695278969955,
+    "same_answer_diff_derivation": 0.11373390557939914,
+    "surface_only": 0.5793991416309013,
+    "n_pairs": 466,
+    "n_same_answer": 323,
+    "n_judge_verdicts": 323,
+    "judge_agrees_with_det_rule_on_BC": 0.4953560371517028,
+    "anomalies": {}
+  }
+}

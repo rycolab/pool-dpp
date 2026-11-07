@@ -1,0 +1,23 @@
+{
+  "judge_model": "gemini-3.6-flash",
+  "n_judged": 300,
+  "overall_agreement": 0.6766666666666666,
+  "per_class_agreement": {
+    "different_answer": 1.0,
+    "same_answer_diff_derivation": 0.13,
+    "surface_only": 0.9
+  },
+  "per_class_n": {
+    "different_answer": 100,
+    "same_answer_diff_derivation": 100,
+    "surface_only": 100
+  },
+  "confusion": {
+    "different_answer->different_answer": 100,
+    "same_answer_diff_derivation->surface_only": 87,
+    "same_answer_diff_derivation->same_answer_diff_derivation": 13,
+    "surface_only->surface_only": 90,
+    "surface_only->same_answer_diff_derivation": 10
+  },
+  "note": "stratified sample, so overall agreement is a macro-style figure over the three classes, not the agreement you would see on the natural class mix"
+}

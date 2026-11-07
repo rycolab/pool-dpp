@@ -1,4 +1,4 @@
-"""ESS of the figure kernels on Ambrosia at N'=6000 (tab:weights)
+"""ESS of the figure kernels on Ambrosia at N'=200*n_pools (tab:weights)
 ===============================================================================
 Merges the first 30 pools of N=200 into one candidate set per question at sT=1.0 and
 sT=1.5 (unique strings, counts summed). Reports the ESS at N=200 (pool 0) and
@@ -13,7 +13,8 @@ median over questions:
       r_1 hybrid log(1 + a_1 chi2_1 + sum_{c>=2} a_c (K^c/(K)_c r_1^c - 1)).
 Formulas in bound_formulas.py.
 
-Output: analysis/ess_ambrosia_n6000.json
+Output: analysis/ess_ambrosia_n{200*n_pools}.json: n6000 for the default 30 pools, n20000 for --n-pools 100
+        (pass --cache with pool0..pool99 in one directory).
 """
 
 import argparse
@@ -108,6 +109,7 @@ def cert_at(N, K_, chi2_1, r1):
 
 
 def run(a):
+    NB = 200 * a.n_pools
     merged = {sT: merge(a.cache, sT, a.n_pools) for sT in STS}
     n_uniq = {fmt(sT): float(np.mean([len(d["u_sents"]) for d in merged[sT].values()]))
               for sT in STS}
@@ -122,10 +124,10 @@ def run(a):
     for sT in STS:
         for T in TS[sT]:
             o = {"N200_pool0": ess_summary(pool0[sT], T, USES_Q[sT]),
-                 "N6000_merged": ess_summary(merged[sT], T, USES_Q[sT])}
+                 f"N{NB}_merged": ess_summary(merged[sT], T, USES_Q[sT])}
             out[f"ess|sT={fmt(sT)}|T={fmt(T)}"] = o
-            m = o["N6000_merged"]
-            print(f"ESS sT={fmt(sT)} T={fmt(T)}: N=6000 med={m['ess_median']:8.1f} "
+            m = o[f"N{NB}_merged"]
+            print(f"ESS sT={fmt(sT)} T={fmt(T)}: N={NB} med={m['ess_median']:8.1f} "
                   f"[{m['ess_q25']:8.1f},{m['ess_q75']:8.1f}] min={m['ess_min']:7.1f} "
                   f"collapsed<K={m['n_collapsed_lt_K']}/{m['n_prompts']}  "
                   f"(N=200 med={o['N200_pool0']['ess_median']:.1f})")
@@ -139,23 +141,24 @@ def run(a):
                 bf.m1_of_row(r)  # rows that store m1 must have m1 = 1 + chi2_1
             o_m1 = {"median_bound_m1_N200": float(np.median(
                         [bound_m1_at(200, K, r["chi2_1"]) for r in rows])),
-                    "median_bound_m1_N6000": float(np.median(
-                        [bound_m1_at(6000, K, r["chi2_1"]) for r in rows]))}
+                    f"median_bound_m1_N{NB}": float(np.median(
+                        [bound_m1_at(NB, K, r["chi2_1"]) for r in rows]))}
             out[f"bound_m1|{key}"] = o_m1
             print(f"bound on the KL (m1) {key}: N=200 {o_m1['median_bound_m1_N200']:.4f} -> "
-                  f"N=6000 {o_m1['median_bound_m1_N6000']:.5f}")
+                  f"N={NB} {o_m1[f'median_bound_m1_N{NB}']:.5f}")
             o = {"median_cert_N200": float(np.median([cert_at(200, K, r["chi2_1"], r["r1"])
                                                       for r in rows])),
-                 "median_cert_N6000": float(np.median([cert_at(6000, K, r["chi2_1"], r["r1"])
-                                                       for r in rows]))}
+                 f"median_cert_N{NB}": float(np.median([cert_at(NB, K, r["chi2_1"], r["r1"])
+                                                        for r in rows]))}
             out[f"cert|{key}"] = o
             print(f"  r1 version (secondary) {key}: N=200 {o['median_cert_N200']:.4f} -> "
-                  f"N=6000 {o['median_cert_N6000']:.5f}")
+                  f"N={NB} {o[f'median_cert_N{NB}']:.5f}")
     else:
         print(f"[warn] {xr} missing; bounds on the KL skipped")
-    with open(os.path.join(SCRIPT_DIR, "ess_ambrosia_n6000.json"), "w") as f:
+    name = f"ess_ambrosia_n{NB}.json"
+    with open(os.path.join(SCRIPT_DIR, name), "w") as f:
         json.dump(out, f, indent=1)
-    print("Saved analysis/ess_ambrosia_n6000.json")
+    print(f"Saved analysis/{name}")
 
 
 def main():
