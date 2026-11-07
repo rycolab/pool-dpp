@@ -19,7 +19,17 @@ figure's grids.
 Uncertainty: each metric is averaged within a pool (over questions and run
 dirs), then reported as the mean over the 100 independent pools with a 95%
 t-interval half-width across pools ({metric}_ci95). The Pareto frontier is
-computed on the means.
+computed on the means. unique answers counts only chains with a final
+'#### N'; n_chains_no_final_answer reports, per method, how many chains have none.
+
+Failures stop the run with an error; nothing is skipped. A missing pool
+embeddings file, est dir or selection file raises FileNotFoundError listing
+every missing one (a stochastic method must exist in every run dir 0..N-1,
+PoolDPP-MAP in run dir 0). A pool or selection file without exactly the 50
+questions, a record that is not (prompt, sents, logps_t1, embs), a set of other
+than K strings, a pool with fewer than K distinct strings, a non-finite metric
+(e.g. a log-det whose Gram matrix plus 1e-6 I is not positive definite) or
+fewer than 2 pools raises ValueError (see the checks in baselines.py).
 
 Usage:
     OPENBLAS_NUM_THREADS=1 python analysis/baselines_gsm8k.py \
@@ -39,7 +49,8 @@ import numpy as np
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(SCRIPT_DIR)
 sys.path.insert(0, SCRIPT_DIR)
-from baselines import fmt, logdet, selections, t975  # noqa: E402
+from baselines import (check_pool_row, check_prompts, check_selections, finite_mean, fmt,  # noqa: E402
+                       logdet, require_pools, selection_files, selections, t975)
 
 M = "google__gemma-2-9b-it_qwen"
 EST = "est10qwen"
@@ -102,51 +113,47 @@ def main():
     acc = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
     corr_cache = {}
 
+    no_answer = defaultdict(int)   # chains with no final '#### N', per method
+
     def add(name, pi, pt, sents, E, gold):
         c = np.array([corr_cache.setdefault((pt, s), 1.0 if is_correct(s, gold) else 0.0)
                       for s in sents])
         v = acc[name][pi]
         v["pass"].append(1.0 if c.sum() > 0 else 0.0)
         v["chain"].append(float(c.mean()))
-        v["uniq"].append(len({ans_of(s) for s in sents} - {None}))
+        answers = [ans_of(s) for s in sents]
+        no_answer[name] += sum(x is None for x in answers)
+        v["uniq"].append(len(set(answers) - {None}))
         v["ld"].append(logdet(E))
 
+    pool_dir = {pi: os.path.join(ROOT_DIR, a.cache, f"pool{pi}") for pi in range(a.n_pools)}
+    require_pools(f"gsm8k ({a.variant})",
+                  {pi: [os.path.join(d, f"{model}_embeddings.pkl"), os.path.join(d, est_sub)]
+                   for pi, d in pool_dir.items()})
     for pi in range(a.n_pools):
         # pool-embedding methods
-        p = os.path.join(ROOT_DIR, a.cache, f"pool{pi}",
-                         f"{model}_embeddings.pkl")
-        if os.path.exists(p):
-            emb = pickle.load(open(p, "rb"))
-            if ST in emb:
-                for pt, d in emb[ST].items():
-                    gold = gold_of.get(pt)
-                    if gold is None:
-                        continue
-                    u = list(d["u_sents"])
-                    lp1 = np.asarray(d["logps_t1"], float)
-                    E = np.asarray(d["embeddings"], float)
-                    if len(u) < K or len(u) != len(lp1):
-                        continue
-                    for m, idx in selections(E, lp1, K).items():
-                        add(m, pi, pt, [u[i] for i in idx], E[idx], gold)
-            del emb
-        # est-dir methods
-        est = os.path.join(ROOT_DIR, a.cache, f"pool{pi}", est_sub)
-        if os.path.isdir(est):
-            for name, sub, fname in est_methods(model):
-                for r in sorted([x for x in os.listdir(est) if x.isdigit()],
-                                key=int):
-                    fp = os.path.join(est, r, sub, fname)
-                    if not os.path.exists(fp):
-                        continue
-                    for item in pickle.load(open(fp, "rb")):
-                        if len(item) != 4:
-                            continue
-                        pt, sents, _, E = item
-                        gold = gold_of.get(pt)
-                        if gold is None or not sents:
-                            continue
-                        add(name, pi, pt, sents, np.asarray(E), gold)
+        p = os.path.join(pool_dir[pi], f"{model}_embeddings.pkl")
+        emb = pickle.load(open(p, "rb"))
+        if ST not in emb:
+            raise ValueError(f"gsm8k: {p} has no sT={fmt(ST)} (has {sorted(emb)})")
+        check_prompts(emb[ST], gold_of, f"gsm8k: {p} sT={fmt(ST)}")
+        for pt, d in emb[ST].items():
+            gold = gold_of[pt]
+            u = list(d["u_sents"])
+            lp1 = np.asarray(d["logps_t1"], float)
+            E = np.asarray(d["embeddings"], float)
+            check_pool_row(u, lp1, E, K, f"gsm8k: {p} sT={fmt(ST)} prompt {pt[:60]!r}")
+            for m, idx in selections(E, lp1, K).items():
+                add(m, pi, pt, [u[i] for i in idx], E[idx], gold)
+        del emb
+        # est-dir methods; PoolDPP-MAP is deterministic (run dir 0 only)
+        est = os.path.join(pool_dir[pi], est_sub)
+        for name, sub, fname in est_methods(model):
+            for fp in selection_files(est, sub, fname, deterministic=sub.endswith("-map")):
+                items = pickle.load(open(fp, "rb"))
+                check_selections(items, fp, gold_of, K)
+                for pt, sents, _, E in items:
+                    add(name, pi, pt, sents, np.asarray(E), gold_of[pt])
         print(f"pool{pi} done", flush=True)
 
     names = {"pass": "pass_at_K", "chain": "per_chain_accuracy",
@@ -156,16 +163,19 @@ def main():
           f"{'uniq ans':>13s} {'log-det':>15s} {'pools':>5s} {'n':>6s}")
     for name in sorted(acc):
         by_pool = acc[name]
+        if sorted(by_pool) != list(range(a.n_pools)):
+            raise ValueError(f"{name}: pools {sorted(by_pool)}, expected 0..{a.n_pools - 1}")
         o = {"n_pools": len(by_pool),
-             "n": int(sum(len(v["pass"]) for v in by_pool.values()))}
+             "n": int(sum(len(v["pass"]) for v in by_pool.values())),
+             "n_chains_no_final_answer": no_answer[name]}
         for k, lab in names.items():
-            pm = np.array([np.nanmean(by_pool[pi][k]) for pi in sorted(by_pool)])
-            pm = pm[np.isfinite(pm)]
+            pm = np.array([finite_mean(by_pool[pi][k], f"{name} pool {pi} {lab}")
+                           for pi in sorted(by_pool)])
             n = len(pm)
-            o[lab] = float(pm.mean()) if n else float("nan")
+            o[lab] = float(pm.mean())
             sd = float(pm.std(ddof=1)) if n >= 2 else float("nan")
             o[f"{lab}_pool_sd"] = sd
-            o[f"{lab}_ci95"] = t975(n) * sd / np.sqrt(n) if n >= 2 else float("nan")
+            o[f"{lab}_ci95"] = t975(n) * sd / np.sqrt(n)
         out[name] = o
         print(f"{name:<24s} {o['pass_at_K']:>7.4f}+-{o['pass_at_K_ci95']:.4f} "
               f"{o['per_chain_accuracy']:>7.4f}+-{o['per_chain_accuracy_ci95']:.4f} "
@@ -175,7 +185,7 @@ def main():
 
     # Pareto on the headline axes (log-det, pass@K), higher = better on both
     pts = [(k, out[k]["logdet"], out[k]["pass_at_K"]) for k in out
-           if not k.startswith("_") and np.isfinite(out[k]["logdet"])]
+           if not k.startswith("_")]
     front = [k for k, d, p in pts
              if not any((d2 >= d and p2 >= p) and (d2 > d or p2 > p)
                         for k2, d2, p2 in pts if k2 != k)]

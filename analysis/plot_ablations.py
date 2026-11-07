@@ -15,6 +15,20 @@ k-Means sweep sT; PoolDPP-Samp and -MAP hold sT=1.0 and sweep T).
 Outputs: {out-dir}/ablation_{pool_size,k_size,lm_emb}.pdf, intrinsic_multimodel.pdf
 (default out-dir analysis)
 
+Error bars are 95% t-intervals over the N_RUNS=10 selection runs on pool 0, with the sample
+standard deviation (ddof=1; before, ddof=0 made them sqrt(9/10), about 5%, too narrow).
+PoolDPP-MAP is deterministic and has one run, so it has no interval (drawn with zero width, as
+before). The "Quality + Diversity" panel's interval combines the two standard deviations as
+sqrt(sd_q^2 + sd_d^2), which ignores their covariance across runs (unchanged).
+
+Missing data stops the script (no run, prompt, LM, or point is skipped): it raises if an est
+dir's run dirs are not exactly 0..N_RUNS-1, if a stochastic method's selection file is missing
+from any run dir, if PoolDPP-MAP's file is missing from run dir 0, if a selection file does not
+cover exactly the 50 FineWeb prompts with K strings each (sets with fewer than 2 strings used to
+be skipped), if a log-determinant is not finite, or if an LM of the multimodel figure has no
+results (it used to be left out of the figure). The log-determinant adds a ridge of 1e-6 to the
+Gram matrix (unchanged).
+
 Usage: OPENBLAS_NUM_THREADS=1 python analysis/plot_ablations.py \
            [--out-dir analysis] [--base cache-fineweb]
 """
@@ -57,9 +71,15 @@ def fmt(x):
 
 
 def ci95(std, n):
-    if n <= 1:
-        return 0.0
+    """Half-width of the 95% t-interval; std is the sample standard deviation (ddof=1)."""
+    if n < 2:
+        raise ValueError(f"a CI needs at least 2 runs, got {n}")
     return scipy_stats.t.ppf(0.975, n - 1) * std / np.sqrt(n)
+
+
+def half_width(std, n):
+    """ci95, or 0 for a deterministic arm (std None: one run, no interval)."""
+    return 0.0 if std is None else ci95(std, n)
 
 
 def load_pkl(p):
@@ -67,20 +87,45 @@ def load_pkl(p):
         return pickle.load(f)
 
 
-def per_run_metrics(data):
-    qs, ds = [], []
+def expected_prompts():
+    from lm_dpp.utils.fineweb_prompts import prompts
+    return set(prompts)
+
+
+def check_selection(data, expected, k, where):
+    """Every record is (prompt, sents, logps_t1, embs) with k strings, and the prompts are
+    exactly `expected`, each once. Raises ValueError otherwise."""
+    seen = []
     for item in data:
         if len(item) != 4:
-            continue
-        _, sents, lp, emb = item
-        if len(sents) < 2:
-            continue
+            raise ValueError(f"{where}: a record has {len(item)} fields, expected 4")
+        prompt, sents, lps, emb = item
+        if not (len(sents) == len(lps) == len(emb) == k):
+            raise ValueError(f"{where}: prompt {prompt[:60]!r} has {len(sents)} strings, {len(lps)} "
+                             f"log-probs and {len(emb)} embeddings; expected K={k}")
+        seen.append(prompt)
+    dup = len(seen) - len(set(seen))
+    missing, extra = set(expected) - set(seen), set(seen) - set(expected)
+    if dup or missing or extra:
+        ex = next(iter(missing or extra), "")
+        raise ValueError(f"{where}: {len(missing)} expected prompts missing, {len(extra)} unexpected, "
+                         f"{dup} duplicated (e.g. {ex[:60]!r})")
+
+
+def per_run_metrics(data, k, where="selection"):
+    """(mean log p, mean log-det) over the 50 prompts; raises on a non-finite value."""
+    check_selection(data, expected_prompts(), k, where)
+    qs, ds = [], []
+    for prompt, sents, lp, emb in data:
         qs.append(np.mean(lp))
         F = np.asarray(emb)
         G = F @ F.T + 1e-6 * np.eye(len(sents))
         s, ld = np.linalg.slogdet(G)
-        ds.append(ld if s > 0 else np.nan)
-    return np.nanmean(qs) if qs else np.nan, np.nanmean(ds) if ds else np.nan
+        if not (s > 0 and np.isfinite(ld) and np.isfinite(qs[-1])):
+            raise ValueError(f"{where}, prompt {prompt[:60]!r}: log-det sign {s}, value {ld}; "
+                             f"mean log p {qs[-1]}")
+        ds.append(ld)
+    return np.mean(qs), np.mean(ds)
 
 
 def method_path(rd, model, mt, st=ST, T=SAMP_T):
@@ -95,25 +140,33 @@ def method_path(rd, model, mt, st=ST, T=SAMP_T):
     raise ValueError(mt)
 
 
-def collect(est_dir, mt, model=MODEL_DEFAULT, n_runs=N_RUNS, **kw):
+def collect(est_dir, mt, model=MODEL_DEFAULT, n_runs=N_RUNS, k=10, **kw):
+    """(q_mean, q_std, d_mean, d_std, n) over the runs of one method. Stochastic methods read run
+    dirs 0..n_runs-1, which must be exactly the est dir's run dirs, and std is the sample
+    standard deviation (ddof=1). PoolDPP-MAP is deterministic: run dir 0 only, std None."""
+    runs = sorted(int(d.name) for d in Path(est_dir).iterdir() if d.name.isdigit() and d.is_dir()) \
+        if Path(est_dir).is_dir() else []
+    if runs != list(range(n_runs)):
+        raise FileNotFoundError(f"{est_dir}: run dirs are {runs}, expected 0..{n_runs - 1}")
+    deterministic = mt == "map"
     qs, ds = [], []
-    for r in range(n_runs):
+    for r in ([0] if deterministic else range(n_runs)):
         p = method_path(est_dir / str(r), model, mt, **kw)
         if not p.exists():
-            continue
-        q, d = per_run_metrics(load_pkl(p))
-        if not (np.isnan(q) or np.isnan(d)):
-            qs.append(q)
-            ds.append(d)
+            raise FileNotFoundError(f"{p} missing ({mt}, {model}, {kw})")
+        q, d = per_run_metrics(load_pkl(p), k, str(p))
+        qs.append(q)
+        ds.append(d)
     n = len(qs)
-    return (np.mean(qs) if n else np.nan, np.std(qs) if n else 0.0,
-            np.mean(ds) if n else np.nan, np.std(ds) if n else 0.0, n)
+    if deterministic:
+        return qs[0], None, ds[0], None, n
+    return np.mean(qs), np.std(qs, ddof=1), np.mean(ds), np.std(ds, ddof=1), n
 
 
 def plot_xy(ax, xs, results, ylabel, xlabel):
     for name, m in results.items():
-        means, stds, ns = (np.array(m["mean"]), np.array(m["std"]), np.array(m["n"]))
-        errs = np.array([ci95(s, n) for s, n in zip(stds, ns)])
+        means, stds, ns = np.array(m["mean"]), list(m["std"]), np.array(m["n"])
+        errs = np.array([half_width(s, n) for s, n in zip(stds, ns)])
         ax.errorbar(xs, means, yerr=errs, label=name,
                     color=COLORS[name], marker=MARKERS[name], markersize=4,
                     capsize=2, capthick=0.5, elinewidth=0.6, linewidth=1.2)
@@ -126,12 +179,12 @@ ARMS = [("Ancestral", "ancestral", {}), ("K-Means", "kmeans", {}), ("PoolDPP-Sam
         ("PoolDPP-MAP", "map", {"T": MAP_T})]
 
 
-def sweep_ablation(values, est_for, out_name, xlabel, second_panel):
+def sweep_ablation(values, est_for, out_name, xlabel, second_panel, k_of=lambda v: 10):
     cols = {k: {"q_mean": [], "q_std": [], "d_mean": [], "d_std": [], "n": []}
             for k, _, _ in ARMS}
     for v in values:
         for name, mt, kw in ARMS:
-            qm, qs, dm, ds, n = collect(est_for(v), mt, **kw)
+            qm, qs, dm, ds, n = collect(est_for(v), mt, k=k_of(v), **kw)
             c = cols[name]
             c["q_mean"].append(qm); c["q_std"].append(qs)
             c["d_mean"].append(dm); c["d_std"].append(ds); c["n"].append(n)
@@ -142,7 +195,8 @@ def sweep_ablation(values, est_for, out_name, xlabel, second_panel):
     plot_xy(axQ, values, res_q, "Quality (mean log-prob)", xlabel)
     if second_panel == "combined":
         res_2 = {k: {"mean": [a + b for a, b in zip(c["q_mean"], c["d_mean"])],
-                     "std": [np.hypot(a, b) for a, b in zip(c["q_std"], c["d_std"])],
+                     "std": [None if a is None else np.hypot(a, b)
+                             for a, b in zip(c["q_std"], c["d_std"])],
                      "n": c["n"]} for k, c in cols.items()}
         plot_xy(ax2, values, res_2, "Quality + Diversity", xlabel)
         ax2.legend(loc="lower right", frameon=True, framealpha=0.9)
@@ -172,32 +226,27 @@ def lm_emb_grid():
             model = f"{lm_pre}_{emb_key}"
             for name, mt in [("Ancestral", "ancestral"), ("K-Means", "kmeans")]:
                 pts = [collect(est, mt, model=model, st=sT) for sT in st_sweep]
-                xs = [p[2] for p in pts if p[4]]
-                ys = [p[0] for p in pts if p[4]]
-                xe = [ci95(p[3], p[4]) for p in pts if p[4]]
-                ye = [ci95(p[1], p[4]) for p in pts if p[4]]
-                if xs:
-                    ax.errorbar(xs, ys, xerr=xe, yerr=ye, color=COLORS[name],
-                                marker=MARKERS[name], markersize=3, capsize=1.5,
-                                capthick=0.4, elinewidth=0.4, linewidth=1,
-                                label=name, alpha=0.85)
+                xs = [p[2] for p in pts]
+                ys = [p[0] for p in pts]
+                xe = [ci95(p[3], p[4]) for p in pts]
+                ye = [ci95(p[1], p[4]) for p in pts]
+                ax.errorbar(xs, ys, xerr=xe, yerr=ye, color=COLORS[name],
+                            marker=MARKERS[name], markersize=3, capsize=1.5,
+                            capthick=0.4, elinewidth=0.4, linewidth=1,
+                            label=name, alpha=0.85)
             pts = [collect(est, "samp", model=model, T=T) for T in SAMP_TS]
-            good = [p for p in pts if p[4]]
-            if good:
-                xs = [p[2] for p in good]
-                ys = [p[0] for p in good]
-                xe = [ci95(p[3], p[4]) for p in good]
-                ye = [ci95(p[1], p[4]) for p in good]
-                ax.errorbar(xs, ys, xerr=xe, yerr=ye, color=COLORS["PoolDPP-Samp"],
-                            marker="o", markersize=3, capsize=1.5, capthick=0.4,
-                            elinewidth=0.4, linewidth=1, label="PoolDPP-Samp",
-                            alpha=0.85)
+            xs = [p[2] for p in pts]
+            ys = [p[0] for p in pts]
+            xe = [ci95(p[3], p[4]) for p in pts]
+            ye = [ci95(p[1], p[4]) for p in pts]
+            ax.errorbar(xs, ys, xerr=xe, yerr=ye, color=COLORS["PoolDPP-Samp"],
+                        marker="o", markersize=3, capsize=1.5, capthick=0.4,
+                        elinewidth=0.4, linewidth=1, label="PoolDPP-Samp",
+                        alpha=0.85)
             pts = [collect(est, "map", model=model, T=T) for T in MAP_TS]
-            good = [p for p in pts if p[4]]
-            if good:
-                ax.errorbar([p[2] for p in good], [p[0] for p in good],
-                            color=COLORS["PoolDPP-MAP"], marker=MARKERS["PoolDPP-MAP"],
-                            markersize=3, linewidth=1, label="PoolDPP-MAP", alpha=0.85)
+            ax.errorbar([p[2] for p in pts], [p[0] for p in pts],
+                        color=COLORS["PoolDPP-MAP"], marker=MARKERS["PoolDPP-MAP"],
+                        markersize=3, linewidth=1, label="PoolDPP-MAP", alpha=0.85)
             ax.set_title(f"{lm_name} / {emb_name}", fontsize=9)
             ax.grid(True, alpha=0.3)
             if ri == 1:
@@ -218,11 +267,10 @@ def multimodel():
            ("Llama-3.1-8B", "meta-llama__Llama-3.1-8B-Instruct")]
     st_sweep = [0.6, 0.8, 1.0, 1.2, 1.5]
     est = BASE / "est10minilm"
-    present = [(n, m) for n, m in lms
-               if (est / "0" / f"{m}_minilm-samp").is_dir()]
-    if not present:
-        print("multimodel: no LM has samp results, skipped")
-        return
+    absent = [m for _, m in lms if not (est / "0" / f"{m}_minilm-samp").is_dir()]
+    if absent:
+        raise FileNotFoundError(f"multimodel: no PoolDPP-Samp results in {est}/0 for {absent}")
+    present = lms
     fig, axes = plt.subplots(1, len(present), figsize=(5.5, 2.2), squeeze=False)
     for ax, (lm_name, lm_pre) in zip(axes[0], present):
         model = f"{lm_pre}_minilm"
@@ -231,12 +279,9 @@ def multimodel():
                                      ("PoolDPP-Samp", "samp", SAMP_TS, "T"),
                                      ("PoolDPP-MAP", "map", MAP_TS, "T")]:
             pts = [collect(est, mt, model=model, **{key: v}) for v in sweep]
-            good = [p for p in pts if p[4]]
-            if not good:
-                continue
-            ax.errorbar([p[2] for p in good], [p[0] for p in good],
-                        xerr=[ci95(p[3], p[4]) for p in good],
-                        yerr=[ci95(p[1], p[4]) for p in good],
+            ax.errorbar([p[2] for p in pts], [p[0] for p in pts],
+                        xerr=[half_width(p[3], p[4]) for p in pts],
+                        yerr=[half_width(p[1], p[4]) for p in pts],
                         color=COLORS[name], marker=MARKERS[name], markersize=3,
                         capsize=1.5, capthick=0.4, elinewidth=0.4, linewidth=1,
                         label=name, alpha=0.85)
@@ -270,7 +315,7 @@ def main():
     sweep_ablation(
         [3, 5, 10, 15, 20],
         lambda K: BASE / f"est{K}minilm",
-        "ablation_k_size.pdf", "Subset size $K$", second_panel="diversity")
+        "ablation_k_size.pdf", "Subset size $K$", second_panel="diversity", k_of=lambda K: K)
     lm_emb_grid()
     multimodel()
 

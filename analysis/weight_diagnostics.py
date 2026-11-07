@@ -12,6 +12,11 @@ and the sup ratio is N max_n wbar_n. Per (task, sT, T) we report over prompts:
     ESS mean/N, median, q25/q75, min; #prompts with ESS < K;
     median of max wbar; mean of Var(wbar); mean sup ratio; median log-weight range.
 
+A missing pool file, a non-finite log-weight, or prompts with different numbers of draws stop
+the run with an error. Prompts whose pool
+has fewer than 2 distinct strings are left out (their ESS is N by construction); their number is
+written as n_prompts_excluded_lt2_unique, next to n_prompts_in_pool.
+
 Output: analysis/weight_diagnostics.json
 
 Usage:
@@ -43,12 +48,14 @@ def fmt(x):
     return f"{float(x):g}"
 
 
-def per_prompt(d, T, uses_q):
+def per_prompt(d, T, uses_q, where=""):
     lp1 = np.asarray(d["logps_t1"], dtype=np.float64)
     c = np.asarray(d["counts"], dtype=np.float64)
     lw = lp1 / T
     if uses_q:
         lw = lw - np.asarray(d["logps"], dtype=np.float64)
+    if not np.all(np.isfinite(lw)):
+        raise ValueError(f"{where}: {int((~np.isfinite(lw)).sum())} of {len(lw)} log-weights are not finite")
     w = np.exp(lw - lw.max())
     wbar = w / (w * c).sum()
     N = c.sum()
@@ -62,17 +69,22 @@ def main():
     for task, rel, sT, K, uses_q, Ts in CONFIGS:
         path = os.path.join(ROOT_DIR, rel)
         if not os.path.exists(path):
-            print(f"[skip] {task}: missing {rel}")
-            continue
+            raise FileNotFoundError(f"{task}: missing {path}")
         with open(path, "rb") as f:
             emb = pickle.load(f)[sT]
         for T in Ts:
-            rows = [per_prompt(d, T, uses_q) for d in emb.values() if len(d["logps_t1"]) >= 2]
-            ess = np.array([r["ess"] for r in rows])
-            N = rows[0]["N"]
             key = f"{task}|sT={fmt(sT)}|T={fmt(T)}"
+            rows = [per_prompt(d, T, uses_q, f"{key} prompt {pt[:60]!r}")
+                    for pt, d in emb.items() if len(d["logps_t1"]) >= 2]
+            ess = np.array([r["ess"] for r in rows])
+            Ns = sorted({r["N"] for r in rows})
+            if len(Ns) != 1:
+                raise ValueError(f"{key}: prompts have different numbers of draws {Ns}")
+            N = Ns[0]
             o = out[key] = {
-                "n_prompts": len(ess), "N": N, "K": K, "mode": "samp" if uses_q else "map",
+                "n_prompts": len(ess), "n_prompts_in_pool": len(emb),
+                "n_prompts_excluded_lt2_unique": len(emb) - len(ess),
+                "N": N, "K": K, "mode": "samp" if uses_q else "map",
                 "ess_mean_over_N": float(ess.mean() / N),
                 "ess_median": float(np.median(ess)),
                 "ess_q25": float(np.quantile(ess, 0.25)),

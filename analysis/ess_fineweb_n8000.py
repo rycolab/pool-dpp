@@ -12,6 +12,12 @@ the bound on the KL at N in {400, 4000, 8000} from the per-question bound rows
       log(1 + a_1 chi2_1 + sum_{c>=2} a_c (K^c/(K)_c r_1^c - 1)).
 Formulas in bound_formulas.py.
 
+Failures stop the run with an error: a missing pool file or bound_raw file, pools with different
+prompt sets, a prompt whose number of draws is not N, logps and logps_t1 of different lengths, a
+non-finite log-weight, or a bound_raw entry that is not a non-empty list of rows (keys starting
+with "_" are metadata and are not read). Prompts with fewer than 2 distinct strings are left out of
+the ESS (their ESS is N by construction); their number is written as n_prompts_excluded_lt2_unique.
+
 Output: analysis/ess_fineweb_n8000.json
 """
 
@@ -40,16 +46,27 @@ def fmt(x):
 
 
 def load(cache):
-    with open(os.path.join(ROOT_DIR, cache, FNAME), "rb") as f:
+    path = os.path.join(ROOT_DIR, cache, FNAME)
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"fineweb: missing pool file {path}")
+    with open(path, "rb") as f:
         return pickle.load(f)[1.0]
+
+
+def same_prompts(named):
+    """Raise unless every {name: per-prompt dict} has the same prompts."""
+    (n0, d0), *rest = named.items()
+    for n, d in rest:
+        if set(d) != set(d0):
+            raise ValueError(f"fineweb: {n} and {n0} have different prompts "
+                             f"({len(set(d0) - set(d))} only in {n0}, {len(set(d) - set(d0))} only in {n})")
 
 
 def merge_two(da, db):
     """Merge two per-prompt dicts, summing counts on duplicate strings."""
+    same_prompts({"half a": da, "half b": db})
     out = {}
     for pt in da:
-        if pt not in db:
-            continue
         idx, sents, phi, lp, lp1, cnt = {}, [], [], [], [], []
         for d in (da[pt], db[pt]):
             s_arr = list(d["u_sents"])
@@ -74,24 +91,34 @@ def merge_two(da, db):
     return out
 
 
-def ess_rows(per_prompt, T):
-    rows = []
-    for _, d in per_prompt.items():
+def ess_rows(per_prompt, T, N, where):
+    """-> (ESS per prompt, #prompts left out for having fewer than 2 distinct strings)."""
+    rows, n_lt2 = [], 0
+    for pt, d in per_prompt.items():
         lp = np.asarray(d["logps"], dtype=np.float64)
         lp1 = np.asarray(d["logps_t1"], dtype=np.float64)
         c = np.asarray(d["counts"], dtype=np.float64)
-        if lp.shape != lp1.shape or len(lp) < 2:
+        if lp.shape != lp1.shape or lp.shape != c.shape:
+            raise ValueError(f"{where} prompt {pt[:60]!r}: logps {lp.shape}, logps_t1 {lp1.shape}, "
+                             f"counts {c.shape} differ")
+        if c.sum() != N:
+            raise ValueError(f"{where} prompt {pt[:60]!r}: {c.sum():g} draws, expected N={N}")
+        if len(lp) < 2:
+            n_lt2 += 1
             continue
         lw = lp1 / T - lp
+        if not np.all(np.isfinite(lw)):
+            raise ValueError(f"{where} prompt {pt[:60]!r}: non-finite log-weight at T={fmt(T)}")
         w = np.exp(lw - lw.max())
         wbar = w / (w * c).sum()
         rows.append(1.0 / (c * wbar ** 2).sum())
-    return np.asarray(rows)
+    return np.asarray(rows), n_lt2
 
 
-def summarize(ess, N):
+def summarize(ess_and_excluded, N):
+    ess, n_lt2 = ess_and_excluded
     return {
-        "N": N, "n_prompts": len(ess),
+        "N": N, "n_prompts": len(ess), "n_prompts_excluded_lt2_unique": n_lt2,
         "ess_mean_over_N": float(ess.mean() / N),
         "ess_median": float(np.median(ess)),
         "ess_q25": float(np.quantile(ess, 0.25)),
@@ -99,6 +126,24 @@ def summarize(ess, N):
         "ess_min": float(ess.min()),
         "n_collapsed_lt_K": int((ess < K).sum()),
     }
+
+
+def bound_rows(path):
+    """(setting, rows) of a bound_raw file; keys starting with "_" are metadata. Raises on an
+    entry that is not a non-empty list of rows with a finite chi2_1 and r1."""
+    out = []
+    for key, rows in json.load(open(path)).items():
+        if key.startswith("_"):
+            continue
+        if not isinstance(rows, list) or not rows:
+            raise ValueError(f"{path}: entry {key!r} is not a non-empty list of rows")
+        for i, r in enumerate(rows):
+            bad = [f for f in ("chi2_1", "r1") if not np.isfinite(r.get(f, np.nan))]
+            if bad:
+                raise ValueError(f"{path}: {key!r} row {i} has no finite {bad}")
+            bf.m1_of_row(r)  # rows that store m1 must have m1 = 1 + chi2_1
+        out.append((key, rows))
+    return out
 
 
 def bound_m1_at(N, chi2_1):
@@ -112,10 +157,9 @@ def cert_at(N, chi2_1, r1):
 
 
 def cross_within_ratio(da, db):
+    same_prompts({"half a": da, "half b": db})
     X = E = 0.0
     for pt in da:
-        if pt not in db:
-            continue
         ca = dict(zip(da[pt]["u_sents"], np.asarray(da[pt]["counts"], float)))
         cb = dict(zip(db[pt]["u_sents"], np.asarray(db[pt]["counts"], float)))
         X += sum(c * cb[s] for s, c in ca.items() if s in cb)
@@ -134,44 +178,40 @@ def run(a):
           f"{np.mean([len(d['u_sents']) for d in merged.values()]):.0f} avg")
 
     pool0 = load(a.pool0_cache)
+    same_prompts({a.pool0_cache: pool0, a.halves[0]: da, a.halves[1]: db})
     out = {"_meta": dict(halves=a.halves, weight="plm^(1/T)/q"),
            "independence_between_halves": cross_within_ratio(da, db)}
     print("independence:", out["independence_between_halves"])
     for T in TS:
-        row = {"pool0_N400": summarize(ess_rows(pool0, T), 400),
-               "half_a_N4000": summarize(ess_rows(da, T), 4000),
-               "half_b_N4000": summarize(ess_rows(db, T), 4000),
-               "merged_N8000": summarize(ess_rows(merged, T), 8000)}
+        row = {"pool0_N400": summarize(ess_rows(pool0, T, 400, a.pool0_cache), 400),
+               "half_a_N4000": summarize(ess_rows(da, T, 4000, a.halves[0]), 4000),
+               "half_b_N4000": summarize(ess_rows(db, T, 4000, a.halves[1]), 4000),
+               "merged_N8000": summarize(ess_rows(merged, T, 8000, "merged halves"), 8000)}
         out[f"T={fmt(T)}"] = row
         m = row["merged_N8000"]
         print(f"T={fmt(T)}: N=8000 ESS med={m['ess_median']:7.1f} "
               f"[{m['ess_q25']:7.1f},{m['ess_q75']:7.1f}] min={m['ess_min']:6.1f} "
               f"collapsed<K={m['n_collapsed_lt_K']}/{m['n_prompts']}")
     xr = os.path.join(SCRIPT_DIR, a.bound_raw)
-    if os.path.exists(xr):
-        for key, rows in json.load(open(xr)).items():
-            if not isinstance(rows, list) or not rows or "chi2_1" not in rows[0]:
-                continue
-            for r in rows:
-                bf.m1_of_row(r)  # rows that store m1 must have m1 = 1 + chi2_1
-            out[f"bound_m1|{key}"] = {str(N): float(np.median([bound_m1_at(N, r["chi2_1"])
-                                                              for r in rows]))
-                                      for N in (400, 4000, 8000)}
-            print(f"bound on the KL (m1) {key}: {out[f'bound_m1|{key}']}")
-            out[f"cert|{key}"] = {str(N): float(np.median([cert_at(N, r["chi2_1"], r["r1"])
+    if not os.path.exists(xr):
+        raise FileNotFoundError(f"{xr} missing; run bound_empirical.py --task fineweb first")
+    for key, rows in bound_rows(xr):
+        out[f"bound_m1|{key}"] = {str(N): float(np.median([bound_m1_at(N, r["chi2_1"])
                                                           for r in rows]))
                                   for N in (400, 4000, 8000)}
-            print(f"  r1 version (secondary) {key}: {out[f'cert|{key}']}")
-    else:
-        print(f"[warn] {xr} missing; bounds on the KL skipped")
+        print(f"bound on the KL (m1) {key}: {out[f'bound_m1|{key}']}")
+        out[f"cert|{key}"] = {str(N): float(np.median([cert_at(N, r["chi2_1"], r["r1"])
+                                                      for r in rows]))
+                              for N in (400, 4000, 8000)}
+        print(f"  r1 version (secondary) {key}: {out[f'cert|{key}']}")
+    ind = out["independence_between_halves"]
+    X, E = ind["cross_matched_pairs"], ind["expected_if_independent"]
+    if X > 1.5 * E + 3 * math.sqrt(E) + 5:   # checked before saving, so no output is written
+        print(f"ERROR: halves are not independent (X={X:.0f}, E={E:.1f})")
+        raise SystemExit(2)
     with open(os.path.join(SCRIPT_DIR, "ess_fineweb_n8000.json"), "w") as f:
         json.dump(out, f, indent=1)
     print("Saved analysis/ess_fineweb_n8000.json")
-    ind = out["independence_between_halves"]
-    X, E = ind["cross_matched_pairs"], ind["expected_if_independent"]
-    if X > 1.5 * E + 3 * math.sqrt(E) + 5:
-        print(f"ERROR: halves are not independent (X={X:.0f}, E={E:.1f})")
-        raise SystemExit(2)
 
 
 def main():

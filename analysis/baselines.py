@@ -35,8 +35,22 @@ Scoring uses each task's own headline axes:
   ambrosia  precision = golden accuracy    recall = golden query coverage
   gsm8k     pass@K=10                      mean per-chain accuracy
 
-Pools: fineweb = cache-fineweb (pool 0) + cache-fineweb-pools/pool*;
+Pools: fineweb = cache-fineweb (pool 0) + cache-fineweb-pools/pool{1..9};
 ambrosia = cache-ambrosia/pool{0..99}; gsm8k = cache-gsm8k/pool{0..99}.
+
+Failures stop the run with an error; nothing is skipped. A missing pool, est
+dir or selection file raises FileNotFoundError listing every missing one. A
+pool or selection file that lacks one of the task's prompts (or has an extra
+or repeated one), a record that is not (prompt, sents, logps_t1, embs), a set
+of other than K strings, a pool with fewer than K distinct strings, a
+non-finite metric (e.g. a log-det whose Gram matrix is not positive definite),
+fewer than 2 pools for a CI, or an Ambrosia string missing from the execution
+table of pool_ceiling.py raises ValueError. Stochastic est-dir methods are read
+from every run dir 0..N-1 (the run dirs must be exactly these); PoolDPP-MAP is
+deterministic and read from run dir 0 only.
+
+The log-det adds 1e-6 * I to the Gram matrix (an existing ridge, kept as is);
+unit() adds 1e-12 to row norms.
 
 Usage:
     OPENBLAS_NUM_THREADS=1 python analysis/baselines.py --task fineweb
@@ -45,11 +59,9 @@ Usage:
 """
 
 import argparse
-import glob
 import json
 import os
 import pickle
-import re
 from collections import defaultdict
 
 import numpy as np
@@ -64,10 +76,110 @@ SAMP_TS = {"fineweb": [0.428571, 0.666667, 0.818182, 1, 1.22222],
            "gsm8k": [0.428571, 0.666667, 0.818182, 1, 1.03, 1.05, 1.07, 1.1, 1.22222]}
 MAP_TS = {"fineweb": [500, 100, 50, 25, 10], "ambrosia": [10, 7.5, 3, 1],
           "gsm8k": [2.5, 5, 10, 15, 20, 25, 50, 100, 500]}
+# extra FineWeb pools cache-fineweb-pools/pool{1..N}: N_EXTRA in scripts/run_fineweb.sh
+FINEWEB_N_EXTRA = 9
+# est-dir methods computed once, into run dir 0 (dpp-estimation --N 1)
+DETERMINISTIC = {"map"}
 
 
 def fmt(x):
     return f"{float(x):g}"
+
+
+# ---------------------------------------------------------------------------
+# checks: a missing or incomplete input stops the run
+# ---------------------------------------------------------------------------
+def _ranges(idx):
+    """[0, 1, 2, 5, 7, 8] -> '0..2, 5, 7..8'"""
+    idx, out, i = sorted(idx), [], 0
+    while i < len(idx):
+        j = i
+        while j + 1 < len(idx) and idx[j + 1] == idx[j] + 1:
+            j += 1
+        out.append(f"{idx[i]}" if i == j else f"{idx[i]}..{idx[j]}")
+        i = j + 1
+    return ", ".join(out)
+
+
+def require_pools(task, paths_of_pool):
+    """paths_of_pool: {pool index: [paths that must exist]}. Raises FileNotFoundError
+    naming every pool with a missing path."""
+    missing = {pi: [p for p in ps if not os.path.exists(p)] for pi, ps in paths_of_pool.items()}
+    missing = {pi: ps for pi, ps in missing.items() if ps}
+    if missing:
+        first = [p for pi in sorted(missing)[:3] for p in missing[pi]]
+        raise FileNotFoundError(
+            f"{task}: {len(missing)} of {len(paths_of_pool)} pools missing: pool "
+            f"{_ranges(missing)} (first missing paths: {first})")
+
+
+def require_files(paths, what):
+    """Raises FileNotFoundError naming how many of `paths` are missing and the first few."""
+    missing = [p for p in paths if not os.path.exists(p)]
+    if missing:
+        raise FileNotFoundError(f"{what}: {len(missing)} of {len(paths)} files missing, "
+                                f"first: {missing[:5]}")
+
+
+def run_dirs(est):
+    """Run dirs of an est dir, which must be exactly 0..N-1."""
+    runs = sorted(int(r) for r in os.listdir(est)
+                  if r.isdigit() and os.path.isdir(os.path.join(est, r)))
+    if not runs or runs != list(range(len(runs))):
+        raise ValueError(f"{est}: run dirs are {runs}, expected 0..N-1")
+    return [str(r) for r in runs]
+
+
+def selection_files(est, sub, fname, deterministic):
+    """Paths of one method's selection file: run dir 0 for a deterministic method,
+    every run dir otherwise. Raises FileNotFoundError if any is missing."""
+    runs = ["0"] if deterministic else run_dirs(est)
+    paths = [os.path.join(est, r, sub, fname) for r in runs]
+    require_files(paths, f"{est}: {sub}/{fname} "
+                         f"({'deterministic, run 0' if deterministic else 'every run dir'})")
+    return paths
+
+
+def check_selections(items, path, expected_prompts, k):
+    """Raises ValueError unless the selection file `items` has exactly one record
+    (prompt, sents, logps_t1, embs) per prompt of `expected_prompts`, each with k strings."""
+    seen = set()
+    for item in items:
+        if len(item) != 4:
+            raise ValueError(f"{path}: a record has {len(item)} fields, expected "
+                             f"(prompt, sents, logps_t1, embs)")
+        pt, sents, lp, E = item
+        if pt in seen:
+            raise ValueError(f"{path}: prompt {pt[:60]!r} appears twice")
+        if pt not in expected_prompts:
+            raise ValueError(f"{path}: prompt {pt[:60]!r} is not one of the task's prompts")
+        seen.add(pt)
+        if not (len(sents) == len(lp) == len(E) == k):
+            raise ValueError(f"{path}: prompt {pt[:60]!r} has {len(sents)} strings, "
+                             f"{len(lp)} log-probs and {len(E)} embeddings; expected K={k}")
+    missing = set(expected_prompts) - seen
+    if missing:
+        raise ValueError(f"{path}: {len(missing)} of {len(expected_prompts)} prompts missing, "
+                         f"first: {sorted(missing)[0][:60]!r}")
+
+
+def check_prompts(found, expected, where):
+    """Raises ValueError unless the prompt set `found` equals `expected`."""
+    found, expected = set(found), set(expected)
+    if found != expected:
+        miss, extra = expected - found, found - expected
+        raise ValueError(f"{where}: {len(miss)} of the task's {len(expected)} prompts missing"
+                         f"{' (first: ' + repr(sorted(miss)[0][:60]) + ')' if miss else ''}, "
+                         f"{len(extra)} unexpected"
+                         f"{' (first: ' + repr(sorted(extra)[0][:60]) + ')' if extra else ''}")
+
+
+def check_pool_row(u, lp1, E, k, where):
+    """Raises ValueError unless a pool row has matching lengths and at least k distinct strings."""
+    if not (len(u) == len(lp1) == len(E)):
+        raise ValueError(f"{where}: {len(u)} strings, {len(lp1)} log-probs, {len(E)} embeddings")
+    if len(u) < k:
+        raise ValueError(f"{where}: {len(u)} distinct strings, fewer than K={k}")
 
 
 def unit(E):
@@ -104,16 +216,26 @@ def mbr_select(E, k):
 
 
 def logdet(F):
+    """log det(F F^T + 1e-6 I). Raises ValueError for fewer than 2 rows or a Gram
+    matrix that is not positive definite (a numerical failure)."""
     F = np.asarray(F, dtype=np.float64)
     if len(F) < 2:
-        return np.nan
+        raise ValueError(f"log-det of a set of {len(F)} strings: the diversity axis needs at least 2")
     G = F @ F.T + 1e-6 * np.eye(len(F))
     s, ld = np.linalg.slogdet(G)
-    return ld if s > 0 else np.nan
+    if not (s > 0 and np.isfinite(ld)):
+        raise ValueError(f"log-det failed: slogdet sign {s}, value {ld} for a set of {len(F)} "
+                         f"strings (Gram matrix plus 1e-6 I is not positive definite)")
+    return ld
 
 
 def selections(E_raw, lp1, k):
     """-> {method_label: [indices]}"""
+    lp1 = np.asarray(lp1, dtype=np.float64)
+    if len(E_raw) < k:
+        raise ValueError(f"pool has {len(E_raw)} distinct strings, fewer than K={k}")
+    if not np.all(np.isfinite(lp1)):
+        raise ValueError(f"{int((~np.isfinite(lp1)).sum())} of {len(lp1)} log-probs are not finite")
     E = unit(E_raw)
     q = minmax(lp1)
     out = {f"MMR|lam={lam}": mmr_select(E, q, k, lam) for lam in LAMBDAS}
@@ -126,49 +248,62 @@ def selections(E_raw, lp1, k):
 # pool-level aggregation
 # ---------------------------------------------------------------------------
 def t975(n):
+    """t_{0.975, n-1}. Raises ValueError for n < 2 (no interval from one pool)."""
     from scipy import stats
-    return float(stats.t.ppf(0.975, n - 1)) if n >= 2 else float("nan")
+    if n < 2:
+        raise ValueError(f"a 95% t-interval needs at least 2 pools, got {n}")
+    return float(stats.t.ppf(0.975, n - 1))
+
+
+def finite_mean(vals, where):
+    """Mean of a non-empty list of finite values; raises ValueError otherwise."""
+    v = np.asarray(vals, dtype=np.float64)
+    if v.size == 0:
+        raise ValueError(f"{where}: no values")
+    bad = np.flatnonzero(~np.isfinite(v))
+    if bad.size:
+        raise ValueError(f"{where}: {bad.size} of {v.size} values are not finite "
+                         f"(first: index {int(bad[0])}, {v[bad[0]]})")
+    return float(v.mean())
 
 
 def summarize_pools(acc, metrics):
     """acc[method][pool][metric] -> list of per-set values.
     -> {method: {metric: mean over pools, metric_ci95, metric_pool_sd,
-                 n_pools, n}}"""
+                 n_pools, n}}
+    Every method must cover the same pools, with at least one finite value per
+    pool and metric, and at least 2 pools; otherwise ValueError."""
     res = {}
+    pool_sets = {m: sorted(by_pool) for m, by_pool in acc.items()}
+    if len({tuple(p) for p in pool_sets.values()}) > 1:
+        raise ValueError(f"methods cover different pools: "
+                         f"{ {m: _ranges(p) for m, p in pool_sets.items()} }")
     for m, by_pool in acc.items():
         pools = sorted(by_pool)
         row = {"n_pools": len(pools),
                "n": int(sum(len(by_pool[p][metrics[0]]) for p in pools))}
         for met in metrics:
-            pm = np.array([np.nanmean(by_pool[p][met]) for p in pools
-                           if len(by_pool[p][met])], dtype=np.float64)
-            pm = pm[np.isfinite(pm)]
+            pm = np.array([finite_mean(by_pool[p][met], f"{m} pool {p} {met}") for p in pools],
+                          dtype=np.float64)
             n = len(pm)
-            row[met] = float(pm.mean()) if n else float("nan")
+            row[met] = float(pm.mean())
             sd = float(pm.std(ddof=1)) if n >= 2 else float("nan")
             row[f"{met}_pool_sd"] = sd
-            row[f"{met}_ci95"] = t975(n) * sd / np.sqrt(n) if n >= 2 else float("nan")
+            row[f"{met}_ci95"] = t975(n) * sd / np.sqrt(n)
         res[m] = row
     return res
 
 
-def runs_of(est):
-    return sorted([r for r in os.listdir(est)
-                   if r.isdigit() and os.path.isdir(os.path.join(est, r))], key=int)
-
-
-def est_items(est, model, spec):
-    """Yield the saved selections of one est-dir method across its run dirs.
-    spec = (method, fname)."""
+def est_items(est, model, spec, expected_prompts, k):
+    """Yield the saved selections of one est-dir method across its run dirs
+    (run dir 0 only for a deterministic method). spec = (method, fname). Each file
+    must hold one K-string selection per prompt of `expected_prompts`."""
     method, fname = spec
-    for r in runs_of(est):
-        p = os.path.join(est, r, f"{model}-{method}", fname)
-        if not os.path.exists(p):
-            continue
+    for p in selection_files(est, f"{model}-{method}", fname, method in DETERMINISTIC):
         with open(p, "rb") as f:
-            for item in pickle.load(f):
-                if len(item) == 4:
-                    yield item
+            items = pickle.load(f)
+        check_selections(items, p, expected_prompts, k)
+        yield from items
 
 
 def est_specs(task, st_base, samp_st, map_st):
@@ -184,40 +319,39 @@ def est_specs(task, st_base, samp_st, map_st):
     return out
 
 
-def _poolnum(d):
-    return int(re.sub(r"\D", "", os.path.basename(d.rstrip("/"))) or 0)
-
-
 # ---------------------------------------------------------------------------
 def run_fineweb(k=10, sT=1.0, pool_dirs=None, est_rows=True):
+    from lm_dpp.utils.fineweb_prompts import prompts as fineweb_prompts
     model = "google__gemma-2-9b-it_minilm"
     if pool_dirs is None:
-        pool_dirs = [os.path.join(ROOT_DIR, "cache-fineweb")] + sorted(
-            glob.glob(os.path.join(ROOT_DIR, "cache-fineweb-pools", "pool*")), key=_poolnum)
+        pool_dirs = [os.path.join(ROOT_DIR, "cache-fineweb")] + [
+            os.path.join(ROOT_DIR, "cache-fineweb-pools", f"pool{i}")
+            for i in range(1, FINEWEB_N_EXTRA + 1)]
+    expected = set(fineweb_prompts)
+    require_pools("fineweb", {pi: [os.path.join(pd, f"{model}_embeddings.pkl")]
+                              + ([os.path.join(pd, "est10minilm")] if est_rows else [])
+                              for pi, pd in enumerate(pool_dirs)})
     Q, D = "quality_mean_logp", "kernel_logdet_minilm"
     acc = defaultdict(lambda: defaultdict(lambda: {Q: [], D: []}))
     for pi, pd in enumerate(pool_dirs):
         path = os.path.join(pd, f"{model}_embeddings.pkl")
-        if not os.path.exists(path):
-            print(f"  [skip] {path} missing", flush=True)
-            continue
         with open(path, "rb") as f:
             emb = pickle.load(f)
-        for _, d in emb[sT].items():
+        if sT not in emb:
+            raise ValueError(f"fineweb: {path} has no sT={fmt(sT)} (has {sorted(emb)})")
+        check_prompts(emb[sT], expected, f"fineweb: {path} sT={fmt(sT)}")
+        for pt, d in emb[sT].items():
             u, lp1 = list(d["u_sents"]), np.asarray(d["logps_t1"], dtype=np.float64)
             E = np.asarray(d["embeddings"], dtype=np.float64)
-            if len(u) < k or len(u) != len(lp1):
-                continue
+            check_pool_row(u, lp1, E, k, f"fineweb: {path} sT={fmt(sT)} prompt {pt[:60]!r}")
             for m, idx in selections(E, lp1, k).items():
                 acc[m][pi][Q].append(float(lp1[idx].mean()))
                 acc[m][pi][D].append(logdet(E[idx]))
         del emb
         est = os.path.join(pd, "est10minilm")
-        if est_rows and os.path.isdir(est):
+        if est_rows:
             for lab, spec in est_specs("fineweb", [0.6, 0.8, 1.0, 1.2, 1.5], sT, sT).items():
-                for _, sents, lp, E in est_items(est, model, spec):
-                    if len(sents) < 2:
-                        continue
+                for _, sents, lp, E in est_items(est, model, spec, expected, k):
                     acc[lab][pi][Q].append(float(np.mean(lp)))
                     acc[lab][pi][D].append(logdet(E))
         print(f"  pool {pd} done", flush=True)
@@ -234,10 +368,14 @@ def run_ambrosia(n_pools=100, k=3, sTs=(1.0, 1.2, 1.5), cache="cache-ambrosia",
     def parse_q(pt):
         s = pt.find("and the following question:\n")
         if s < 0:
-            return None
+            raise ValueError(f"ambrosia: prompt {pt[:60]!r} has no 'and the following question:'")
         s += len("and the following question:\n")
         e = pt.find("\ngenerate the SQL query", s)
-        return pt[s:e if e != -1 else len(pt)].strip()
+        q = pt[s:e if e != -1 else len(pt)].strip()
+        if q not in golden:
+            raise ValueError(f"ambrosia: question {q[:60]!r} is not in the golden table of "
+                             f"pool_ceiling_sigtable.pkl")
+        return q
 
     def norm(x):
         return x.strip().replace("```sql\n", "").replace("\n```", "")
@@ -245,44 +383,51 @@ def run_ambrosia(n_pools=100, k=3, sTs=(1.0, 1.2, 1.5), cache="cache-ambrosia",
     def score(q, sents):
         gs, tbl = golden[q], sig_tables[q]
         ded = list(set(sents))
-        sigs = [tbl.get(norm(s)) for s in ded]
+        # tbl[s] is None for a query that does not execute; a string absent from the
+        # table was never executed, which is an error, not a non-runnable query
+        absent = [s for s in ded if norm(s) not in tbl]
+        if absent:
+            raise ValueError(f"ambrosia: {len(absent)} selected strings for question {q[:60]!r} "
+                             f"are not in the execution table (first: {absent[0][:60]!r}); "
+                             f"rerun pool_ceiling.py --part A on the same pools")
+        sigs = [tbl[norm(s)] for s in ded]
         return (len(set(sigs) & gs) / len(gs),
                 sum(1 for s in sigs if s in gs) / len(ded))
 
     C, P = "recall_coverage", "precision_golden_accuracy"
     acc = defaultdict(lambda: defaultdict(lambda: {C: [], P: []}))
+    pool_dir = {pi: os.path.join(ROOT_DIR, cache, f"pool{pi}") for pi in range(n_pools)}
+    require_pools("ambrosia", {pi: [os.path.join(d, f"{model}_embeddings.pkl")]
+                               + ([os.path.join(d, "est3minilm")] if est_rows else [])
+                               for pi, d in pool_dir.items()})
     for pi in range(n_pools):
-        p = os.path.join(ROOT_DIR, cache, f"pool{pi}",
-                         "google__gemma-2-9b-it_minilm_embeddings.pkl")
-        if not os.path.exists(p):
-            continue
+        p = os.path.join(pool_dir[pi], f"{model}_embeddings.pkl")
         with open(p, "rb") as f:
             emb = pickle.load(f)
+        expected = None
         for sT in sTs:
             if sT not in emb:
-                continue
+                raise ValueError(f"ambrosia: {p} has no sT={fmt(sT)} (has {sorted(emb)})")
+            qs = [parse_q(pt) for pt in emb[sT]]
+            check_prompts(qs, golden, f"ambrosia: {p} sT={fmt(sT)} (questions)")
+            expected = set(emb[sT]) if expected is None else expected
+            check_prompts(emb[sT], expected, f"ambrosia: {p} sT={fmt(sT)}")
             for pt, d in emb[sT].items():
                 q = parse_q(pt)
-                if q is None or q not in golden:
-                    continue
                 u, lp1 = list(d["u_sents"]), np.asarray(d["logps_t1"], float)
                 E = np.asarray(d["embeddings"], dtype=np.float64)
-                if len(u) < k or len(u) != len(lp1):
-                    continue
+                check_pool_row(u, lp1, E, k, f"ambrosia: {p} sT={fmt(sT)} prompt {pt[:60]!r}")
                 for m, idx in selections(E, lp1, k).items():
                     cov, prec = score(q, [u[i] for i in idx])
                     acc[f"{m}|sT={sT}"][pi][C].append(cov)
                     acc[f"{m}|sT={sT}"][pi][P].append(prec)
         del emb
-        est = os.path.join(ROOT_DIR, cache, f"pool{pi}", "est3minilm")
-        if est_rows and os.path.isdir(est):
+        est = os.path.join(pool_dir[pi], "est3minilm")
+        if est_rows:
             for lab, spec in est_specs("ambrosia", [0.6, 0.7, 1.0, 1.2, 1.25, 1.3, 1.5],
                                        1.0, 1.5).items():
-                for pt, sents, _, _ in est_items(est, model, spec):
-                    q = parse_q(pt)
-                    if q is None or q not in golden or not sents:
-                        continue
-                    cov, prec = score(q, sents)
+                for pt, sents, _, _ in est_items(est, model, spec, expected, k):
+                    cov, prec = score(parse_q(pt), sents)
                     acc[lab][pi][C].append(cov)
                     acc[lab][pi][P].append(prec)
         print(f"  pool{pi} done", flush=True)
@@ -299,23 +444,23 @@ def run_gsm8k(n_pools=100, k=10, sT=1.2, cache="cache-gsm8k", est_rows=True):
 
     PS, CH = "pass_at_K", "mean_per_chain_accuracy"
     acc = defaultdict(lambda: defaultdict(lambda: {PS: [], CH: []}))
+    pool_dir = {pi: os.path.join(ROOT_DIR, cache, f"pool{pi}") for pi in range(n_pools)}
+    require_pools("gsm8k", {pi: [os.path.join(d, f"{model}_embeddings.pkl")]
+                            + ([os.path.join(d, "est10qwen")] if est_rows else [])
+                            for pi, d in pool_dir.items()})
     for pi in range(n_pools):
-        p = os.path.join(ROOT_DIR, cache, f"pool{pi}", f"{model}_embeddings.pkl")
-        if not os.path.exists(p):
-            continue
+        p = os.path.join(pool_dir[pi], f"{model}_embeddings.pkl")
         with open(p, "rb") as f:
             emb = pickle.load(f)
         if sT not in emb:
-            continue
+            raise ValueError(f"gsm8k: {p} has no sT={fmt(sT)} (has {sorted(emb)})")
+        check_prompts(emb[sT], gold_of, f"gsm8k: {p} sT={fmt(sT)}")
         corr_of = {}
         for pt, d in emb[sT].items():
-            gold = gold_of.get(pt)
-            if gold is None:
-                continue
+            gold = gold_of[pt]
             u, lp1 = list(d["u_sents"]), np.asarray(d["logps_t1"], float)
             E = np.asarray(d["embeddings"], dtype=np.float64)
-            if len(u) < k or len(u) != len(lp1):
-                continue
+            check_pool_row(u, lp1, E, k, f"gsm8k: {p} sT={fmt(sT)} prompt {pt[:60]!r}")
             corr = np.array([1.0 if is_correct(s, gold) else 0.0 for s in u])
             corr_of.update({(pt, s): c for s, c in zip(u, corr)})
             for m, idx in selections(E, lp1, k).items():
@@ -323,13 +468,11 @@ def run_gsm8k(n_pools=100, k=10, sT=1.2, cache="cache-gsm8k", est_rows=True):
                 acc[m][pi][PS].append(1.0 if c.sum() > 0 else 0.0)
                 acc[m][pi][CH].append(float(c.mean()))
         del emb
-        est = os.path.join(ROOT_DIR, cache, f"pool{pi}", "est10qwen")
-        if est_rows and os.path.isdir(est):
+        est = os.path.join(pool_dir[pi], "est10qwen")
+        if est_rows:
             for lab, spec in est_specs("gsm8k", [sT], sT, sT).items():
-                for pt, sents, _, _ in est_items(est, model, spec):
-                    gold = gold_of.get(pt)
-                    if gold is None or not sents:
-                        continue
+                for pt, sents, _, _ in est_items(est, model, spec, gold_of, k):
+                    gold = gold_of[pt]
                     c = np.array([corr_of[(pt, s)] if (pt, s) in corr_of
                                   else float(is_correct(s, gold)) for s in sents])
                     acc[lab][pi][PS].append(1.0 if c.sum() > 0 else 0.0)
@@ -344,7 +487,7 @@ def main():
     ap.add_argument("--n-pools", type=int, default=None)
     ap.add_argument("--cache", default=None, help="ambrosia/gsm8k cache dir override")
     ap.add_argument("--fineweb-pools", nargs="+", default=None,
-                    help="fineweb pool dirs (default cache-fineweb + cache-fineweb-pools/pool*)")
+                    help="fineweb pool dirs (default cache-fineweb + cache-fineweb-pools/pool1..9)")
     ap.add_argument("--no-est-rows", action="store_true",
                     help="skip the est-dir headline method rows")
     ap.add_argument("--out", default=None)

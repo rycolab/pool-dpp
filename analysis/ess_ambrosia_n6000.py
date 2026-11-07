@@ -13,6 +13,13 @@ median over questions:
       r_1 hybrid log(1 + a_1 chi2_1 + sum_{c>=2} a_c (K^c/(K)_c r_1^c - 1)).
 Formulas in bound_formulas.py.
 
+Failures stop the run with an error: a missing pool file (all missing pools are listed) or
+bound_raw file, a pool without draws at sT, pools with different prompt sets, prompts with different
+numbers of draws, a non-finite log-weight, or a bound_raw entry that is not a non-empty list of rows
+(keys starting with "_" are metadata and are not read). Prompts with fewer than 2 distinct strings
+are left out of the ESS (their ESS is N by construction); their number is written as
+n_prompts_excluded_lt2_unique.
+
 Output: analysis/ess_ambrosia_n6000.json
 """
 
@@ -43,11 +50,23 @@ def fmt(x):
 
 
 def merge(cache, sT, n_pools):
-    store = {}
-    for pi in range(n_pools):
-        p = os.path.join(ROOT_DIR, cache, f"pool{pi}", FNAME)
+    paths = [os.path.join(ROOT_DIR, cache, f"pool{pi}", FNAME) for pi in range(n_pools)]
+    missing = [pi for pi, p in enumerate(paths) if not os.path.exists(p)]
+    if missing:
+        raise FileNotFoundError(f"ambrosia: {len(missing)} of {n_pools} pools missing: "
+                                + ", ".join(f"pool{pi}" for pi in missing) + f" (file {FNAME} under {cache})")
+    store, prompts0 = {}, None
+    for pi, p in enumerate(paths):
         with open(p, "rb") as f:
-            emb = pickle.load(f)[sT]
+            raw = pickle.load(f)
+        if sT not in raw:
+            raise ValueError(f"ambrosia pool{pi}: no draws at sT={fmt(sT)} in {p}")
+        emb = raw[sT]
+        if prompts0 is None:
+            prompts0 = set(emb)
+        elif set(emb) != prompts0:
+            raise ValueError(f"ambrosia pool{pi} sT={fmt(sT)}: prompts differ from pool0 "
+                             f"({len(prompts0 - set(emb))} missing, {len(set(emb) - prompts0)} extra)")
         for pt, d in emb.items():
             st = store.setdefault(pt, dict(idx={}, sents=[], phi=[], lp=[],
                                            lp1=[], cnt=[]))
@@ -76,25 +95,49 @@ def merge(cache, sT, n_pools):
     return out
 
 
-def ess_summary(per_prompt, T, uses_q):
-    ess, N = [], None
-    for _, d in per_prompt.items():
+def ess_summary(per_prompt, T, uses_q, where=""):
+    ess, n_lt2 = [], 0
+    Ns = sorted({float(np.asarray(d["counts"], dtype=np.float64).sum()) for d in per_prompt.values()})
+    if len(Ns) != 1:
+        raise ValueError(f"{where}: prompts have different numbers of draws {Ns}")
+    N = Ns[0]
+    for pt, d in per_prompt.items():
         lp1 = np.asarray(d["logps_t1"], dtype=np.float64)
         c = np.asarray(d["counts"], dtype=np.float64)
         if len(lp1) < 2:
+            n_lt2 += 1
             continue
         lw = lp1 / T - (np.asarray(d["logps"], dtype=np.float64) if uses_q else 0.0)
+        if not np.all(np.isfinite(lw)):
+            raise ValueError(f"{where} prompt {pt[:60]!r}: non-finite log-weight at T={fmt(T)}")
         w = np.exp(lw - lw.max())
         wbar = w / (w * c).sum()
         ess.append(1.0 / (c * wbar ** 2).sum())
-        N = float(c.sum())
     ess = np.asarray(ess)
-    return {"N": N, "n_prompts": len(ess),
+    return {"N": N, "n_prompts": len(ess), "n_prompts_excluded_lt2_unique": n_lt2,
             "ess_median": float(np.median(ess)),
             "ess_q25": float(np.quantile(ess, 0.25)),
             "ess_q75": float(np.quantile(ess, 0.75)),
             "ess_min": float(ess.min()),
             "n_collapsed_lt_K": int((ess < K).sum())}
+
+
+def bound_rows(path):
+    """(setting, rows) of a bound_raw file; keys starting with "_" are metadata. Raises on an
+    entry that is not a non-empty list of rows with a finite chi2_1 and r1."""
+    out = []
+    for key, rows in json.load(open(path)).items():
+        if key.startswith("_"):
+            continue
+        if not isinstance(rows, list) or not rows:
+            raise ValueError(f"{path}: entry {key!r} is not a non-empty list of rows")
+        for i, r in enumerate(rows):
+            bad = [f for f in ("chi2_1", "r1") if not np.isfinite(r.get(f, np.nan))]
+            if bad:
+                raise ValueError(f"{path}: {key!r} row {i} has no finite {bad}")
+            bf.m1_of_row(r)  # rows that store m1 must have m1 = 1 + chi2_1
+        out.append((key, rows))
+    return out
 
 
 def bound_m1_at(N, K_, chi2_1):
@@ -117,12 +160,15 @@ def run(a):
 
     with open(os.path.join(ROOT_DIR, a.cache, "pool0", FNAME), "rb") as f:
         pool0 = pickle.load(f)
+    for sT in STS:
+        if set(pool0[sT]) != set(merged[sT]):
+            raise ValueError(f"ambrosia pool0 and the merged pools have different prompts at sT={fmt(sT)}")
     out = {"_meta": dict(cache=a.cache, n_pools=a.n_pools, mean_unique=n_uniq, mean_draws=n_draws,
                          weight="sT=1: plm^(1/T)/q (Samp); sT=1.5: plm^(1/T) (MAP)")}
     for sT in STS:
         for T in TS[sT]:
-            o = {"N200_pool0": ess_summary(pool0[sT], T, USES_Q[sT]),
-                 "N6000_merged": ess_summary(merged[sT], T, USES_Q[sT])}
+            o = {"N200_pool0": ess_summary(pool0[sT], T, USES_Q[sT], f"pool0 sT={fmt(sT)}"),
+                 "N6000_merged": ess_summary(merged[sT], T, USES_Q[sT], f"merged sT={fmt(sT)}")}
             out[f"ess|sT={fmt(sT)}|T={fmt(T)}"] = o
             m = o["N6000_merged"]
             print(f"ESS sT={fmt(sT)} T={fmt(T)}: N=6000 med={m['ess_median']:8.1f} "
@@ -131,28 +177,23 @@ def run(a):
                   f"(N=200 med={o['N200_pool0']['ess_median']:.1f})")
 
     xr = os.path.join(SCRIPT_DIR, a.bound_raw)
-    if os.path.exists(xr):
-        for key, rows in json.load(open(xr)).items():
-            if not isinstance(rows, list) or not rows or "chi2_1" not in rows[0]:
-                continue
-            for r in rows:
-                bf.m1_of_row(r)  # rows that store m1 must have m1 = 1 + chi2_1
-            o_m1 = {"median_bound_m1_N200": float(np.median(
-                        [bound_m1_at(200, K, r["chi2_1"]) for r in rows])),
-                    "median_bound_m1_N6000": float(np.median(
-                        [bound_m1_at(6000, K, r["chi2_1"]) for r in rows]))}
-            out[f"bound_m1|{key}"] = o_m1
-            print(f"bound on the KL (m1) {key}: N=200 {o_m1['median_bound_m1_N200']:.4f} -> "
-                  f"N=6000 {o_m1['median_bound_m1_N6000']:.5f}")
-            o = {"median_cert_N200": float(np.median([cert_at(200, K, r["chi2_1"], r["r1"])
-                                                      for r in rows])),
-                 "median_cert_N6000": float(np.median([cert_at(6000, K, r["chi2_1"], r["r1"])
-                                                       for r in rows]))}
-            out[f"cert|{key}"] = o
-            print(f"  r1 version (secondary) {key}: N=200 {o['median_cert_N200']:.4f} -> "
-                  f"N=6000 {o['median_cert_N6000']:.5f}")
-    else:
-        print(f"[warn] {xr} missing; bounds on the KL skipped")
+    if not os.path.exists(xr):
+        raise FileNotFoundError(f"{xr} missing; run bound_empirical.py --task ambrosia first")
+    for key, rows in bound_rows(xr):
+        o_m1 = {"median_bound_m1_N200": float(np.median(
+                    [bound_m1_at(200, K, r["chi2_1"]) for r in rows])),
+                "median_bound_m1_N6000": float(np.median(
+                    [bound_m1_at(6000, K, r["chi2_1"]) for r in rows]))}
+        out[f"bound_m1|{key}"] = o_m1
+        print(f"bound on the KL (m1) {key}: N=200 {o_m1['median_bound_m1_N200']:.4f} -> "
+              f"N=6000 {o_m1['median_bound_m1_N6000']:.5f}")
+        o = {"median_cert_N200": float(np.median([cert_at(200, K, r["chi2_1"], r["r1"])
+                                                  for r in rows])),
+             "median_cert_N6000": float(np.median([cert_at(6000, K, r["chi2_1"], r["r1"])
+                                                   for r in rows]))}
+        out[f"cert|{key}"] = o
+        print(f"  r1 version (secondary) {key}: N=200 {o['median_cert_N200']:.4f} -> "
+              f"N=6000 {o['median_cert_N6000']:.5f}")
     with open(os.path.join(SCRIPT_DIR, "ess_ambrosia_n6000.json"), "w") as f:
         json.dump(out, f, indent=1)
     print("Saved analysis/ess_ambrosia_n6000.json")

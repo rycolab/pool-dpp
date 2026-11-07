@@ -115,10 +115,23 @@ without tolerance), since then logps are not log-probabilities of distinct
 strings under one proposal.
 
 Pools. ambrosia/gsm8k read {cache}/pool{i}/; fineweb reads the flat
-{cache}/ pool plus every cache-fineweb-pools/pool*/ (independent seeds) when
-present. --pool-files overrides. Extracted ground sets are cached under
+{cache}/ pool plus cache-fineweb-pools/pool1..pool9 (independent seeds; --no-extra-pools
+leaves them out). --pool-files overrides. Extracted ground sets are cached under
 $BOUND_SCRATCH (default analysis/bound_work/) keyed by a fingerprint of the input
 files, so a changed pool set is never served from a stale extract.
+
+Failures and exclusions. A missing pool file, a pool without the task's sT, a prompt whose
+arrays have different lengths, or pools with different prompts stop the extract stage. A
+prompt whose exact target needs the tiered k-DPP path (rows within TIER_NATS of the top span
+fewer than K dimensions) stops the analysis, since its log Z and P_1 cannot be computed exactly;
+when the target drops rows more than TIER_NATS below the top (dpp.stable, path "drop"), the row
+records target_tier_path and target_log10_drop_bound, an upper bound on the probability mass
+left out. A pool or block whose rows span fewer than K dimensions has Zhat = 0 and enters the
+variance as a zero. A non-finite Monte Carlo value, a Monte Carlo
+mean of 0, or a non-finite value in a median stops the run. Blocks: a prompt gets
+sub_relvar[m] only when it has at least 10 blocks of size m and not all of them are zero;
+sub_nzero[m] counts its zero blocks, and the summary's block_n_prompts[m] counts the prompts
+behind each median. measured_relvar needs at least 10 pools (summary: n_prompts_measured_relvar).
 
 Usage:
     OPENBLAS_NUM_THREADS=1 python analysis/bound_empirical.py
@@ -126,7 +139,6 @@ Usage:
 """
 
 import argparse
-import glob
 import hashlib
 import itertools
 import json
@@ -161,7 +173,7 @@ CONFIGS = {
     ),
     "fineweb": dict(
         cache="cache-fineweb", n_pools=1, flat=True,
-        extra_pool_glob="cache-fineweb-pools/pool*",
+        extra_pools=[f"cache-fineweb-pools/pool{i}" for i in range(1, 10)],   # N_EXTRA=9, run_fineweb.sh
         fname="google__gemma-2-9b-it_minilm_embeddings.pkl",
         sT=1.0, K=10, D=384, M_exp=400,
         M_grid=[10, 20, 25, 50, 100, 200],
@@ -265,12 +277,18 @@ def build_instance(Phi, cnt_tot, logps, logps_t1, T):
 
 
 def stable_log_e_K(log_s, Phi, K):
-    """log e_K of the spectrum of B B^T for rows exp(log_s_i) Phi_i, or None if it is zero or the
-    rows need tiers. The graded SVD stays accurate however far the scales spread, and rows that
-    share a direction are merged, because a pair of them adds a singular value of rounding noise."""
+    """log e_K of the spectrum of B B^T for rows exp(log_s_i) Phi_i: -inf when the rows span fewer
+    than K dimensions (e_K = 0 exactly). Raises RuntimeError when the rows need the tiered path, where
+    e_K cannot be computed exactly in one factorization. The graded SVD stays accurate however far the
+    scales spread, and rows that share a direction are merged, because a pair of them adds a singular
+    value of rounding noise."""
     dpp = StableKDPP(log_s, Phi, K)
-    if dpp.tiers is None or len(dpp.tiers[1]) < K:
-        return None
+    if not dpp.spans_k():
+        return -np.inf
+    if dpp.tiers is None:
+        raise RuntimeError(f"log e_K: the rows within TIER_NATS of the top scale span fewer than K={K} "
+                           f"dimensions (tiered path, {dpp.info['n_rows']} rows), so e_K is not computed exactly; "
+                           f"it is not treated as 0. Needs an exact method for such kernels (PR 'fail loudly')")
     return log_esp_prefix_suffix(2.0 * dpp.tiers[1], K)[0]
 
 
@@ -281,10 +299,14 @@ def exact_target(Phi, kappa, K):
         dpp = StableKDPP(0.5 * np.log(kappa), Phi, K)
     P1 = dpp.inclusion_probs()
     if P1 is None:
-        return None
+        raise RuntimeError(f"exact target: the rows within TIER_NATS of the top span fewer than K={K} "
+                           f"dimensions (tiered path, first-cut gap {dpp.info['min_gap_nats']} nats), so log Z "
+                           f"and P_1 are not exact. Needs an exact method for "
+                           f"such kernels (PR 'fail loudly'); do not drop the prompt from the medians")
     ls = dpp.tiers[1]
     return dict(logZ=log_esp_prefix_suffix(2.0 * ls, K)[0], P1=P1, lam=np.exp(2.0 * ls),
-                sumP1=float(P1.sum()))
+                sumP1=float(P1.sum()), tier_path=dpp.info["path"],
+                log10_drop_bound=dpp.info["log10_drop_bound"])
 
 
 def mc_relvar(Phi, rho, q, K, M, logZ, R, rng, batch=256):
@@ -304,42 +326,48 @@ def mc_relvar(Phi, rho, q, K, M, logZ, R, rng, batch=256):
         for r in np.flatnonzero(eigs[:, -K] <= EIG_FLOOR * eigs[:, -1]):
             ii = idx[r]
             with np.errstate(divide="ignore"):
-                lz = stable_log_e_K(0.5 * np.log(rho[ii] / M), Phi[ii], K)
-            le[r] = -np.inf if lz is None else lz
+                le[r] = stable_log_e_K(0.5 * np.log(rho[ii] / M), Phi[ii], K)
         vals.append(np.exp(le + la - logZ))
         done += b
     v = np.concatenate(vals)
-    v = v[np.isfinite(v)]
+    if not np.isfinite(v).all():
+        # dropping them would bias the relvar down when Zhat/Z overflows
+        raise RuntimeError(f"MC: {int((~np.isfinite(v)).sum())} of {len(v)} values of Zhat/Z are not finite "
+                           f"(M={M}, K={K}); compute the moments in log space instead of dropping them")
     mu = float(v.mean())
-    rv = float(v.var(ddof=1) / (mu * mu)) if mu > 0 else float("nan")
+    if not mu > 0:
+        raise RuntimeError(f"MC: all {len(v)} draws of Zhat are 0 (M={M}, K={K}), so Var(Zhat)/Z^2 is not "
+                           f"estimable from them; use more draws or a larger M")
+    rv = float(v.var(ddof=1) / (mu * mu))
     # SE of the relative variance (delta method on the 2nd/1st moment ratio)
     m2 = float((v ** 2).mean())
     se_m2 = float(v.__pow__(2).std(ddof=1) / math.sqrt(len(v)))
-    se_rv = se_m2 / (mu * mu) if mu > 0 else float("nan")
+    se_rv = se_m2 / (mu * mu)
     return dict(relvar=rv, mean_ratio=mu, se_relvar=se_rv, n=int(len(v)),
                 m2_over_Z2=m2)
 
 
 def pool_logzhat(Phi, rho, cnt_row, K):
-    """log Zhat for one realized pool (counts = multiplicities), shared gauge."""
+    """log Zhat for one realized pool (counts = multiplicities), shared gauge. -inf when the pool's
+    rows span fewer than K dimensions (Zhat = 0), so such a pool enters the variance as a zero."""
     sel = cnt_row > 0
     if sel.sum() < K:
-        return None
+        return -np.inf
     M = float(cnt_row.sum())
     A = Phi[sel] * np.sqrt(rho[sel] * cnt_row[sel] / M)[:, None]
     # nonzero spectra of A A^T and A^T A coincide; eigendecompose the smaller
     G = A @ A.T if A.shape[0] <= A.shape[1] else A.T @ A
     lam = np.clip(np.linalg.eigvalsh(G), 0.0, None)
     if len(lam) < K:
-        return None
+        return -np.inf
     if lam[-K] <= EIG_FLOOR * lam[-1]:
         with np.errstate(divide="ignore"):
             log_eK = stable_log_e_K(0.5 * np.log(rho[sel] * cnt_row[sel] / M), Phi[sel], K)
-        return None if log_eK is None else log_eK + log_alpha(int(M), K)
+        return log_eK + log_alpha(int(M), K)
     lam = lam[lam > 0]
     log_eK, _ = log_esp_prefix_suffix(np.log(lam), K)
-    if not np.isfinite(log_eK):
-        return None
+    if np.isnan(log_eK):
+        raise RuntimeError(f"log Zhat is NaN for a pool of {int(M)} draws (K={K})")
     return log_eK + log_alpha(int(M), K)
 
 
@@ -414,11 +442,13 @@ def iid_diagnostics(Cnt, logps):
 
 
 def block_relvar(Phi, rho, Cnt, K, m, min_blocks=10):
-    """relvar of Zhat at sketch size m from DISJOINT blocks of each real pool.
+    """relvar of Zhat at sketch size m from DISJOINT blocks of each real pool, and the number of
+    blocks and of blocks with Zhat = 0 (which enter as zeros).
 
     Disjoint blocks of an i.i.d. sample are independent draws of m i.i.d.
     points, so this measures the true-instance Var(Zhat)/Z^2 at M=m without
-    assuming the pools themselves are independent of each other.
+    assuming the pools themselves are independent of each other. The relvar is None with
+    fewer than min_blocks blocks, or when every block has Zhat = 0 (no estimate of E[Zhat]).
     """
     logs = []
     for r in range(Cnt.shape[0]):
@@ -426,21 +456,23 @@ def block_relvar(Phi, rho, Cnt, K, m, min_blocks=10):
         expand = np.repeat(np.arange(len(cr)), cr)
         n_blk = len(expand) // m
         if n_blk < 1:
-            continue
+            raise ValueError(f"block size m={m} exceeds pool {r}'s {len(expand)} draws; drop m from M_grid")
         perm = np.random.default_rng(1000 + r).permutation(expand)
         for b in range(n_blk):
             blk = perm[b * m:(b + 1) * m]
             row = np.bincount(blk, minlength=len(cr)).astype(float)
-            lz = pool_logzhat(Phi, rho, row, K)
-            if lz is not None:
-                logs.append(lz)
-    if len(logs) < min_blocks:
-        return None, len(logs)
-    return relvar_from_logs(logs), len(logs)
+            logs.append(pool_logzhat(Phi, rho, row, K))
+    n_zero = int(np.sum(np.isneginf(logs)))
+    if len(logs) < min_blocks or n_zero == len(logs):
+        return None, len(logs), n_zero
+    return relvar_from_logs(logs), len(logs), n_zero
 
 
 def relvar_from_logs(logs):
+    """Var/mean^2 of exp(logs); entries -inf are zeros. Raises when all are zero."""
     L = np.asarray(logs, dtype=np.float64)
+    if np.isnan(L).any() or not np.isfinite(L.max()):
+        raise ValueError(f"relvar: {int(np.isnan(L).sum())} NaN log Zhat, max {L.max()!r}; needs a positive Zhat")
     v = np.exp(L - L.max())
     mu = v.mean()
     if mu <= 0:
@@ -458,11 +490,7 @@ def pool_files(task):
         return list(cfg["pool_files"])
     if cfg.get("flat"):
         files = [os.path.join(ROOT_DIR, cfg["cache"], cfg["fname"])]
-        if cfg.get("extra_pool_glob"):
-            extra = glob.glob(os.path.join(ROOT_DIR, cfg["extra_pool_glob"]))
-            extra = sorted(extra, key=lambda d: int("".join(
-                ch for ch in os.path.basename(d) if ch.isdigit()) or 0))
-            files += [os.path.join(d, cfg["fname"]) for d in extra]
+        files += [os.path.join(ROOT_DIR, d, cfg["fname"]) for d in cfg.get("extra_pools", [])]
         return files
     return [os.path.join(ROOT_DIR, cfg["cache"], f"pool{pi}", cfg["fname"])
             for pi in range(cfg["n_pools"])]
@@ -491,15 +519,21 @@ def extract(task):
         return dest
     store = {}           # prompt -> dict(sents, Phi, logps, logps_t1, Cnt rows)
     order = {}
-    for pi, p in enumerate(pool_files(task)):
-        if not os.path.exists(p):
-            print(f"[extract] missing {p}")
-            continue
+    files = pool_files(task)
+    missing = [(pi, p) for pi, p in enumerate(files) if not os.path.exists(p)]
+    if missing:
+        raise FileNotFoundError(
+            f"[extract] {task}: {len(missing)} of {len(files)} pools missing: {[pi for pi, _ in missing]} "
+            f"(first: {missing[0][1]}). Generate them (scripts/run_{task}.sh), or pass --n-pools / --pool-files "
+            f"for the pools that exist and report that count; pools are not skipped")
+    for pi, p in enumerate(files):
         with open(p, "rb") as f:
             emb = pickle.load(f)
         if cfg["sT"] not in emb:
-            print(f"[extract] pool{pi}: no sT={cfg['sT']}")
-            continue
+            raise KeyError(f"[extract] pool{pi} ({p}) has no sT={cfg['sT']}; sample it at that temperature")
+        if pi and set(emb[cfg["sT"]]) != set(store):
+            raise ValueError(f"[extract] pool{pi} ({p}) has {len(emb[cfg['sT']])} prompts, {len(set(emb[cfg['sT']]) ^ set(store))} "
+                             f"differing from the earlier pools; every pool must hold the same prompts")
         for pt, d in emb[cfg["sT"]].items():
             s = np.asarray(d["u_sents"])
             cnt = np.asarray(d["counts"], dtype=np.float64)
@@ -507,7 +541,8 @@ def extract(task):
             lp1 = np.asarray(d["logps_t1"], dtype=np.float64)
             ph = np.asarray(d["embeddings"], dtype=np.float64)
             if not (len(s) == len(cnt) == len(lp) == len(lp1) == len(ph)):
-                continue
+                raise ValueError(f"[extract] pool{pi} prompt {pt[:60]!r}: arrays of different lengths "
+                                 f"{[len(s), len(cnt), len(lp), len(lp1), len(ph)]}")
             st = store.setdefault(pt, dict(idx={}, sents=[], Phi=[], lp=[],
                                            lp1=[], rows={}))
             row = defaultdict(float)
@@ -559,7 +594,8 @@ def t1_enumeration(task, pooled, rng, cases):
         pt = prompts[len(res) % len(prompts)]
         rec = pooled[pt]
         if rec["n_uniq"] < nY:
-            continue
+            raise ValueError(f"[T1] case nY={nY}: prompt {pt[:40]!r} has {rec['n_uniq']} unique strings; "
+                             f"choose cases with nY <= the smallest prompt's count")
         # pick the nY most frequent strings (real embeddings, real weights)
         tot = rec["Cnt"].sum(0)
         sel = np.argsort(-tot)[:nY]
@@ -571,8 +607,6 @@ def t1_enumeration(task, pooled, rng, cases):
         q, rho, kappa = build_instance(Phi, tot[sel], rec["logps"][sel], rec["logps_t1"][sel], temperature)
 
         tgt = exact_target(Phi, kappa, K)
-        if tgt is None:
-            continue
         Z = math.exp(tgt["logZ"])
         # exact target weights f(S) for every K-subset
         L = (np.sqrt(kappa)[:, None] * Phi) @ (np.sqrt(kappa)[:, None] * Phi).T
@@ -684,8 +718,8 @@ def analyze(task, max_prompts, R_mc, workers, seed=0):
     with multiprocessing.get_context("fork").Pool(workers) as pool:
         for T in cfg["sweeps"]:
             jobs = [(task, pt, ip, T, R_mc, seed) for ip, pt in enumerate(prompts)]
-            rows = [r for r in pool.map(analyze_prompt, jobs, chunksize=1) if r is not None]
-            print(f"[analyze] {setting_key(task, T)}: {len(rows)} of {len(prompts)} prompts", flush=True)
+            rows = pool.map(analyze_prompt, jobs, chunksize=1)
+            print(f"[analyze] {setting_key(task, T)}: {len(rows)} prompts", flush=True)
             per_setting[setting_key(task, T)] = rows
     return per_setting
 
@@ -706,9 +740,6 @@ def analyze_prompt(job):
                                f"[{setting_key(task, T)}] prompt {ip} ({pt[:60]!r})")
     q, rho, kappa = build_instance(Phi, tot, rec["logps"], rec["logps_t1"], T)
     tgt = exact_target(Phi, kappa, K)
-    if tgt is None:
-        print(f"  [{setting_key(task, T)}] p{ip}: no target (rows need tiers), skipped", flush=True)
-        return None
     logZ = tgt["logZ"]
     pi1 = tgt["P1"] / K
     m1 = float((pi1 ** 2 / q).sum())       # E_q[u_1^2]
@@ -731,16 +762,16 @@ def analyze_prompt(job):
 
     mc = mc_relvar(Phi, rho, q, K, M_exp, logZ, R_mc, rng)
 
-    # measured across-pool relvar at the full pool size 
+    # measured across-pool relvar at the full pool size (a pool with Zhat = 0 enters as a zero)
     logs = [pool_logzhat(Phi, rho, Cnt[r], K) for r in range(Cnt.shape[0])]
-    logs = [x for x in logs if x is not None]
     meas = relvar_from_logs(logs) if len(logs) >= 10 else None
 
     # T3: disjoint within-pool blocks -> true-instance relvar at each m,
     # plus the identity's prediction for the same m on this instance
-    sub, sub_n, pred, pred_lo_h, pred_hi, pred_hi_m1 = {}, {}, {}, {}, {}, {}
+    sub, sub_n, sub_z, pred, pred_lo_h, pred_hi, pred_hi_m1 = {}, {}, {}, {}, {}, {}, {}
     for m in cfg["M_grid"]:
-        rv, nb = block_relvar(Phi, rho, Cnt, K, m)
+        rv, nb, nz = block_relvar(Phi, rho, Cnt, K, m)
+        sub_z[m] = nz
         if rv is not None:
             sub[m] = rv
             sub_n[m] = nb
@@ -774,6 +805,8 @@ def analyze_prompt(job):
         pred_leading_by_m=pred, pred_upper_m1_by_m=pred_hi_m1,
         pred_upper_by_m=pred_hi,
         iid=iid_diagnostics(Cnt, rec["logps"]),
+        sub_nzero=sub_z, n_pools=int(Cnt.shape[0]),
+        target_tier_path=tgt["tier_path"], target_log10_drop_bound=tgt["log10_drop_bound"],
     )
     if ip % 5 == 0:
         r = row
@@ -807,17 +840,20 @@ def summarize(per_setting):
     summ = {}
     for key, rows in per_setting.items():
         if not rows:
-            continue
+            raise ValueError(f"{key}: no prompts")
         def med(f, filt=lambda v: v is not None):
-            vals = [f(r) for r in rows]
-            vals = [v for v in vals if filt(v) and np.isfinite(v)]
+            """Median over the rows where f is not None (only measured_relvar can be None: fewer
+            than 10 pools). A NaN or inf value raises."""
+            vals = [v for v in (f(r) for r in rows) if filt(v)]
+            if not np.isfinite(vals).all():
+                raise ValueError(f"{key}: {int((~np.isfinite(vals)).sum())} non-finite values in a median")
             return float(np.median(vals)) if vals else None
-        mcs = [r["mc_relvar"] for r in rows if np.isfinite(r["mc_relvar"])]
+        mcs = [r["mc_relvar"] for r in rows]
+        if not (np.isfinite(mcs).all() and min(mcs) > 0):
+            raise ValueError(f"{key}: MC relvar not finite and positive for every prompt: {sorted(mcs)[:3]}")
         leads = [r["leading"] for r in rows]
-        ratio = [r["leading"] / r["mc_relvar"] for r in rows
-                 if r["mc_relvar"] and np.isfinite(r["mc_relvar"]) and r["mc_relvar"] > 0]
-        ratio_h = [r["lower_hoeffding"] / r["mc_relvar"] for r in rows
-                   if r["mc_relvar"] and np.isfinite(r["mc_relvar"]) and r["mc_relvar"] > 0]
+        ratio = [r["leading"] / r["mc_relvar"] for r in rows]
+        ratio_h = [r["lower_hoeffding"] / r["mc_relvar"] for r in rows]
         Ms = sorted({m for r in rows for m in r["sub_relvar"]})
         sub_med = {m: float(np.median([r["sub_relvar"][m] for r in rows
                                        if m in r["sub_relvar"]]))
@@ -879,6 +915,12 @@ def summarize(per_setting):
             frac_below_exact_lower_bound=below,
             median_mc_se=med(lambda r: r["mc_se"]),
             iid_diagnostics_median=iid_med,
+            n_prompts_measured_relvar=sum(r["measured_relvar"] is not None for r in rows),
+            block_n_prompts={m: sum(m in r["sub_relvar"] for r in rows) for m in sub_med},
+            block_n_zero_blocks={m: int(sum(r["sub_nzero"][m] for r in rows)) for m in sub_med},
+            target_tier_paths={p: sum(r["target_tier_path"] == p for r in rows) for p in ("flat", "drop")},
+            target_max_log10_drop_bound=max((r["target_log10_drop_bound"] for r in rows
+                                             if r["target_log10_drop_bound"] is not None), default=None),
         )
         s = summ[key]
         print(f"\n=== {key} ===")
@@ -938,7 +980,7 @@ def main():
     ap.add_argument("--pool-files", nargs="+", default=None,
                     help="explicit embedding pkls, one per pool (overrides discovery)")
     ap.add_argument("--no-extra-pools", action="store_true",
-                    help="fineweb: ignore cache-fineweb-pools/pool*")
+                    help="fineweb: leave out cache-fineweb-pools/pool1..9")
     args = ap.parse_args()
 
     tasks = (["ambrosia", "fineweb", "gsm8k"] if args.task == "all"
@@ -953,7 +995,7 @@ def main():
         if args.pool_files:
             cfg["pool_files"] = [os.path.join(ROOT_DIR, p) for p in args.pool_files]
         if args.no_extra_pools:
-            cfg.pop("extra_pool_glob", None)
+            cfg.pop("extra_pools", None)
         cfg["sweeps"] = [float(t) for t in args.Ts]
         out[f"{task}|meta"] = dict(
             sT=cfg["sT"], K=cfg["K"], N_pool=cfg["M_exp"], Ts=cfg["sweeps"],

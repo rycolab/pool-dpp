@@ -72,15 +72,15 @@ def test_ambrosia_sql_queries(sql_dump: str, queries: list[str], golden_queries:
     cursor = conn.cursor()
     cursor.executescript(sql_dump)
 
-    try:
-        golden_queries = eval(golden_queries)
-        golden_results = set([row for q in golden_queries for row in execute_sql_query(cursor, q)[1]])
-    except Exception as e:
-        golden_queries = set()
-        golden_results = set()
-        print(f"Error evaluating golden queries: {e}")
-        import traceback
-        traceback.print_exc()
+    # A golden query that fails to run raises: before, its error message was added to the golden
+    # results as if it were a row, and a golden list that failed to parse became an empty set.
+    golden_queries = eval(golden_queries)
+    golden_results = set()
+    for q in golden_queries:
+        ok, rows = execute_sql_query(cursor, q)
+        if not ok:
+            raise ValueError(f"golden query fails to run ({rows[0]}): {q!r}; fix the Ambrosia row, do not drop it")
+        golden_results.update(rows)
 
     results = []
     for i, q in enumerate(queries):
@@ -147,7 +147,7 @@ def get_ambrosia_prompts(mode: str, df: pd.DataFrame) -> list[tuple[str, int | N
             (build_ambrosia_prompt(
                 (row := find_row_by_question(df, q))), row.name) for q in all_queries[:500]
         ]
-    return []
+    raise ValueError(f"unknown Ambrosia mode {mode!r}")
 
 
 def compute_ambrosia_coverage(sql_dump, generated_queries, golden_queries_str):
@@ -166,9 +166,10 @@ def compute_ambrosia_coverage(sql_dump, generated_queries, golden_queries_str):
     golden_sigs = set()
     for q in g_sqls:
         success, res = execute_sql_query(cursor, q)
-        if success:
-            sig = tuple(res)
-            golden_sigs.add(sig)
+        if not success:
+            # was skipped, which shrank the coverage denominator
+            raise ValueError(f"golden query fails to run ({res[0]}): {q!r}; fix the Ambrosia row, do not drop it")
+        golden_sigs.add(tuple(res))
     
     assert len(golden_sigs) != 0
 
@@ -188,60 +189,40 @@ def compute_ambrosia_coverage(sql_dump, generated_queries, golden_queries_str):
 
 
 def compute_ambrosia_stats(results, temperatures, prompt_list, df, model_name, stats_output_file=None, metric="coverage"):
+    """Print (and append to stats_output_file) per-question stats of the sampled SQL queries. A diagnostic
+    for dpp-sample --ambrosia-stats; no paper number comes from it. A question without samples or without
+    a question id raises instead of being skipped."""
     print(f"Computing ambrosia stats on full results (metric={metric})...")
     for T in temperatures:
         temp_bucket = results[T]
         for prompt_text, prompt_id_val in prompt_list:
-             entry = temp_bucket.get(prompt_text)
-             if entry and isinstance(entry, (list, tuple)) and len(entry) >= 1:
-                 # entry is (raw_sents, raw_lps, raw_t1_lps, raw_lengths)
-                 raw_sents = entry[0]
+            entry = temp_bucket.get(prompt_text)
+            # entry is (raw_sents, raw_lps, raw_t1_lps, raw_lengths)
+            if not (entry and isinstance(entry, (list, tuple)) and len(entry[0]) and prompt_id_val is not None):
+                raise ValueError(f"ambrosia stats: no samples or no question id at T={T} for question {prompt_id_val}")
+            raw_sents = entry[0]
+            prompt_id = int(prompt_id_val)
+            df_row = df.iloc[prompt_id]
+            sql_dump = df_row['db_dump']
+            golden_queries = df_row['ambig_queries']
+            deduped_generations = set(raw_sents)
 
-                 prompt_id = int(prompt_id_val) if prompt_id_val is not None else None
-                 df_row = df.iloc[prompt_id] if prompt_id is not None else None
+            results_stats = test_ambrosia_sql_queries(sql_dump, list(deduped_generations), golden_queries)
+            runnable_count = sum(1 for r in results_stats if r['is_runnable'])
+            list_of_sql_results = [r['result'] for r in results_stats if r['is_runnable']]
+            len_unique_results = len(set(tuple(res) for res in list_of_sql_results))
+            if metric == "coverage":
+                golden_score = compute_ambrosia_coverage(sql_dump, list(deduped_generations), golden_queries)
+                score_val = golden_score * 100.0  # Convert to percent scale like the old metric
+            else:  # metric == "accuracy" (OLD BEHAVIOR)
+                score_val = sum(1 for r in results_stats if r.get('is_golden', False)) / len(deduped_generations) * 100.0
 
-                 if df_row is not None:
-                     sql_dump = df_row['db_dump']
-                     golden_queries = df_row['ambig_queries']
-                     deduped_generations = set(raw_sents)
-                     if not deduped_generations:
-                         continue
+            print(f"  Question {prompt_id} T={T}: generated {len(deduped_generations)} unique SQL queries, {runnable_count} runnable, {len_unique_results} unique results, {score_val:.2f}% ({metric}).")
 
-                     if metric == "coverage":
-                         golden_score = compute_ambrosia_coverage(
-                             sql_dump,
-                             list(deduped_generations),
-                             golden_queries
-                         )
-                         results_stats = test_ambrosia_sql_queries(
-                             sql_dump,
-                             list(deduped_generations),
-                             golden_queries
-                         )
-                         runnable_count = sum(1 for r in results_stats if r['is_runnable'])
-                         list_of_sql_results = [r['result'] for r in results_stats if r['is_runnable']]
-                         len_unique_results = len(set(tuple(res) for res in list_of_sql_results))
-                         
-                         score_val = golden_score * 100.0 # Convert to percent scale like the old metric
-                         
-                     else: # metric == "accuracy" (OLD BEHAVIOR)
-                         results_stats = test_ambrosia_sql_queries(
-                             sql_dump,
-                             list(deduped_generations),
-                             golden_queries
-                         )
-                         runnable_count = sum(1 for r in results_stats if r['is_runnable'])
-                         list_of_sql_results = [r['result'] for r in results_stats if r['is_runnable']]
-                         len_unique_results = len(set(tuple(res) for res in list_of_sql_results))
-                         
-                         score_val = sum(1 for r in results_stats if r.get('is_golden', False)) / len(deduped_generations) * 100.0 if deduped_generations else 0.0
-
-                     print(f"  Question {prompt_id} T={T}: generated {len(deduped_generations)} unique SQL queries, {runnable_count} runnable, {len_unique_results} unique results, {score_val:.2f}% ({metric}).")
-
-                     if stats_output_file:
-                         with open(stats_output_file, "a") as f:
-                             escaped_question = df_row['question'].replace('"', '""')
-                             f.write(f'{model_name},{prompt_id},"{escaped_question}",{T},{len(deduped_generations)},{runnable_count},{len_unique_results},{score_val:.4f}\n')
+            if stats_output_file:
+                with open(stats_output_file, "a") as f:
+                    escaped_question = df_row['question'].replace('"', '""')
+                    f.write(f'{model_name},{prompt_id},"{escaped_question}",{T},{len(deduped_generations)},{runnable_count},{len_unique_results},{score_val:.4f}\n')
 
 
 if __name__ == "__main__":

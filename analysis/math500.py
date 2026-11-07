@@ -14,6 +14,15 @@ level of HuggingFaceH4/MATH-500, 10 pools of N=100.
           and pool-paired sign-flip tests against ancestral sampling at local sampling temperature 1.2,
           per-level differences, the pool ceiling, and the figure.
 
+Exclusions are counted, never silent. Every (pool, sT, problem) cell gets the pool ceiling and Ancestral
+sampling, scored as drawn (duplicates included). A cell whose unique strings span fewer than K dimensions
+(fewer than K unique strings, or rank < K; Zhat = 0) has no K-set for k-Means, Naive-DPP, PoolDPP-Samp or
+PoolDPP-MAP; those methods leave such cells out (the main experiments redraw the pool instead), and
+math500.json records, per method and knob, n_cells and n_cells_excluded_rank_lt_K, plus
+_exclusions with the counts per sT. A missing pool, a pool without every problem at every sT, a
+verification that times out or fails, a NaN log-determinant, or a missing ancestral reference cell stops
+the run.
+
 PoolDPP-Samp and PoolDPP-MAP both use w = plm^(1/T) here, with no division by the proposal. The pools behind
 app:math500 were drawn with one raw seed per pool and share 53% of their unique strings. This script seeds each
 request separately, so it draws different pools.
@@ -82,10 +91,14 @@ def pool_path(a, pool):
 
 
 def read_pools(a):
+    missing = [pool for pool in range(a.n_pools) if not os.path.exists(pool_path(a, pool))]
+    if missing:
+        raise FileNotFoundError(f"MATH-500: {len(missing)} of {a.n_pools} pools missing: {missing} under {a.cache}; "
+                                f"run the sample stage for them (scripts/run_math500.sh), or pass --n-pools for the "
+                                f"pools that exist and report that count; pools are not skipped")
     for pool in range(a.n_pools):
-        if os.path.exists(pool_path(a, pool)):
-            with open(pool_path(a, pool), "rb") as f:
-                yield pool, pickle.load(f)
+        with open(pool_path(a, pool), "rb") as f:
+            yield pool, pickle.load(f)
 
 
 # ---------------------------------------------------------------------------
@@ -95,7 +108,7 @@ def cmd_sample(a):
     from transformers import AutoTokenizer
     from vllm import LLM, SamplingParams
 
-    from lm_dpp.sample_vllm import derive_request_seed
+    from lm_dpp.sample_vllm import at_temperature_logprob, derive_request_seed
 
     prompts = [build_prompt(ex) for ex in math500_problems(a.n_problems)]
     tok = AutoTokenizer.from_pretrained(MODEL)
@@ -116,9 +129,10 @@ def cmd_sample(a):
                                      seed=derive_request_seed(pool, p, sT, 0)) for p in prompts]
             bucket = {}
             for p, o in zip(prompts, llm.generate(chat, params)):
+                if len(o.outputs) != a.n:
+                    raise RuntimeError(f"pool{pool} sT={sT}: vLLM returned {len(o.outputs)} completions, not n={a.n}")
                 bucket[p] = ([c.text for c in o.outputs],
-                             [float(getattr(c, "cumulative_logprob_at_temperature", float("nan")))
-                              for c in o.outputs],
+                             [at_temperature_logprob(c) for c in o.outputs],
                              [float(c.cumulative_logprob) for c in o.outputs],
                              [len(c.token_ids) for c in o.outputs])
             raw[sT] = bucket
@@ -182,8 +196,9 @@ class _Deadline(Exception):
     pass
 
 
-def _with_deadline(fn, seconds, default):
-    """evalf and equals inside math-verify can run for an unbounded time."""
+def _with_deadline(fn, seconds):
+    """evalf and equals inside math-verify can run for an unbounded time. A timeout or an exception
+    returns {"error": ...} (it returned a default verdict "incorrect" before); cmd_verify stops on it."""
     def handler(signum, frame):
         raise _Deadline()
 
@@ -191,8 +206,10 @@ def _with_deadline(fn, seconds, default):
     signal.alarm(seconds)
     try:
         return fn()
-    except Exception:
-        return default
+    except _Deadline:
+        return {"error": f"timeout after {seconds} s"}
+    except Exception as e:
+        return {"error": f"{type(e).__name__}: {e}"}
     finally:
         signal.alarm(0)
         signal.signal(signal.SIGALRM, old)
@@ -222,11 +239,16 @@ def cmd_verify(a):
                 parsed = parse("$" + ans + "$") if ans else []
                 return {"correct": bool(verify(gold, parsed)) if parsed else False,
                         "key": _canon_key(parsed, ans)}
-            cache[(qid, ans)] = _with_deadline(
-                check, 10, {"correct": False, "key": "raw:" + re.sub(r"\s+", "", ans).lower()})
+            cache[(qid, ans)] = _with_deadline(check, 10)
         with open(path, "wb") as f:
             pickle.dump(cache, f)
     print(f"verified, {len(cache)} on file", flush=True)
+    failed = {k: v["error"] for k, v in cache.items() if "error" in v}
+    if failed:
+        (qid, ans), err = next(iter(failed.items()))
+        raise RuntimeError(f"math-verify failed on {len(failed)} (problem, answer) pairs (first: {qid}, {ans[:60]!r}: "
+                           f"{err}). They are kept in {path} with their error, not scored as incorrect; how to score "
+                           f"them (longer deadline, by hand) is a decision for timv/Manuel")
 
 
 # ---------------------------------------------------------------------------
@@ -278,7 +300,9 @@ def unit(E):
 
 def logdet(F):
     s, ld = np.linalg.slogdet(F @ F.T + 1e-6 * np.eye(len(F)))
-    return ld if s > 0 else np.nan
+    if not s > 0:
+        raise RuntimeError(f"log-determinant of a {len(F)}-row Gram matrix + 1e-6 I has sign {s}")
+    return ld
 
 
 def signflip_p(d, n_perm=100000, seed=1):
@@ -295,11 +319,16 @@ def _score_pool(item):
     """Rows (method, knob, (pool, sT, qid), metrics) for one pool."""
     from lm_dpp.estimation import ancestral_draw, greedy_map, quality_log_scales, sample_dpp, sample_kmeans_for_prompt
 
+    from dpp.stable import RANK_TOL
+
     pool, raw = item
     by_prompt, verdicts, emb = _shared["by_prompt"], _shared["verdicts"], _shared["emb"]
     np.random.seed(1000 + pool)
     rows = []
     for sT in sorted(raw):
+        if set(raw[sT]) != set(by_prompt):
+            raise ValueError(f"pool{pool} sT={sT}: has {len(set(raw[sT]) & set(by_prompt))} of the "
+                             f"{len(by_prompt)} problems; sample the missing ones")
         for p, (sents, _, lps_t1, _) in raw[sT].items():
             qid = by_prompt[p]["unique_id"]
             unique = {}
@@ -309,37 +338,60 @@ def _score_pool(item):
                 e[2] += 1
             hashes = list(unique)
             n = len(hashes)
-            if n < K:
-                continue
             lp1 = np.array([unique[h][1] for h in hashes])
             counts = np.array([unique[h][2] for h in hashes])
             E = unit(np.stack([emb[h] for h in hashes]))
+            # Zhat = 0 exactly when the unique strings span fewer than K dimensions (fewer than K strings
+            # included); then k-Means, Naive-DPP and PoolDPP have no K-set, and the cell is counted, not scored
+            rank_ok = n >= K and np.linalg.matrix_rank(E, tol=RANK_TOL) >= K
             judged = [verdicts[(qid, extract_answer(unique[h][0]))] for h in hashes]
+            bad = [v["error"] for v in judged if "error" in v]
+            if bad:
+                raise RuntimeError(f"pool{pool} sT={sT} {qid}: {len(bad)} answers failed verification ({bad[0]}); "
+                                   f"see cmd_verify")
             correct = np.array([v["correct"] for v in judged], dtype=float)
             keys = [v["key"] for v in judged]
             cell = (pool, sT, qid)
 
             def add(method, knob, idx):
                 idx = list(idx)
+                if method not in ("Ancestral",) and len(idx) != K:
+                    raise RuntimeError(f"{method} {knob} pool{pool} sT={sT} {qid}: {len(idx)} of K={K} items on a "
+                                       f"cell whose strings span K dimensions")
                 rows.append((method, knob, cell, {"pass": float(correct[idx].sum() > 0),
                                                   "ukey": len({keys[i] for i in idx}),
                                                   "ld": logdet(E[idx])}))
 
+            def excluded(method, knob):
+                rows.append((method, knob, cell, None))
+
             rows.append(("_ceiling", sT, cell, {"pass": float(correct.sum() > 0), "ukey": len(set(keys)),
-                                                "ld": np.nan}))
+                                                "ld": None}))
             for run in range(N_RUNS):
                 add("Ancestral", sT, ancestral_draw(counts, K))
-                add("$k$-Means", sT, sample_kmeans_for_prompt(E, lp1, K, random_state=run))
-            for sel in sample_dpp(np.zeros(n), E, K, N=N_RUNS):
-                if sel:
-                    add("Naive-DPP", sT, sel)
+                if rank_ok:
+                    add("$k$-Means", sT, sample_kmeans_for_prompt(E, lp1, K, random_state=run))
+            if not rank_ok:
+                excluded("$k$-Means", sT)
+            # sample_dpp returns [] exactly when Zhat = 0 and raises on a numerical failure
+            draws = sample_dpp(np.zeros(n), E, K, N=N_RUNS) if n >= K else [[]] * N_RUNS
+            if any(len(sel) != (K if rank_ok else 0) for sel in draws):
+                raise RuntimeError(f"Naive-DPP pool{pool} sT={sT} {qid}: draw sizes {[len(d) for d in draws]} "
+                                   f"disagree with the rank test")
+            for sel in draws if rank_ok else []:
+                add("Naive-DPP", sT, sel)
+            if not rank_ok:
+                excluded("Naive-DPP", sT)
             if abs(sT - ANCHOR_ST) < 1e-9:
                 for T in TARGET_TS:
+                    if not rank_ok:
+                        excluded("PoolDPP-MAP", T)
+                        excluded("PoolDPP-Samp", T)
+                        continue
                     log_s = quality_log_scales(lp1, 1.0 / (2.0 * T))
                     add("PoolDPP-MAP", T, greedy_map(log_s, E, K))
                     for sel in sample_dpp(log_s, E, K, N=N_RUNS):
-                        if sel:
-                            add("PoolDPP-Samp", T, sel)
+                        add("PoolDPP-Samp", T, sel)
     print(f"pool{pool} scored", flush=True)
     return rows
 
@@ -366,8 +418,8 @@ def _plot(cells, a):
         for knob, by_cell in cells[name].items():
             per_pool = defaultdict(list)
             for (pool, _, _), draws in by_cell.items():
-                per_pool[pool].append((np.nanmean([d["ld"] for d in draws]), np.mean([d["pass"] for d in draws])))
-            xs = [np.nanmean([c[0] for c in v]) for v in per_pool.values()]
+                per_pool[pool].append((np.mean([d["ld"] for d in draws]), np.mean([d["pass"] for d in draws])))
+            xs = [np.mean([c[0] for c in v]) for v in per_pool.values()]
             ys = [np.mean([c[1] for c in v]) for v in per_pool.values()]
             pts.append((*_pool_ci(xs, ys), knob))
         pts.sort()
@@ -407,11 +459,15 @@ def cmd_score(a):
     with mp.get_context("fork").Pool(a.workers) as workers:
         results = workers.map(_score_pool, pools, chunksize=1)
 
-    # cells[method][knob][(pool, sT, qid)] = per-draw metrics
+    # cells[method][knob][(pool, sT, qid)] = per-draw metrics; excluded[method][knob] = cells with rank < K
     cells = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+    excluded = defaultdict(lambda: defaultdict(int))
     for rows in results:
         for method, knob, cell, metrics in rows:
-            cells[method][knob][cell].append(metrics)
+            if metrics is None:
+                excluded[method][knob] += 1
+            else:
+                cells[method][knob][cell].append(metrics)
     with open(os.path.join(a.out_dir, "math500_cells.pkl"), "wb") as f:
         pickle.dump({m: {k: dict(v) for k, v in kn.items()} for m, kn in cells.items()}, f)
 
@@ -424,10 +480,9 @@ def cmd_score(a):
         """Differences from ancestral sampling at the anchor temperature on the same pool and problem."""
         by_q, by_pool = defaultdict(list), defaultdict(list)
         for (pool, _, qid), v in method_cells.items():
-            ref = reference.get((pool, ANCHOR_ST, qid))
-            if ref is not None:
-                by_q[qid].append(v - ref)
-                by_pool[pool].append(v - ref)
+            ref = reference[(pool, ANCHOR_ST, qid)]  # Ancestral scores every cell, so this always exists
+            by_q[qid].append(v - ref)
+            by_pool[pool].append(v - ref)
         dq = [np.mean(v) for v in by_q.values()]
         dp = [np.mean(v) for v in by_pool.values()]
         by_level = defaultdict(list)
@@ -439,18 +494,27 @@ def cmd_score(a):
     out = {}
     print(f"\n{'method':<16s} {'knob':>6s} {'pass@10':>8s} {'answers':>8s} {'log-det':>8s} {'delta':>8s} "
           f"{'p_q':>8s} {'p_pool':>8s}")
-    for method in sorted(cells):
-        for knob in sorted(cells[method]):
+    for method in sorted(set(cells) | set(excluded)):
+        for knob in sorted(set(cells[method]) | set(excluded[method])):
             draws = cells[method][knob]
-            o = {m: float(np.nanmean([np.nanmean([d[m] for d in v]) for v in draws.values()]))
+            if not draws:
+                raise ValueError(f"{method} {knob}: all {excluded[method][knob]} cells excluded (rank < K)")
+            o = {m: float(np.mean([np.mean([d[m] for d in v]) for v in draws.values()]))
                  if method != "_ceiling" or m != "ld" else None for m in ("pass", "ukey", "ld")}
             o["n_cells"] = len(draws)
+            o["n_cells_excluded_rank_lt_K"] = excluded[method][knob]
             if method != "_ceiling" and not (method == "Ancestral" and knob == ANCHOR_ST):
                 o.update(paired(cell_means(method, knob)))
             out[f"{method}|{knob}"] = o
             nan = float("nan")
             print(f"{method:<16s} {knob:>6g} {o['pass']:>8.4f} {o['ukey']:>8.2f} {o['ld'] or nan:>8.2f} "
                   f"{o.get('delta', nan):>8.4f} {o.get('p_question', nan):>8.5f} {o.get('p_pool', nan):>8.5f}")
+    out["_exclusions"] = {
+        "note": ("cells (pool, sT, problem) whose unique strings span fewer than K dimensions; k-Means, "
+                 "Naive-DPP and PoolDPP leave them out, Ancestral and the ceiling score them"),
+        "n_cells_by_sT": {f"{sT:g}": len(cells["_ceiling"][sT]) for sT in sorted(cells["_ceiling"])},
+        "n_cells_rank_lt_K_by_sT": {f"{sT:g}": excluded["$k$-Means"][sT] for sT in sorted(cells["_ceiling"])},
+    }
     path = os.path.join(a.out_dir, "math500.json")
     with open(path, "w") as f:
         json.dump(out, f, indent=2)

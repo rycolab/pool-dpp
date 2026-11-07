@@ -25,6 +25,17 @@ the per-chain drop that buys the coverage gain is visible and attributable.
 Phase 1 caches per-(method, knob, pool, run, question) metrics; phase 2 runs the
 tests from the cache.
 
+Missing data stops the script (no pool, run, question, or comparison is skipped). Phase 1 raises
+if any of pools 0..N-1 lacks its est dir, if a stochastic method's selection file is missing from
+any run dir (or pools have different numbers of run dirs), if PoolDPP-MAP's file is missing from
+run dir 0, if a selection file does not cover exactly the task's questions (Ambrosia: those of
+pool_ceiling.py's signature table; GSM8K: the first 50) with K strings each, or if a selected
+Ambrosia query is not in the signature table. A query the table marks as not runnable scores as a
+miss (the metric). Phase 2 raises if a compared cell is missing, if the two methods of a
+comparison do not share exactly the same questions or pools, or if fewer than 2 are shared. The
+permutation p-value is floored at 1/n_perm, and "p_at_resolution_floor" flags where the floor
+was hit; the test counts |null| >= |observed| - 1e-15 (both unchanged).
+
 Usage:
     OPENBLAS_NUM_THREADS=1 python analysis/significance.py \
         --task ambrosia --phase collect
@@ -59,9 +70,15 @@ GSM_SAMP_TS = [0.428571, 0.666667, 0.818182, 1, 1.03, 1.05, 1.07, 1.1, 1.22222]
 GSM_MAP_TS = [2.5, 5, 10, 15, 20, 25, 50, 100, 500]
 
 
+AMB_K, GSM_K = 3, 10
+
+
 def fmt(x):
     return f"{float(x):g}"
 
+
+# methods run once (dpp-estimation --N 1): only run dir 0 holds their selections
+DETERMINISTIC = {"PoolDPP-MAP"}
 
 AMB_METHODS = (
     [("Ancestral", sT, f"{AMB_MODEL}-ancestral", f"s{fmt(sT)}.pkl")
@@ -97,6 +114,67 @@ def parse_question_amb(pt):
     return pt[s:e if e != -1 else len(pt)].strip()
 
 
+def pool_ranges(idx):
+    """[30, 31, ..., 99] -> 'pool30..pool99'."""
+    out, i = [], 0
+    while i < len(idx):
+        j = i
+        while j + 1 < len(idx) and idx[j + 1] == idx[j] + 1:
+            j += 1
+        out.append(f"pool{idx[i]}" + (f"..pool{idx[j]}" if j > i else ""))
+        i = j + 1
+    return ", ".join(out)
+
+
+def est_dirs(task, cache, est_sub, n_pools):
+    """est dirs of pools 0..n_pools-1; raises FileNotFoundError listing every missing pool."""
+    dirs = [os.path.join(ROOT_DIR, cache, f"pool{pi}", est_sub) for pi in range(n_pools)]
+    missing = [pi for pi, d in enumerate(dirs) if not os.path.isdir(d)]
+    if missing:
+        raise FileNotFoundError(f"{task}: {len(missing)} of {n_pools} pools missing (no {est_sub} dir): "
+                                f"{pool_ranges(missing)}, e.g. {dirs[missing[0]]}")
+    return dirs
+
+
+def run_files(est, sub, fname, deterministic):
+    """[(run, path)] of one method in one pool: run dir 0 only for a deterministic method, every
+    run dir otherwise (which must be exactly 0..N-1). Raises FileNotFoundError on a missing file."""
+    if deterministic:
+        runs = [0]
+    else:
+        runs = sorted(int(x) for x in os.listdir(est) if x.isdigit())
+        if not runs or runs != list(range(len(runs))):
+            raise FileNotFoundError(f"{est}: run dirs are {runs}, expected 0..N-1")
+    out = [(r, os.path.join(est, str(r), sub, fname)) for r in runs]
+    missing = [p for _, p in out if not os.path.exists(p)]
+    if missing:
+        raise FileNotFoundError(f"{len(missing)} of {len(out)} run files missing, e.g. {missing[0]}")
+    return out
+
+
+def check_selection(items, expected, k, where, key=lambda pt: pt):
+    """Every record is (prompt, sents, logps_t1, embs) with k strings, and key(prompt) runs over
+    exactly `expected`, each once. Raises ValueError otherwise."""
+    seen = []
+    for item in items:
+        if len(item) != 4:
+            raise ValueError(f"{where}: a record has {len(item)} fields, expected 4")
+        pt, sents, lps, emb = item
+        if not (len(sents) == len(lps) == len(emb) == k):
+            raise ValueError(f"{where}: prompt {pt[:60]!r} has {len(sents)} strings, {len(lps)} "
+                             f"log-probs and {len(emb)} embeddings; expected K={k}")
+        kk = key(pt)
+        if kk is None:
+            raise ValueError(f"{where}: cannot parse the question of prompt {pt[:60]!r}")
+        seen.append(kk)
+    dup = len(seen) - len(set(seen))
+    missing, extra = set(expected) - set(seen), set(seen) - set(expected)
+    if dup or missing or extra:
+        ex = next(iter(missing or extra), "")
+        raise ValueError(f"{where}: {len(missing)} expected questions missing, {len(extra)} unexpected, "
+                         f"{dup} duplicated (e.g. {ex[:60]!r})")
+
+
 # ---------------------------------------------------------------------------
 # Phase 1: collect
 # ---------------------------------------------------------------------------
@@ -106,35 +184,35 @@ def collect_ambrosia(n_pools):
         d = pickle.load(f)
     golden, sig_tables = d["golden"], d["sig_tables"]
 
+    dirs = est_dirs("ambrosia", "cache-ambrosia", AMB_EST, n_pools)
     rows = []
     for name, knob, sub, fname in AMB_METHODS:
-        for pi in range(n_pools):
-            est = os.path.join(ROOT_DIR, "cache-ambrosia", f"pool{pi}", AMB_EST)
-            if not os.path.isdir(est):
-                continue
-            for r in sorted([x for x in os.listdir(est) if x.isdigit()], key=int):
-                p = os.path.join(est, r, sub, fname)
-                if not os.path.exists(p):
-                    continue
+        n_runs = set()
+        for pi, est in enumerate(dirs):
+            files = run_files(est, sub, fname, name in DETERMINISTIC)
+            n_runs.add(len(files))
+            for r, p in files:
                 with open(p, "rb") as f:
                     items = pickle.load(f)
-                for item in items:
-                    if len(item) != 4:
-                        continue
-                    pt, sents, _, _ = item
+                check_selection(items, golden, AMB_K, p, key=parse_question_amb)
+                for pt, sents, _, _ in items:
                     q = parse_question_amb(pt)
-                    if q is None or q not in golden:
-                        continue
                     gs, tbl = golden[q], sig_tables[q]
                     ded = list(set(sents))
-                    if not ded:
-                        continue
-                    sigs = [tbl.get(normalize(s)) for s in ded]
+                    absent = [s for s in ded if normalize(s) not in tbl]
+                    if absent:
+                        raise KeyError(f"{p}: question {q[:60]!r}: {len(absent)} selected queries are not in "
+                                       f"the signature table of pool_ceiling.py (e.g. {absent[0][:80]!r}); "
+                                       f"rerun pool_ceiling.py --part A on the same pools")
+                    sigs = [tbl[normalize(s)] for s in ded]
                     covered = set(sigs) & gs
                     n_gold_hits = sum(1 for s in sigs if s in gs)
                     rows.append((name, str(knob), pi, int(r), q,
                                  len(covered) / len(gs),        # set: coverage
                                  n_gold_hits / len(ded)))       # item: precision
+        if len(n_runs) > 1:
+            raise ValueError(f"ambrosia {name} knob={knob}: pools have different numbers of run dirs: "
+                             f"{sorted(n_runs)}")
         print(f"  collected {name} knob={knob}", flush=True)
     return rows
 
@@ -145,30 +223,29 @@ def collect_gsm8k(n_pools):
     df = load_gsm8k_dataset().head(50)
     prompt_to_gold = {build_math_prompt(r["question"]): r["answer"]
                       for _, r in df.iterrows()}
+    if len(prompt_to_gold) != 50:
+        raise ValueError(f"GSM8K: {len(prompt_to_gold)} distinct prompts, expected 50")
 
+    dirs = est_dirs("gsm8k", "cache-gsm8k", GSM_EST, n_pools)
     rows = []
     for name, knob, sub, fname in GSM_METHODS:
-        for pi in range(n_pools):
-            est = os.path.join(ROOT_DIR, "cache-gsm8k", f"pool{pi}", GSM_EST)
-            if not os.path.isdir(est):
-                continue
-            for r in sorted([x for x in os.listdir(est) if x.isdigit()], key=int):
-                p = os.path.join(est, r, sub, fname)
-                if not os.path.exists(p):
-                    continue
+        n_runs = set()
+        for pi, est in enumerate(dirs):
+            files = run_files(est, sub, fname, name in DETERMINISTIC)
+            n_runs.add(len(files))
+            for r, p in files:
                 with open(p, "rb") as f:
                     items = pickle.load(f)
-                for item in items:
-                    if len(item) != 4:
-                        continue
-                    pt, sents, _, _ = item
-                    gold = prompt_to_gold.get(pt)
-                    if gold is None or not sents:
-                        continue
+                check_selection(items, prompt_to_gold, GSM_K, p)
+                for pt, sents, _, _ in items:
+                    gold = prompt_to_gold[pt]
                     c = sum(1 for s in sents if is_correct(s, gold))
                     rows.append((name, str(knob), pi, int(r), pt,
                                  1.0 if c > 0 else 0.0,          # set: pass@K
                                  c / len(sents)))                # item: per-chain
+        if len(n_runs) > 1:
+            raise ValueError(f"gsm8k {name} knob={knob}: pools have different numbers of run dirs: "
+                             f"{sorted(n_runs)}")
         print(f"  collected {name} knob={knob}", flush=True)
     return rows
 
@@ -196,8 +273,7 @@ def paired_test(a, b, n_perm=100000, seed=0):
     d = a - b
     n = len(d)
     if n < 2:
-        return {"n": n, "mean_diff": float(d.mean()) if n else float("nan"),
-                "ci_lo": float("nan"), "ci_hi": float("nan"), "p": float("nan")}
+        raise ValueError(f"a paired test needs at least 2 pairs, got {n}")
     rng = np.random.default_rng(seed)
     idx = rng.integers(0, n, size=(10000, n))
     bs = d[idx].mean(axis=1)
@@ -243,34 +319,41 @@ def analyze(task, cells, comparisons, matched_note):
             return None
         return max(ks, key=lambda mk: np.mean([v[0] for v in cells[mk].values()]))
 
+    units = {mk: set(d) for mk, d in cells.items()}
+    if len({frozenset(u) for u in units.values()}) != 1:
+        raise ValueError(f"{task}: methods cover different (pool, question) cells")
+    pq = next(iter(units.values()))
     out = {"matched_note": matched_note, "per_method_knob": summary,
+           "n_pools": len({pi for pi, _ in pq}), "n_questions": len({q for _, q in pq}),
            "tests": {}}
     for label, mk_a, mk_b in comparisons:
-        if mk_a not in cells or mk_b not in cells:
-            print(f"  [skip] {label}: missing cell")
-            continue
+        absent = [mk for mk in (mk_a, mk_b) if mk not in cells]
+        if absent:
+            raise KeyError(f"{task}: {label}: no cells for {absent}")
         res = {}
         for lvl, tbl in (("question_level", q_level), ("pool_level", p_level)):
-            keys = sorted(set(tbl[mk_a]) & set(tbl[mk_b]))
-            if not keys:
-                continue
+            if set(tbl[mk_a]) != set(tbl[mk_b]):
+                raise ValueError(f"{task}: {label}: {lvl}: {mk_a} and {mk_b} cover different units "
+                                 f"({len(tbl[mk_a])} vs {len(tbl[mk_b])}, "
+                                 f"{len(set(tbl[mk_a]) ^ set(tbl[mk_b]))} not shared)")
+            keys = sorted(tbl[mk_a])
             for mi, mname in ((0, "set_metric"), (1, "item_metric")):
                 a = [tbl[mk_a][k][mi] for k in keys]
                 b = [tbl[mk_b][k][mi] for k in keys]
                 res[f"{lvl}|{mname}"] = paired_test(a, b)
         out["tests"][label] = res
-        q = res.get("question_level|set_metric", {})
-        pl = res.get("pool_level|set_metric", {})
-        qi = res.get("question_level|item_metric", {})
+        q = res["question_level|set_metric"]
+        pl = res["pool_level|set_metric"]
+        qi = res["question_level|item_metric"]
         print(f"  {label}")
-        print(f"      set  metric: question-level d={q.get('mean_diff', float('nan')):+.4f} "
-              f"[{q.get('ci_lo', float('nan')):+.4f},{q.get('ci_hi', float('nan')):+.4f}] "
-              f"p={q.get('p', float('nan')):.4g} (n={q.get('n', 0)}) | "
-              f"pool-level d={pl.get('mean_diff', float('nan')):+.4f} "
-              f"p={pl.get('p', float('nan')):.4g} (n={pl.get('n', 0)})")
-        print(f"      item metric: question-level d={qi.get('mean_diff', float('nan')):+.4f} "
-              f"[{qi.get('ci_lo', float('nan')):+.4f},{qi.get('ci_hi', float('nan')):+.4f}] "
-              f"p={qi.get('p', float('nan')):.4g}")
+        print(f"      set  metric: question-level d={q['mean_diff']:+.4f} "
+              f"[{q['ci_lo']:+.4f},{q['ci_hi']:+.4f}] "
+              f"p={q['p']:.4g} (n={q['n']}) | "
+              f"pool-level d={pl['mean_diff']:+.4f} "
+              f"p={pl['p']:.4g} (n={pl['n']})")
+        print(f"      item metric: question-level d={qi['mean_diff']:+.4f} "
+              f"[{qi['ci_lo']:+.4f},{qi['ci_hi']:+.4f}] "
+              f"p={qi['p']:.4g}")
     out["best_knob"] = {n: list(best_knob(n)) if best_knob(n) else None
                         for n in {mk[0] for mk in cells}}
     return out

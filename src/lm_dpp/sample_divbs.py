@@ -66,6 +66,10 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(args.model)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
+    if tokenizer.pad_token_id == tokenizer.eos_token_id:
+        # sum_logp_t1 masks pad tokens, so it would also drop log p(EOS) from every string
+        raise ValueError(f"{args.model}: pad token = EOS token (id {tokenizer.pad_token_id}), so sum_logp_t1 would "
+                         f"leave out log p(EOS); mask by position after the first EOS before running this model")
 
     t0 = time.perf_counter()
     for i, (prompt_text, _) in enumerate(prompt_list):
