@@ -413,3 +413,20 @@ def test_graded_weights_match_brute_force():
     # pool_logzhat has rows sqrt(rho * count / M), so log Zhat = log alpha + log Z - K log M
     log_zhat = be.pool_logzhat(Phi, np.exp(log_rho), np.ones(n), K)
     assert log_zhat == pytest.approx(be.log_alpha(n, K) + log_Z - K * math.log(n), abs=1e-8)
+
+
+def test_log_covered_mass():
+    """Exact covered proposal mass sum_y q(y), in log space, and its two error paths."""
+    Cnt = np.array([[2.0, 0.0, 1.0], [0.0, 3.0, 1.0]])
+    q = np.array([0.5, 0.2, 0.05])
+    assert be.log_covered_mass(np.log(q), Cnt, [0, 1], "t") == pytest.approx(math.log(0.75))
+    # long strings: every q(y) underflows in double precision, the log does not
+    lp = np.array([-2000.0, -2001.0, -2003.0])
+    assert be.log_covered_mass(lp, Cnt, [0, 1], "t") == pytest.approx(
+        -2000.0 + math.log1p(math.exp(-1.0) + math.exp(-3.0)))
+    with pytest.raises(ValueError, match=r"non-finite.*string 1.*pool\(s\) \[1\]"):
+        be.log_covered_mass(np.array([math.log(0.5), -np.inf, math.log(0.05)]), Cnt, [0, 1], "t")
+    with pytest.raises(ValueError, match="non-finite"):
+        be.log_covered_mass(np.array([np.nan, -1.0, -2.0]), Cnt, [0, 1], "t")
+    with pytest.raises(ValueError, match="> 1"):
+        be.log_covered_mass(np.log([0.6, 0.3, 0.2]), Cnt, [0, 1], "t")
