@@ -11,6 +11,8 @@ export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1
 N_POOLS=${N_POOLS:-100}
 STAGES=${STAGES:-"sample estimate"}
 J=${J:-1}
+# on 24 GB cards: SAMPLE_ARGS="--gpu-mem-util 0.95 --max-num-seqs 128 --max-num-batched-tokens 1024 --sample-concurrency 4"
+SAMPLE_ARGS=${SAMPLE_ARGS:-"--gpu-mem-util 0.90 --sample-concurrency 40"}
 
 LM="google/gemma-2-9b-it"; MN="google__gemma-2-9b-it"
 EMB="Qwen/Qwen3-Embedding-0.6B"; ES="qwen"
@@ -36,7 +38,7 @@ case " $STAGES " in *" sample "*)
     for i in $(seq 0 $((N_POOLS - 1))); do
         CD="cache-gsm8k/pool$i"
         dpp-sample --mode gsm8k --n-samples 100 --temperatures 0.5 0.8 1.0 1.2 \
-            --max-new-tokens 4000 --max-model-len 4000 --gpu-mem-util 0.90 --sample-concurrency 40 \
+            --max-new-tokens 4000 --max-model-len 4000 $SAMPLE_ARGS \
             --model "$LM" --cache-dir "$CD" --seed "$i"
         dpp-embeddings --samples_file "$CD/${MN}.pkl" --model_name "$EMB" \
             --output_file "$CD/${EMN}_embeddings.pkl"

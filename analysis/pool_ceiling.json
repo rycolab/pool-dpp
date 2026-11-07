@@ -1,5 +1,5 @@
 {
-  "n_pools": 99,
+  "n_pools": 100,
   "n_questions": 100,
   "n_golden_sigs_distribution": {
     "2": 56,
@@ -8,162 +8,162 @@
   "pool_coverage_by_N_and_sT": {
     "25": {
       "0.6": {
-        "ceiling_recall_mean": 0.2768670033670034,
-        "ceiling_recall_ci95": 0.000683522727272734,
-        "n_pools": 99,
-        "frac_questions_all_modes": 0.005050505050505051,
-        "frac_questions_no_mode": 0.35404040404040404
+        "ceiling_recall_mean": 0.27688,
+        "ceiling_recall_ci95": 0.000665854166666674,
+        "n_pools": 100,
+        "frac_questions_all_modes": 0.0051,
+        "frac_questions_no_mode": 0.3541
       },
       "0.7": {
-        "ceiling_recall_mean": 0.2861313131313131,
-        "ceiling_recall_ci95": 0.0007424242424242389,
-        "n_pools": 99,
-        "frac_questions_all_modes": 0.00797979797979798,
-        "frac_questions_no_mode": 0.3394949494949495
+        "ceiling_recall_mean": 0.28612000000000004,
+        "ceiling_recall_ci95": 0.0007292083333333699,
+        "n_pools": 100,
+        "frac_questions_all_modes": 0.008,
+        "frac_questions_no_mode": 0.3394
       },
       "1.0": {
-        "ceiling_recall_mean": 0.311503367003367,
-        "ceiling_recall_ci95": 0.0008021885521885541,
-        "n_pools": 99,
-        "frac_questions_all_modes": 0.00909090909090909,
-        "frac_questions_no_mode": 0.283030303030303
+        "ceiling_recall_mean": 0.31149333333333334,
+        "ceiling_recall_ci95": 0.000797499999999951,
+        "n_pools": 100,
+        "frac_questions_all_modes": 0.0091,
+        "frac_questions_no_mode": 0.2831
       },
       "1.2": {
-        "ceiling_recall_mean": 0.3252121212121212,
-        "ceiling_recall_ci95": 0.0008451178451178432,
-        "n_pools": 99,
-        "frac_questions_all_modes": 0.007272727272727273,
-        "frac_questions_no_mode": 0.2503030303030303
+        "ceiling_recall_mean": 0.3252233333333333,
+        "ceiling_recall_ci95": 0.0008208333333333262,
+        "n_pools": 100,
+        "frac_questions_all_modes": 0.0072,
+        "frac_questions_no_mode": 0.2503
       },
       "1.25": {
-        "ceiling_recall_mean": 0.325516835016835,
-        "ceiling_recall_ci95": 0.0008973905723905773,
-        "n_pools": 99,
-        "frac_questions_all_modes": 0.0056565656565656566,
-        "frac_questions_no_mode": 0.24676767676767677
+        "ceiling_recall_mean": 0.32552,
+        "ceiling_recall_ci95": 0.0008908958333333494,
+        "n_pools": 100,
+        "frac_questions_all_modes": 0.0056,
+        "frac_questions_no_mode": 0.2466
       },
       "1.3": {
-        "ceiling_recall_mean": 0.325986531986532,
-        "ceiling_recall_ci95": 0.0009116372053872002,
-        "n_pools": 99,
-        "frac_questions_all_modes": 0.004343434343434344,
-        "frac_questions_no_mode": 0.24878787878787878
+        "ceiling_recall_mean": 0.32597499999999996,
+        "ceiling_recall_ci95": 0.0009049999999999614,
+        "n_pools": 100,
+        "frac_questions_all_modes": 0.0044,
+        "frac_questions_no_mode": 0.2486
       },
       "1.5": {
-        "ceiling_recall_mean": 0.29996464646464643,
-        "ceiling_recall_ci95": 0.000895643939393953,
-        "n_pools": 99,
-        "frac_questions_all_modes": 0.000505050505050505,
-        "frac_questions_no_mode": 0.2812121212121212
+        "ceiling_recall_mean": 0.29993666666666663,
+        "ceiling_recall_ci95": 0.0008916875000000435,
+        "n_pools": 100,
+        "frac_questions_all_modes": 0.0005,
+        "frac_questions_no_mode": 0.281
       }
     },
     "100": {
       "0.6": {
-        "ceiling_recall_mean": 0.3045606060606061,
-        "ceiling_recall_ci95": 0.0011119739057239009,
-        "n_pools": 99,
-        "frac_questions_all_modes": 0.010101010101010102,
-        "frac_questions_no_mode": 0.347979797979798
+        "ceiling_recall_mean": 0.30450166666666667,
+        "ceiling_recall_ci95": 0.0010974999999999735,
+        "n_pools": 100,
+        "frac_questions_all_modes": 0.0101,
+        "frac_questions_no_mode": 0.3481
       },
       "0.7": {
-        "ceiling_recall_mean": 0.3176582491582492,
-        "ceiling_recall_ci95": 0.0010951388888888747,
-        "n_pools": 99,
-        "frac_questions_all_modes": 0.010606060606060607,
-        "frac_questions_no_mode": 0.3303030303030303
+        "ceiling_recall_mean": 0.3176466666666667,
+        "ceiling_recall_ci95": 0.0010750208333333566,
+        "n_pools": 100,
+        "frac_questions_all_modes": 0.0106,
+        "frac_questions_no_mode": 0.3303
       },
       "1.0": {
-        "ceiling_recall_mean": 0.3562828282828283,
-        "ceiling_recall_ci95": 0.001423463804713837,
-        "n_pools": 99,
-        "frac_questions_all_modes": 0.01797979797979798,
-        "frac_questions_no_mode": 0.26646464646464646
+        "ceiling_recall_mean": 0.3563400000000001,
+        "ceiling_recall_ci95": 0.0014275208333333345,
+        "n_pools": 100,
+        "frac_questions_all_modes": 0.018,
+        "frac_questions_no_mode": 0.2665
       },
       "1.2": {
-        "ceiling_recall_mean": 0.3803265993265994,
-        "ceiling_recall_ci95": 0.0014992003367003404,
-        "n_pools": 99,
-        "frac_questions_all_modes": 0.028888888888888888,
-        "frac_questions_no_mode": 0.23373737373737374
+        "ceiling_recall_mean": 0.380405,
+        "ceiling_recall_ci95": 0.001495041666666641,
+        "n_pools": 100,
+        "frac_questions_all_modes": 0.0289,
+        "frac_questions_no_mode": 0.2337
       },
       "1.25": {
-        "ceiling_recall_mean": 0.38361447811447813,
-        "ceiling_recall_ci95": 0.0014419823232323103,
-        "n_pools": 99,
-        "frac_questions_all_modes": 0.028686868686868688,
-        "frac_questions_no_mode": 0.2302020202020202
+        "ceiling_recall_mean": 0.3835416666666667,
+        "ceiling_recall_ci95": 0.0014433958333333052,
+        "n_pools": 100,
+        "frac_questions_all_modes": 0.0286,
+        "frac_questions_no_mode": 0.2302
       },
       "1.3": {
-        "ceiling_recall_mean": 0.38478451178451173,
-        "ceiling_recall_ci95": 0.0013872053872053536,
-        "n_pools": 99,
-        "frac_questions_all_modes": 0.03161616161616162,
-        "frac_questions_no_mode": 0.23242424242424242
+        "ceiling_recall_mean": 0.384825,
+        "ceiling_recall_ci95": 0.0013825624999999897,
+        "n_pools": 100,
+        "frac_questions_all_modes": 0.0316,
+        "frac_questions_no_mode": 0.2321
       },
       "1.5": {
-        "ceiling_recall_mean": 0.3608989898989899,
-        "ceiling_recall_ci95": 0.001496632996632996,
-        "n_pools": 99,
-        "frac_questions_all_modes": 0.02313131313131313,
-        "frac_questions_no_mode": 0.2673737373737374
+        "ceiling_recall_mean": 0.3609483333333333,
+        "ceiling_recall_ci95": 0.0014600208333332976,
+        "n_pools": 100,
+        "frac_questions_all_modes": 0.023,
+        "frac_questions_no_mode": 0.2671
       }
     },
     "200": {
       "0.6": {
-        "ceiling_recall_mean": 0.318989898989899,
-        "ceiling_recall_ci95": 0.0017424242424242953,
-        "n_pools": 99,
-        "frac_questions_all_modes": 0.020505050505050505,
-        "frac_questions_no_mode": 0.347979797979798
+        "ceiling_recall_mean": 0.3188833333333333,
+        "ceiling_recall_ci95": 0.0017500000000000016,
+        "n_pools": 100,
+        "frac_questions_all_modes": 0.0204,
+        "frac_questions_no_mode": 0.3481
       },
       "0.7": {
-        "ceiling_recall_mean": 0.3335858585858586,
-        "ceiling_recall_ci95": 0.0016245791245790564,
-        "n_pools": 99,
-        "frac_questions_all_modes": 0.0298989898989899,
-        "frac_questions_no_mode": 0.3302020202020202
+        "ceiling_recall_mean": 0.3335333333333333,
+        "ceiling_recall_ci95": 0.0015999999999999626,
+        "n_pools": 100,
+        "frac_questions_all_modes": 0.0298,
+        "frac_questions_no_mode": 0.3302
       },
       "1.0": {
-        "ceiling_recall_mean": 0.3839057239057239,
-        "ceiling_recall_ci95": 0.0021717171717171024,
-        "n_pools": 99,
-        "frac_questions_all_modes": 0.06505050505050505,
-        "frac_questions_no_mode": 0.26636363636363636
+        "ceiling_recall_mean": 0.3838666666666667,
+        "ceiling_recall_ci95": 0.0021918750000000653,
+        "n_pools": 100,
+        "frac_questions_all_modes": 0.0651,
+        "frac_questions_no_mode": 0.2664
       },
       "1.2": {
-        "ceiling_recall_mean": 0.41292929292929287,
-        "ceiling_recall_ci95": 0.0021130050505050735,
-        "n_pools": 99,
-        "frac_questions_all_modes": 0.08323232323232323,
-        "frac_questions_no_mode": 0.23373737373737374
+        "ceiling_recall_mean": 0.413,
+        "ceiling_recall_ci95": 0.0020916666666666306,
+        "n_pools": 100,
+        "frac_questions_all_modes": 0.0834,
+        "frac_questions_no_mode": 0.2337
       },
       "1.25": {
-        "ceiling_recall_mean": 0.4163468013468013,
-        "ceiling_recall_ci95": 0.002121212121212107,
-        "n_pools": 99,
-        "frac_questions_all_modes": 0.08434343434343435,
-        "frac_questions_no_mode": 0.2301010101010101
+        "ceiling_recall_mean": 0.4163333333333333,
+        "ceiling_recall_ci95": 0.0021252083333333505,
+        "n_pools": 100,
+        "frac_questions_all_modes": 0.0841,
+        "frac_questions_no_mode": 0.2301
       },
       "1.3": {
-        "ceiling_recall_mean": 0.41760942760942754,
-        "ceiling_recall_ci95": 0.002239057239057235,
-        "n_pools": 99,
-        "frac_questions_all_modes": 0.08636363636363636,
-        "frac_questions_no_mode": 0.23232323232323232
+        "ceiling_recall_mean": 0.41768333333333324,
+        "ceiling_recall_ci95": 0.0022249999999999492,
+        "n_pools": 100,
+        "frac_questions_all_modes": 0.0864,
+        "frac_questions_no_mode": 0.232
       },
       "1.5": {
-        "ceiling_recall_mean": 0.3909427609427608,
-        "ceiling_recall_ci95": 0.002255892255892261,
-        "n_pools": 99,
-        "frac_questions_all_modes": 0.06292929292929293,
-        "frac_questions_no_mode": 0.2672727272727273
+        "ceiling_recall_mean": 0.3911166666666665,
+        "ceiling_recall_ci95": 0.0022749999999999992,
+        "n_pools": 100,
+        "frac_questions_all_modes": 0.0629,
+        "frac_questions_no_mode": 0.267
       }
     }
   },
   "per_question_full_pool": {
     "0.6": {
       "What is the background of the photojournalist in the table?": {
-        "ceiling_mean": 0.42424242424242414,
+        "ceiling_mean": 0.4266666666666666,
         "n_golden_sigs": 3
       },
       "Show me the students and what they do?": {
@@ -183,11 +183,11 @@
         "n_golden_sigs": 3
       },
       "What safety measures will the architect require?": {
-        "ceiling_mean": 0.6228956228956228,
+        "ceiling_mean": 0.6233333333333333,
         "n_golden_sigs": 3
       },
       "What's the name and background of the documentary created by the oldest filmmaker?": {
-        "ceiling_mean": 0.006734006734006734,
+        "ceiling_mean": 0.006666666666666666,
         "n_golden_sigs": 3
       },
       "What can help students prepare for testing?": {
@@ -199,7 +199,7 @@
         "n_golden_sigs": 2
       },
       "Show me the teachers and what they do?": {
-        "ceiling_mean": 0.057239057239057235,
+        "ceiling_mean": 0.056666666666666664,
         "n_golden_sigs": 3
       },
       "What is the salary of a role that each hospital has?": {
@@ -215,7 +215,7 @@
         "n_golden_sigs": 2
       },
       "What is the state of the system that each IT support specialist works with?": {
-        "ceiling_mean": 0.005050505050505051,
+        "ceiling_mean": 0.005,
         "n_golden_sigs": 2
       },
       "What name and salary do we have in medical roles for every hospital": {
@@ -227,15 +227,15 @@
         "n_golden_sigs": 2
       },
       "What is the name and phone number of least experienced applicant.": {
-        "ceiling_mean": 0.5050505050505051,
+        "ceiling_mean": 0.505,
         "n_golden_sigs": 2
       },
       "How do students prepare for the ancient history test?": {
-        "ceiling_mean": 0.013468013468013467,
+        "ceiling_mean": 0.013333333333333332,
         "n_golden_sigs": 3
       },
       "What is the name and email of most experienced applicant.": {
-        "ceiling_mean": 0.5656565656565656,
+        "ceiling_mean": 0.565,
         "n_golden_sigs": 2
       },
       "What are the demographics of Economic Recovery Strategies readers?": {
@@ -263,7 +263,7 @@
         "n_golden_sigs": 3
       },
       "What were 19th-century books about?": {
-        "ceiling_mean": 0.04040404040404041,
+        "ceiling_mean": 0.04,
         "n_golden_sigs": 3
       },
       "What happens to waste in New York?": {
@@ -271,7 +271,7 @@
         "n_golden_sigs": 3
       },
       "What experience do I need for the open position with the greatest salary?": {
-        "ceiling_mean": 0.8282828282828284,
+        "ceiling_mean": 0.8266666666666669,
         "n_golden_sigs": 3
       },
       "Describe a denim jacket.": {
@@ -279,11 +279,11 @@
         "n_golden_sigs": 3
       },
       "Show me information about the context in which Hamlet was written.": {
-        "ceiling_mean": 0.5488215488215487,
+        "ceiling_mean": 0.5466666666666665,
         "n_golden_sigs": 3
       },
       "when was a movie released": {
-        "ceiling_mean": 0.4478114478114479,
+        "ceiling_mean": 0.44666666666666677,
         "n_golden_sigs": 3
       },
       "What is the maximum baggage allowance?": {
@@ -291,7 +291,7 @@
         "n_golden_sigs": 3
       },
       "what is the prestige level of a particular university": {
-        "ceiling_mean": 0.3434343434343435,
+        "ceiling_mean": 0.34333333333333343,
         "n_golden_sigs": 3
       },
       "Where was the last doctor's appointment and what is the history of this place?": {
@@ -307,7 +307,7 @@
         "n_golden_sigs": 3
       },
       "Give me the titles and descriptions of the jobs that every tech startup has.": {
-        "ceiling_mean": 0.05555555555555555,
+        "ceiling_mean": 0.055,
         "n_golden_sigs": 2
       },
       "Give me the species of flora and fauna that every nature reserve has.": {
@@ -315,7 +315,7 @@
         "n_golden_sigs": 2
       },
       "What was the review of the drama film?": {
-        "ceiling_mean": 0.632996632996633,
+        "ceiling_mean": 0.6333333333333333,
         "n_golden_sigs": 3
       },
       "Who is the author of the drama movie?": {
@@ -331,7 +331,7 @@
         "n_golden_sigs": 2
       },
       "What is the offer for a job?": {
-        "ceiling_mean": 0.003367003367003367,
+        "ceiling_mean": 0.003333333333333333,
         "n_golden_sigs": 3
       },
       "Give me the teachers that every student has.": {
@@ -359,15 +359,15 @@
         "n_golden_sigs": 2
       },
       "What initiatives are there for every community development corporation?": {
-        "ceiling_mean": 0.025252525252525252,
+        "ceiling_mean": 0.025,
         "n_golden_sigs": 2
       },
       "Show me the features every community has.": {
-        "ceiling_mean": 0.03535353535353535,
+        "ceiling_mean": 0.035,
         "n_golden_sigs": 2
       },
       "Show me the features every banking app has.": {
-        "ceiling_mean": 0.15151515151515152,
+        "ceiling_mean": 0.15,
         "n_golden_sigs": 2
       },
       "Show me features every banking platform has.": {
@@ -387,15 +387,15 @@
         "n_golden_sigs": 3
       },
       "Show me the mortality trends and population for new york": {
-        "ceiling_mean": 0.03367003367003367,
+        "ceiling_mean": 0.03333333333333333,
         "n_golden_sigs": 3
       },
       "Tell me about the instruments every lab technician uses (their names and descriptions).": {
-        "ceiling_mean": 0.5454545454545454,
+        "ceiling_mean": 0.545,
         "n_golden_sigs": 2
       },
       "Show me the roles every retail store has.": {
-        "ceiling_mean": 0.51010101010101,
+        "ceiling_mean": 0.51,
         "n_golden_sigs": 2
       },
       "What is the profit per operation and when did that operation occur?": {
@@ -407,7 +407,7 @@
         "n_golden_sigs": 3
       },
       "What is the average revenue per operation and when did this occur?": {
-        "ceiling_mean": 0.6565656565656566,
+        "ceiling_mean": 0.6566666666666667,
         "n_golden_sigs": 3
       },
       "Show me the diets that every nutritionist covers.": {
@@ -415,7 +415,7 @@
         "n_golden_sigs": 2
       },
       "What grade did John receive on their submission and what was the focus of that conference?": {
-        "ceiling_mean": 0.10774410774410774,
+        "ceiling_mean": 0.11,
         "n_golden_sigs": 3
       },
       "List drugs and their effects in order of their popularity in prescriptions": {
@@ -439,7 +439,7 @@
         "n_golden_sigs": 3
       },
       "What is the percentage distribution of annual revenue per occupational category?": {
-        "ceiling_mean": 0.0202020202020202,
+        "ceiling_mean": 0.019999999999999997,
         "n_golden_sigs": 3
       },
       "What feature values are associated with each community?": {
@@ -467,7 +467,7 @@
         "n_golden_sigs": 2
       },
       "Show me the IDs, difficulties and lengths of the trails every national park has.": {
-        "ceiling_mean": 0.26262626262626265,
+        "ceiling_mean": 0.26,
         "n_golden_sigs": 2
       },
       "List the activities offered by every resort.": {
@@ -479,7 +479,7 @@
         "n_golden_sigs": 2
       },
       "Show me the attraction types every theme park has.": {
-        "ceiling_mean": 0.4797979797979798,
+        "ceiling_mean": 0.48,
         "n_golden_sigs": 2
       },
       "Show me descriptions of treatments available for every spa.": {
@@ -487,7 +487,7 @@
         "n_golden_sigs": 2
       },
       "Show me the cost of projects every society has.": {
-        "ceiling_mean": 0.03535353535353535,
+        "ceiling_mean": 0.035,
         "n_golden_sigs": 2
       },
       "Give me the type of property that every land trust has.": {
@@ -499,7 +499,7 @@
         "n_golden_sigs": 2
       },
       "Tell me the schools every suburb has.": {
-        "ceiling_mean": 0.5858585858585859,
+        "ceiling_mean": 0.585,
         "n_golden_sigs": 2
       },
       "What facilities do we have for every condominium?": {
@@ -523,7 +523,7 @@
         "n_golden_sigs": 2
       },
       "Give me the type, description and price of the content that we have for every streaming service": {
-        "ceiling_mean": 0.48484848484848486,
+        "ceiling_mean": 0.485,
         "n_golden_sigs": 2
       },
       "Show me the video quality that every streaming service offers.": {
@@ -555,17 +555,17 @@
         "n_golden_sigs": 2
       },
       "What are the tool types and names for every engineer": {
-        "ceiling_mean": 0.21717171717171718,
+        "ceiling_mean": 0.215,
         "n_golden_sigs": 2
       },
       "Show me the restriction limits every route has.": {
-        "ceiling_mean": 0.4797979797979798,
+        "ceiling_mean": 0.48,
         "n_golden_sigs": 2
       }
     },
     "0.7": {
       "What is the background of the photojournalist in the table?": {
-        "ceiling_mean": 0.5117845117845118,
+        "ceiling_mean": 0.51,
         "n_golden_sigs": 3
       },
       "Show me the students and what they do?": {
@@ -573,7 +573,7 @@
         "n_golden_sigs": 3
       },
       "What is the background of the journalist named Alice?": {
-        "ceiling_mean": 0.34680134680134683,
+        "ceiling_mean": 0.34666666666666673,
         "n_golden_sigs": 3
       },
       "What functions are there performed by all the HR professionals?": {
@@ -589,7 +589,7 @@
         "n_golden_sigs": 3
       },
       "What's the name and background of the documentary created by the oldest filmmaker?": {
-        "ceiling_mean": 0.023569023569023566,
+        "ceiling_mean": 0.02333333333333333,
         "n_golden_sigs": 3
       },
       "What can help students prepare for testing?": {
@@ -601,7 +601,7 @@
         "n_golden_sigs": 2
       },
       "Show me the teachers and what they do?": {
-        "ceiling_mean": 0.12121212121212123,
+        "ceiling_mean": 0.12000000000000002,
         "n_golden_sigs": 3
       },
       "What is the salary of a role that each hospital has?": {
@@ -629,15 +629,15 @@
         "n_golden_sigs": 2
       },
       "What is the name and phone number of least experienced applicant.": {
-        "ceiling_mean": 0.5454545454545454,
+        "ceiling_mean": 0.545,
         "n_golden_sigs": 2
       },
       "How do students prepare for the ancient history test?": {
-        "ceiling_mean": 0.016835016835016835,
+        "ceiling_mean": 0.016666666666666666,
         "n_golden_sigs": 3
       },
       "What is the name and email of most experienced applicant.": {
-        "ceiling_mean": 0.5909090909090909,
+        "ceiling_mean": 0.59,
         "n_golden_sigs": 2
       },
       "What are the demographics of Economic Recovery Strategies readers?": {
@@ -653,7 +653,7 @@
         "n_golden_sigs": 3
       },
       "show the name and historical context of each healthcare facility": {
-        "ceiling_mean": 0.3367003367003367,
+        "ceiling_mean": 0.3366666666666667,
         "n_golden_sigs": 3
       },
       "show me all the employee names, position and historical context": {
@@ -665,15 +665,15 @@
         "n_golden_sigs": 3
       },
       "What were 19th-century books about?": {
-        "ceiling_mean": 0.11447811447811448,
+        "ceiling_mean": 0.11666666666666668,
         "n_golden_sigs": 3
       },
       "What happens to waste in New York?": {
-        "ceiling_mean": 0.006734006734006734,
+        "ceiling_mean": 0.006666666666666666,
         "n_golden_sigs": 3
       },
       "What experience do I need for the open position with the greatest salary?": {
-        "ceiling_mean": 0.915824915824916,
+        "ceiling_mean": 0.9166666666666669,
         "n_golden_sigs": 3
       },
       "Describe a denim jacket.": {
@@ -681,11 +681,11 @@
         "n_golden_sigs": 3
       },
       "Show me information about the context in which Hamlet was written.": {
-        "ceiling_mean": 0.6498316498316498,
+        "ceiling_mean": 0.65,
         "n_golden_sigs": 3
       },
       "when was a movie released": {
-        "ceiling_mean": 0.5521885521885521,
+        "ceiling_mean": 0.5533333333333332,
         "n_golden_sigs": 3
       },
       "What is the maximum baggage allowance?": {
@@ -693,7 +693,7 @@
         "n_golden_sigs": 3
       },
       "what is the prestige level of a particular university": {
-        "ceiling_mean": 0.35016835016835024,
+        "ceiling_mean": 0.3500000000000001,
         "n_golden_sigs": 3
       },
       "Where was the last doctor's appointment and what is the history of this place?": {
@@ -705,11 +705,11 @@
         "n_golden_sigs": 3
       },
       "Where did Carol Williams receive medical care and what is the history of this place?": {
-        "ceiling_mean": 0.003367003367003367,
+        "ceiling_mean": 0.003333333333333333,
         "n_golden_sigs": 3
       },
       "Give me the titles and descriptions of the jobs that every tech startup has.": {
-        "ceiling_mean": 0.10101010101010101,
+        "ceiling_mean": 0.1,
         "n_golden_sigs": 2
       },
       "Give me the species of flora and fauna that every nature reserve has.": {
@@ -717,11 +717,11 @@
         "n_golden_sigs": 2
       },
       "What was the review of the drama film?": {
-        "ceiling_mean": 0.65993265993266,
+        "ceiling_mean": 0.6600000000000001,
         "n_golden_sigs": 3
       },
       "Who is the author of the drama movie?": {
-        "ceiling_mean": 0.3501683501683503,
+        "ceiling_mean": 0.35000000000000014,
         "n_golden_sigs": 3
       },
       "Who played in the drama movie?": {
@@ -733,7 +733,7 @@
         "n_golden_sigs": 2
       },
       "What is the offer for a job?": {
-        "ceiling_mean": 0.026936026936026935,
+        "ceiling_mean": 0.026666666666666665,
         "n_golden_sigs": 3
       },
       "Give me the teachers that every student has.": {
@@ -761,15 +761,15 @@
         "n_golden_sigs": 2
       },
       "What initiatives are there for every community development corporation?": {
-        "ceiling_mean": 0.045454545454545456,
+        "ceiling_mean": 0.045,
         "n_golden_sigs": 2
       },
       "Show me the features every community has.": {
-        "ceiling_mean": 0.1111111111111111,
+        "ceiling_mean": 0.11,
         "n_golden_sigs": 2
       },
       "Show me the features every banking app has.": {
-        "ceiling_mean": 0.20202020202020202,
+        "ceiling_mean": 0.2,
         "n_golden_sigs": 2
       },
       "Show me features every banking platform has.": {
@@ -789,11 +789,11 @@
         "n_golden_sigs": 3
       },
       "Show me the mortality trends and population for new york": {
-        "ceiling_mean": 0.0707070707070707,
+        "ceiling_mean": 0.07,
         "n_golden_sigs": 3
       },
       "Tell me about the instruments every lab technician uses (their names and descriptions).": {
-        "ceiling_mean": 0.6313131313131313,
+        "ceiling_mean": 0.63,
         "n_golden_sigs": 2
       },
       "Show me the roles every retail store has.": {
@@ -801,7 +801,7 @@
         "n_golden_sigs": 2
       },
       "What is the profit per operation and when did that operation occur?": {
-        "ceiling_mean": 0.006734006734006734,
+        "ceiling_mean": 0.006666666666666666,
         "n_golden_sigs": 3
       },
       "Select the documentary, creator, year established of the documentary published by the oldest magazine": {
@@ -809,7 +809,7 @@
         "n_golden_sigs": 3
       },
       "What is the average revenue per operation and when did this occur?": {
-        "ceiling_mean": 0.6565656565656566,
+        "ceiling_mean": 0.6566666666666667,
         "n_golden_sigs": 3
       },
       "Show me the diets that every nutritionist covers.": {
@@ -817,7 +817,7 @@
         "n_golden_sigs": 2
       },
       "What grade did John receive on their submission and what was the focus of that conference?": {
-        "ceiling_mean": 0.19865319865319864,
+        "ceiling_mean": 0.19999999999999996,
         "n_golden_sigs": 3
       },
       "List drugs and their effects in order of their popularity in prescriptions": {
@@ -837,11 +837,11 @@
         "n_golden_sigs": 2
       },
       "How many extras are in the most expensive property?": {
-        "ceiling_mean": 0.003367003367003367,
+        "ceiling_mean": 0.003333333333333333,
         "n_golden_sigs": 3
       },
       "What is the percentage distribution of annual revenue per occupational category?": {
-        "ceiling_mean": 0.006734006734006734,
+        "ceiling_mean": 0.006666666666666666,
         "n_golden_sigs": 3
       },
       "What feature values are associated with each community?": {
@@ -869,7 +869,7 @@
         "n_golden_sigs": 2
       },
       "Show me the IDs, difficulties and lengths of the trails every national park has.": {
-        "ceiling_mean": 0.3383838383838384,
+        "ceiling_mean": 0.34,
         "n_golden_sigs": 2
       },
       "List the activities offered by every resort.": {
@@ -889,7 +889,7 @@
         "n_golden_sigs": 2
       },
       "Show me the cost of projects every society has.": {
-        "ceiling_mean": 0.0707070707070707,
+        "ceiling_mean": 0.07,
         "n_golden_sigs": 2
       },
       "Give me the type of property that every land trust has.": {
@@ -897,11 +897,11 @@
         "n_golden_sigs": 2
       },
       "Show me the interest rates and descriptions of the loan programs every finance agency offers.": {
-        "ceiling_mean": 0.020202020202020204,
+        "ceiling_mean": 0.02,
         "n_golden_sigs": 2
       },
       "Tell me the schools every suburb has.": {
-        "ceiling_mean": 0.7121212121212122,
+        "ceiling_mean": 0.71,
         "n_golden_sigs": 2
       },
       "What facilities do we have for every condominium?": {
@@ -933,7 +933,7 @@
         "n_golden_sigs": 2
       },
       "What user interface types are there for every streaming service?": {
-        "ceiling_mean": 0.5050505050505051,
+        "ceiling_mean": 0.505,
         "n_golden_sigs": 2
       },
       "Give me the name of the platform for every streaming service.": {
@@ -957,7 +957,7 @@
         "n_golden_sigs": 2
       },
       "What are the tool types and names for every engineer": {
-        "ceiling_mean": 0.2222222222222222,
+        "ceiling_mean": 0.225,
         "n_golden_sigs": 2
       },
       "Show me the restriction limits every route has.": {
@@ -967,7 +967,7 @@
     },
     "1.0": {
       "What is the background of the photojournalist in the table?": {
-        "ceiling_mean": 0.6767676767676769,
+        "ceiling_mean": 0.6766666666666669,
         "n_golden_sigs": 3
       },
       "Show me the students and what they do?": {
@@ -975,7 +975,7 @@
         "n_golden_sigs": 3
       },
       "What is the background of the journalist named Alice?": {
-        "ceiling_mean": 0.44444444444444436,
+        "ceiling_mean": 0.4433333333333333,
         "n_golden_sigs": 3
       },
       "What functions are there performed by all the HR professionals?": {
@@ -983,19 +983,19 @@
         "n_golden_sigs": 2
       },
       "Describe the different designs.": {
-        "ceiling_mean": 0.3367003367003367,
+        "ceiling_mean": 0.3366666666666667,
         "n_golden_sigs": 3
       },
       "What safety measures will the architect require?": {
-        "ceiling_mean": 0.6734006734006734,
+        "ceiling_mean": 0.6733333333333335,
         "n_golden_sigs": 3
       },
       "What's the name and background of the documentary created by the oldest filmmaker?": {
-        "ceiling_mean": 0.11447811447811448,
+        "ceiling_mean": 0.11666666666666668,
         "n_golden_sigs": 3
       },
       "What can help students prepare for testing?": {
-        "ceiling_mean": 0.006734006734006734,
+        "ceiling_mean": 0.006666666666666666,
         "n_golden_sigs": 3
       },
       "Tell me the systems every support specialist works with.": {
@@ -1003,7 +1003,7 @@
         "n_golden_sigs": 2
       },
       "Show me the teachers and what they do?": {
-        "ceiling_mean": 0.3367003367003367,
+        "ceiling_mean": 0.3366666666666667,
         "n_golden_sigs": 3
       },
       "What is the salary of a role that each hospital has?": {
@@ -1011,7 +1011,7 @@
         "n_golden_sigs": 2
       },
       "Show me the roles every hospital has.": {
-        "ceiling_mean": 0.5050505050505051,
+        "ceiling_mean": 0.505,
         "n_golden_sigs": 2
       },
       "which system names and active statuses are associated with every IT support specialist?": {
@@ -1019,7 +1019,7 @@
         "n_golden_sigs": 2
       },
       "What is the state of the system that each IT support specialist works with?": {
-        "ceiling_mean": 0.030303030303030304,
+        "ceiling_mean": 0.03,
         "n_golden_sigs": 2
       },
       "What name and salary do we have in medical roles for every hospital": {
@@ -1027,19 +1027,19 @@
         "n_golden_sigs": 2
       },
       "Describe the benefit we have for every employer.": {
-        "ceiling_mean": 0.010101010101010102,
+        "ceiling_mean": 0.01,
         "n_golden_sigs": 2
       },
       "What is the name and phone number of least experienced applicant.": {
-        "ceiling_mean": 0.7272727272727273,
+        "ceiling_mean": 0.73,
         "n_golden_sigs": 2
       },
       "How do students prepare for the ancient history test?": {
-        "ceiling_mean": 0.04713804713804713,
+        "ceiling_mean": 0.04666666666666666,
         "n_golden_sigs": 3
       },
       "What is the name and email of most experienced applicant.": {
-        "ceiling_mean": 0.8333333333333334,
+        "ceiling_mean": 0.835,
         "n_golden_sigs": 2
       },
       "What are the demographics of Economic Recovery Strategies readers?": {
@@ -1047,7 +1047,7 @@
         "n_golden_sigs": 3
       },
       "What are the demographics of Author B's readers?": {
-        "ceiling_mean": 0.003367003367003367,
+        "ceiling_mean": 0.003333333333333333,
         "n_golden_sigs": 3
       },
       "what are the side effects of a particular medication": {
@@ -1055,11 +1055,11 @@
         "n_golden_sigs": 3
       },
       "show the name and historical context of each healthcare facility": {
-        "ceiling_mean": 0.34680134680134683,
+        "ceiling_mean": 0.34666666666666673,
         "n_golden_sigs": 3
       },
       "show me all the employee names, position and historical context": {
-        "ceiling_mean": 0.003367003367003367,
+        "ceiling_mean": 0.003333333333333333,
         "n_golden_sigs": 3
       },
       "What was Pride and Prejudice about?": {
@@ -1067,11 +1067,11 @@
         "n_golden_sigs": 3
       },
       "What were 19th-century books about?": {
-        "ceiling_mean": 0.41750841750841744,
+        "ceiling_mean": 0.41666666666666663,
         "n_golden_sigs": 3
       },
       "What happens to waste in New York?": {
-        "ceiling_mean": 0.04377104377104378,
+        "ceiling_mean": 0.04333333333333334,
         "n_golden_sigs": 3
       },
       "What experience do I need for the open position with the greatest salary?": {
@@ -1079,15 +1079,15 @@
         "n_golden_sigs": 3
       },
       "Describe a denim jacket.": {
-        "ceiling_mean": 0.0808080808080808,
+        "ceiling_mean": 0.07999999999999999,
         "n_golden_sigs": 3
       },
       "Show me information about the context in which Hamlet was written.": {
-        "ceiling_mean": 0.8787878787878789,
+        "ceiling_mean": 0.8766666666666668,
         "n_golden_sigs": 3
       },
       "when was a movie released": {
-        "ceiling_mean": 0.8114478114478114,
+        "ceiling_mean": 0.81,
         "n_golden_sigs": 3
       },
       "What is the maximum baggage allowance?": {
@@ -1095,23 +1095,23 @@
         "n_golden_sigs": 3
       },
       "what is the prestige level of a particular university": {
-        "ceiling_mean": 0.42087542087542085,
+        "ceiling_mean": 0.42,
         "n_golden_sigs": 3
       },
       "Where was the last doctor's appointment and what is the history of this place?": {
-        "ceiling_mean": 0.006734006734006734,
+        "ceiling_mean": 0.006666666666666666,
         "n_golden_sigs": 3
       },
       "What is the demographic audience for an article written by a most senior author?": {
-        "ceiling_mean": 0.3367003367003368,
+        "ceiling_mean": 0.3366666666666668,
         "n_golden_sigs": 3
       },
       "Where did Carol Williams receive medical care and what is the history of this place?": {
-        "ceiling_mean": 0.06397306397306397,
+        "ceiling_mean": 0.06333333333333332,
         "n_golden_sigs": 3
       },
       "Give me the titles and descriptions of the jobs that every tech startup has.": {
-        "ceiling_mean": 0.16666666666666666,
+        "ceiling_mean": 0.165,
         "n_golden_sigs": 2
       },
       "Give me the species of flora and fauna that every nature reserve has.": {
@@ -1123,11 +1123,11 @@
         "n_golden_sigs": 3
       },
       "Who is the author of the drama movie?": {
-        "ceiling_mean": 0.4882154882154881,
+        "ceiling_mean": 0.4866666666666666,
         "n_golden_sigs": 3
       },
       "Who played in the drama movie?": {
-        "ceiling_mean": 0.3468013468013469,
+        "ceiling_mean": 0.3466666666666668,
         "n_golden_sigs": 3
       },
       "What benefits are listed for all employers?": {
@@ -1135,7 +1135,7 @@
         "n_golden_sigs": 2
       },
       "What is the offer for a job?": {
-        "ceiling_mean": 0.08754208754208753,
+        "ceiling_mean": 0.09,
         "n_golden_sigs": 3
       },
       "Give me the teachers that every student has.": {
@@ -1143,7 +1143,7 @@
         "n_golden_sigs": 2
       },
       "In which city does the most senior person live and with what amenities?": {
-        "ceiling_mean": 0.3872053872053872,
+        "ceiling_mean": 0.3866666666666667,
         "n_golden_sigs": 3
       },
       "Describe dates of diagnosis that occurred on or after January 1, 2023, medications used to treat it, and symptoms associated with that diagnosis.": {
@@ -1163,15 +1163,15 @@
         "n_golden_sigs": 2
       },
       "What initiatives are there for every community development corporation?": {
-        "ceiling_mean": 0.3181818181818182,
+        "ceiling_mean": 0.325,
         "n_golden_sigs": 2
       },
       "Show me the features every community has.": {
-        "ceiling_mean": 0.4898989898989899,
+        "ceiling_mean": 0.49,
         "n_golden_sigs": 2
       },
       "Show me the features every banking app has.": {
-        "ceiling_mean": 0.3939393939393939,
+        "ceiling_mean": 0.39,
         "n_golden_sigs": 2
       },
       "Show me features every banking platform has.": {
@@ -1187,23 +1187,23 @@
         "n_golden_sigs": 2
       },
       "show me the mortality trends and names of provinces with a population greater than 1,500,000": {
-        "ceiling_mean": 0.05723905723905722,
+        "ceiling_mean": 0.05666666666666665,
         "n_golden_sigs": 3
       },
       "Show me the mortality trends and population for new york": {
-        "ceiling_mean": 0.2828282828282828,
+        "ceiling_mean": 0.28333333333333327,
         "n_golden_sigs": 3
       },
       "Tell me about the instruments every lab technician uses (their names and descriptions).": {
-        "ceiling_mean": 0.9595959595959596,
+        "ceiling_mean": 0.96,
         "n_golden_sigs": 2
       },
       "Show me the roles every retail store has.": {
-        "ceiling_mean": 0.5303030303030303,
+        "ceiling_mean": 0.53,
         "n_golden_sigs": 2
       },
       "What is the profit per operation and when did that operation occur?": {
-        "ceiling_mean": 0.08417508417508417,
+        "ceiling_mean": 0.08333333333333331,
         "n_golden_sigs": 3
       },
       "Select the documentary, creator, year established of the documentary published by the oldest magazine": {
@@ -1211,7 +1211,7 @@
         "n_golden_sigs": 3
       },
       "What is the average revenue per operation and when did this occur?": {
-        "ceiling_mean": 0.7037037037037039,
+        "ceiling_mean": 0.7033333333333336,
         "n_golden_sigs": 3
       },
       "Show me the diets that every nutritionist covers.": {
@@ -1219,11 +1219,11 @@
         "n_golden_sigs": 2
       },
       "What grade did John receive on their submission and what was the focus of that conference?": {
-        "ceiling_mean": 0.32996632996632996,
+        "ceiling_mean": 0.33,
         "n_golden_sigs": 3
       },
       "List drugs and their effects in order of their popularity in prescriptions": {
-        "ceiling_mean": 0.020202020202020204,
+        "ceiling_mean": 0.02,
         "n_golden_sigs": 3
       },
       "what are the qualifications of the journalist who wrote the last article": {
@@ -1235,15 +1235,15 @@
         "n_golden_sigs": 2
       },
       "Tell me the territories every sales rep covers.": {
-        "ceiling_mean": 0.5303030303030303,
+        "ceiling_mean": 0.53,
         "n_golden_sigs": 2
       },
       "How many extras are in the most expensive property?": {
-        "ceiling_mean": 0.003367003367003367,
+        "ceiling_mean": 0.003333333333333333,
         "n_golden_sigs": 3
       },
       "What is the percentage distribution of annual revenue per occupational category?": {
-        "ceiling_mean": 0.023569023569023566,
+        "ceiling_mean": 0.02333333333333333,
         "n_golden_sigs": 3
       },
       "What feature values are associated with each community?": {
@@ -1255,7 +1255,7 @@
         "n_golden_sigs": 2
       },
       "What is the difficulty of the trail that is offered in each national park?": {
-        "ceiling_mean": 0.5151515151515151,
+        "ceiling_mean": 0.515,
         "n_golden_sigs": 2
       },
       "which trail IDs and difficulties are associated with every national park?": {
@@ -1271,7 +1271,7 @@
         "n_golden_sigs": 2
       },
       "Show me the IDs, difficulties and lengths of the trails every national park has.": {
-        "ceiling_mean": 0.494949494949495,
+        "ceiling_mean": 0.495,
         "n_golden_sigs": 2
       },
       "List the activities offered by every resort.": {
@@ -1291,7 +1291,7 @@
         "n_golden_sigs": 2
       },
       "Show me the cost of projects every society has.": {
-        "ceiling_mean": 0.23232323232323232,
+        "ceiling_mean": 0.235,
         "n_golden_sigs": 2
       },
       "Give me the type of property that every land trust has.": {
@@ -1299,11 +1299,11 @@
         "n_golden_sigs": 2
       },
       "Show me the interest rates and descriptions of the loan programs every finance agency offers.": {
-        "ceiling_mean": 0.11616161616161616,
+        "ceiling_mean": 0.115,
         "n_golden_sigs": 2
       },
       "Tell me the schools every suburb has.": {
-        "ceiling_mean": 0.7727272727272727,
+        "ceiling_mean": 0.775,
         "n_golden_sigs": 2
       },
       "What facilities do we have for every condominium?": {
@@ -1311,7 +1311,7 @@
         "n_golden_sigs": 2
       },
       "Give me the devices we have for every streaming service": {
-        "ceiling_mean": 0.5050505050505051,
+        "ceiling_mean": 0.505,
         "n_golden_sigs": 2
       },
       "Show me the revenue streams of every streaming service.": {
@@ -1331,7 +1331,7 @@
         "n_golden_sigs": 2
       },
       "Show me the video quality that every streaming service offers.": {
-        "ceiling_mean": 0.51010101010101,
+        "ceiling_mean": 0.51,
         "n_golden_sigs": 2
       },
       "What user interface types are there for every streaming service?": {
@@ -1351,7 +1351,7 @@
         "n_golden_sigs": 2
       },
       "Give me the function that every traffic camera has.": {
-        "ceiling_mean": 0.5050505050505051,
+        "ceiling_mean": 0.505,
         "n_golden_sigs": 2
       },
       "Give me the tools that all traffic engineers use.": {
@@ -1359,7 +1359,7 @@
         "n_golden_sigs": 2
       },
       "What are the tool types and names for every engineer": {
-        "ceiling_mean": 0.3787878787878788,
+        "ceiling_mean": 0.375,
         "n_golden_sigs": 2
       },
       "Show me the restriction limits every route has.": {
@@ -1369,15 +1369,15 @@
     },
     "1.2": {
       "What is the background of the photojournalist in the table?": {
-        "ceiling_mean": 0.6902356902356904,
+        "ceiling_mean": 0.6900000000000003,
         "n_golden_sigs": 3
       },
       "Show me the students and what they do?": {
-        "ceiling_mean": 0.35690235690235694,
+        "ceiling_mean": 0.3566666666666667,
         "n_golden_sigs": 3
       },
       "What is the background of the journalist named Alice?": {
-        "ceiling_mean": 0.5757575757575757,
+        "ceiling_mean": 0.5766666666666665,
         "n_golden_sigs": 3
       },
       "What functions are there performed by all the HR professionals?": {
@@ -1389,31 +1389,31 @@
         "n_golden_sigs": 3
       },
       "What safety measures will the architect require?": {
-        "ceiling_mean": 0.6700336700336703,
+        "ceiling_mean": 0.6700000000000003,
         "n_golden_sigs": 3
       },
       "What's the name and background of the documentary created by the oldest filmmaker?": {
-        "ceiling_mean": 0.23569023569023567,
+        "ceiling_mean": 0.2333333333333333,
         "n_golden_sigs": 3
       },
       "What can help students prepare for testing?": {
-        "ceiling_mean": 0.006734006734006734,
+        "ceiling_mean": 0.006666666666666666,
         "n_golden_sigs": 3
       },
       "Tell me the systems every support specialist works with.": {
-        "ceiling_mean": 0.51010101010101,
+        "ceiling_mean": 0.51,
         "n_golden_sigs": 2
       },
       "Show me the teachers and what they do?": {
-        "ceiling_mean": 0.43097643097643096,
+        "ceiling_mean": 0.4333333333333333,
         "n_golden_sigs": 3
       },
       "What is the salary of a role that each hospital has?": {
-        "ceiling_mean": 0.020202020202020204,
+        "ceiling_mean": 0.02,
         "n_golden_sigs": 2
       },
       "Show me the roles every hospital has.": {
-        "ceiling_mean": 0.5050505050505051,
+        "ceiling_mean": 0.505,
         "n_golden_sigs": 2
       },
       "which system names and active statuses are associated with every IT support specialist?": {
@@ -1421,7 +1421,7 @@
         "n_golden_sigs": 2
       },
       "What is the state of the system that each IT support specialist works with?": {
-        "ceiling_mean": 0.0707070707070707,
+        "ceiling_mean": 0.07,
         "n_golden_sigs": 2
       },
       "What name and salary do we have in medical roles for every hospital": {
@@ -1429,39 +1429,39 @@
         "n_golden_sigs": 2
       },
       "Describe the benefit we have for every employer.": {
-        "ceiling_mean": 0.025252525252525252,
+        "ceiling_mean": 0.025,
         "n_golden_sigs": 2
       },
       "What is the name and phone number of least experienced applicant.": {
-        "ceiling_mean": 0.9040404040404041,
+        "ceiling_mean": 0.905,
         "n_golden_sigs": 2
       },
       "How do students prepare for the ancient history test?": {
-        "ceiling_mean": 0.026936026936026935,
+        "ceiling_mean": 0.026666666666666665,
         "n_golden_sigs": 3
       },
       "What is the name and email of most experienced applicant.": {
-        "ceiling_mean": 0.9343434343434344,
+        "ceiling_mean": 0.935,
         "n_golden_sigs": 2
       },
       "What are the demographics of Economic Recovery Strategies readers?": {
-        "ceiling_mean": 0.003367003367003367,
+        "ceiling_mean": 0.003333333333333333,
         "n_golden_sigs": 3
       },
       "What are the demographics of Author B's readers?": {
-        "ceiling_mean": 0.026936026936026935,
+        "ceiling_mean": 0.03,
         "n_golden_sigs": 3
       },
       "what are the side effects of a particular medication": {
-        "ceiling_mean": 0.003367003367003367,
+        "ceiling_mean": 0.003333333333333333,
         "n_golden_sigs": 3
       },
       "show the name and historical context of each healthcare facility": {
-        "ceiling_mean": 0.3703703703703705,
+        "ceiling_mean": 0.37000000000000016,
         "n_golden_sigs": 3
       },
       "show me all the employee names, position and historical context": {
-        "ceiling_mean": 0.006734006734006734,
+        "ceiling_mean": 0.006666666666666666,
         "n_golden_sigs": 3
       },
       "What was Pride and Prejudice about?": {
@@ -1469,11 +1469,11 @@
         "n_golden_sigs": 3
       },
       "What were 19th-century books about?": {
-        "ceiling_mean": 0.5925925925925926,
+        "ceiling_mean": 0.59,
         "n_golden_sigs": 3
       },
       "What happens to waste in New York?": {
-        "ceiling_mean": 0.08417508417508417,
+        "ceiling_mean": 0.08333333333333331,
         "n_golden_sigs": 3
       },
       "What experience do I need for the open position with the greatest salary?": {
@@ -1481,43 +1481,43 @@
         "n_golden_sigs": 3
       },
       "Describe a denim jacket.": {
-        "ceiling_mean": 0.1784511784511784,
+        "ceiling_mean": 0.1766666666666666,
         "n_golden_sigs": 3
       },
       "Show me information about the context in which Hamlet was written.": {
-        "ceiling_mean": 0.9461279461279462,
+        "ceiling_mean": 0.9466666666666668,
         "n_golden_sigs": 3
       },
       "when was a movie released": {
-        "ceiling_mean": 0.8653198653198654,
+        "ceiling_mean": 0.8633333333333334,
         "n_golden_sigs": 3
       },
       "What is the maximum baggage allowance?": {
-        "ceiling_mean": 0.3367003367003367,
+        "ceiling_mean": 0.3366666666666667,
         "n_golden_sigs": 3
       },
       "what is the prestige level of a particular university": {
-        "ceiling_mean": 0.5252525252525253,
+        "ceiling_mean": 0.5233333333333334,
         "n_golden_sigs": 3
       },
       "Where was the last doctor's appointment and what is the history of this place?": {
-        "ceiling_mean": 0.026936026936026935,
+        "ceiling_mean": 0.026666666666666665,
         "n_golden_sigs": 3
       },
       "What is the demographic audience for an article written by a most senior author?": {
-        "ceiling_mean": 0.34680134680134683,
+        "ceiling_mean": 0.34666666666666673,
         "n_golden_sigs": 3
       },
       "Where did Carol Williams receive medical care and what is the history of this place?": {
-        "ceiling_mean": 0.09764309764309764,
+        "ceiling_mean": 0.09666666666666666,
         "n_golden_sigs": 3
       },
       "Give me the titles and descriptions of the jobs that every tech startup has.": {
-        "ceiling_mean": 0.19696969696969696,
+        "ceiling_mean": 0.2,
         "n_golden_sigs": 2
       },
       "Give me the species of flora and fauna that every nature reserve has.": {
-        "ceiling_mean": 0.5050505050505051,
+        "ceiling_mean": 0.505,
         "n_golden_sigs": 2
       },
       "What was the review of the drama film?": {
@@ -1525,11 +1525,11 @@
         "n_golden_sigs": 3
       },
       "Who is the author of the drama movie?": {
-        "ceiling_mean": 0.5892255892255891,
+        "ceiling_mean": 0.5866666666666666,
         "n_golden_sigs": 3
       },
       "Who played in the drama movie?": {
-        "ceiling_mean": 0.3636363636363637,
+        "ceiling_mean": 0.36333333333333345,
         "n_golden_sigs": 3
       },
       "What benefits are listed for all employers?": {
@@ -1537,7 +1537,7 @@
         "n_golden_sigs": 2
       },
       "What is the offer for a job?": {
-        "ceiling_mean": 0.13804713804713806,
+        "ceiling_mean": 0.1366666666666667,
         "n_golden_sigs": 3
       },
       "Give me the teachers that every student has.": {
@@ -1545,7 +1545,7 @@
         "n_golden_sigs": 2
       },
       "In which city does the most senior person live and with what amenities?": {
-        "ceiling_mean": 0.4814814814814815,
+        "ceiling_mean": 0.48333333333333334,
         "n_golden_sigs": 3
       },
       "Describe dates of diagnosis that occurred on or after January 1, 2023, medications used to treat it, and symptoms associated with that diagnosis.": {
@@ -1557,27 +1557,27 @@
         "n_golden_sigs": 3
       },
       "What are the audience demographics for the latest article?": {
-        "ceiling_mean": 0.3367003367003367,
+        "ceiling_mean": 0.3366666666666667,
         "n_golden_sigs": 3
       },
       "What are the building roles for every construction company?": {
-        "ceiling_mean": 0.5050505050505051,
+        "ceiling_mean": 0.505,
         "n_golden_sigs": 2
       },
       "What initiatives are there for every community development corporation?": {
-        "ceiling_mean": 0.6111111111111112,
+        "ceiling_mean": 0.615,
         "n_golden_sigs": 2
       },
       "Show me the features every community has.": {
-        "ceiling_mean": 0.7121212121212122,
+        "ceiling_mean": 0.715,
         "n_golden_sigs": 2
       },
       "Show me the features every banking app has.": {
-        "ceiling_mean": 0.4494949494949495,
+        "ceiling_mean": 0.45,
         "n_golden_sigs": 2
       },
       "Show me features every banking platform has.": {
-        "ceiling_mean": 0.51010101010101,
+        "ceiling_mean": 0.51,
         "n_golden_sigs": 2
       },
       "Show me the services every bank offers.": {
@@ -1589,31 +1589,31 @@
         "n_golden_sigs": 2
       },
       "show me the mortality trends and names of provinces with a population greater than 1,500,000": {
-        "ceiling_mean": 0.11447811447811448,
+        "ceiling_mean": 0.11666666666666668,
         "n_golden_sigs": 3
       },
       "Show me the mortality trends and population for new york": {
-        "ceiling_mean": 0.303030303030303,
+        "ceiling_mean": 0.3033333333333333,
         "n_golden_sigs": 3
       },
       "Tell me about the instruments every lab technician uses (their names and descriptions).": {
-        "ceiling_mean": 0.98989898989899,
+        "ceiling_mean": 0.99,
         "n_golden_sigs": 2
       },
       "Show me the roles every retail store has.": {
-        "ceiling_mean": 0.5353535353535354,
+        "ceiling_mean": 0.54,
         "n_golden_sigs": 2
       },
       "What is the profit per operation and when did that operation occur?": {
-        "ceiling_mean": 0.1111111111111111,
+        "ceiling_mean": 0.11333333333333334,
         "n_golden_sigs": 3
       },
       "Select the documentary, creator, year established of the documentary published by the oldest magazine": {
-        "ceiling_mean": 0.003367003367003367,
+        "ceiling_mean": 0.003333333333333333,
         "n_golden_sigs": 3
       },
       "What is the average revenue per operation and when did this occur?": {
-        "ceiling_mean": 0.7272727272727274,
+        "ceiling_mean": 0.7300000000000001,
         "n_golden_sigs": 3
       },
       "Show me the diets that every nutritionist covers.": {
@@ -1621,15 +1621,15 @@
         "n_golden_sigs": 2
       },
       "What grade did John receive on their submission and what was the focus of that conference?": {
-        "ceiling_mean": 0.3602693602693603,
+        "ceiling_mean": 0.3600000000000001,
         "n_golden_sigs": 3
       },
       "List drugs and their effects in order of their popularity in prescriptions": {
-        "ceiling_mean": 0.010101010101010102,
+        "ceiling_mean": 0.01,
         "n_golden_sigs": 3
       },
       "what are the qualifications of the journalist who wrote the last article": {
-        "ceiling_mean": 0.006734006734006734,
+        "ceiling_mean": 0.006666666666666666,
         "n_golden_sigs": 3
       },
       "Show me the cities of territories every sales rep covers.": {
@@ -1637,15 +1637,15 @@
         "n_golden_sigs": 2
       },
       "Tell me the territories every sales rep covers.": {
-        "ceiling_mean": 0.5303030303030303,
+        "ceiling_mean": 0.53,
         "n_golden_sigs": 2
       },
       "How many extras are in the most expensive property?": {
-        "ceiling_mean": 0.006734006734006734,
+        "ceiling_mean": 0.006666666666666666,
         "n_golden_sigs": 3
       },
       "What is the percentage distribution of annual revenue per occupational category?": {
-        "ceiling_mean": 0.023569023569023566,
+        "ceiling_mean": 0.02333333333333333,
         "n_golden_sigs": 3
       },
       "What feature values are associated with each community?": {
@@ -1653,11 +1653,11 @@
         "n_golden_sigs": 2
       },
       "What description of initiatives is available for each community development corporation?": {
-        "ceiling_mean": 0.5050505050505051,
+        "ceiling_mean": 0.505,
         "n_golden_sigs": 2
       },
       "What is the difficulty of the trail that is offered in each national park?": {
-        "ceiling_mean": 0.5050505050505051,
+        "ceiling_mean": 0.505,
         "n_golden_sigs": 2
       },
       "which trail IDs and difficulties are associated with every national park?": {
@@ -1673,7 +1673,7 @@
         "n_golden_sigs": 2
       },
       "Show me the IDs, difficulties and lengths of the trails every national park has.": {
-        "ceiling_mean": 0.5151515151515151,
+        "ceiling_mean": 0.515,
         "n_golden_sigs": 2
       },
       "List the activities offered by every resort.": {
@@ -1681,7 +1681,7 @@
         "n_golden_sigs": 2
       },
       "Give me the treatments that every spa has and their descriptions.": {
-        "ceiling_mean": 0.51010101010101,
+        "ceiling_mean": 0.51,
         "n_golden_sigs": 2
       },
       "Show me the attraction types every theme park has.": {
@@ -1693,23 +1693,23 @@
         "n_golden_sigs": 2
       },
       "Show me the cost of projects every society has.": {
-        "ceiling_mean": 0.3383838383838384,
+        "ceiling_mean": 0.34,
         "n_golden_sigs": 2
       },
       "Give me the type of property that every land trust has.": {
-        "ceiling_mean": 0.51010101010101,
+        "ceiling_mean": 0.51,
         "n_golden_sigs": 2
       },
       "Show me the interest rates and descriptions of the loan programs every finance agency offers.": {
-        "ceiling_mean": 0.30808080808080807,
+        "ceiling_mean": 0.305,
         "n_golden_sigs": 2
       },
       "Tell me the schools every suburb has.": {
-        "ceiling_mean": 0.7474747474747475,
+        "ceiling_mean": 0.745,
         "n_golden_sigs": 2
       },
       "What facilities do we have for every condominium?": {
-        "ceiling_mean": 0.5050505050505051,
+        "ceiling_mean": 0.505,
         "n_golden_sigs": 2
       },
       "Give me the devices we have for every streaming service": {
@@ -1737,11 +1737,11 @@
         "n_golden_sigs": 2
       },
       "What user interface types are there for every streaming service?": {
-        "ceiling_mean": 0.5252525252525253,
+        "ceiling_mean": 0.525,
         "n_golden_sigs": 2
       },
       "Give me the name of the platform for every streaming service.": {
-        "ceiling_mean": 0.5050505050505051,
+        "ceiling_mean": 0.505,
         "n_golden_sigs": 2
       },
       "Which languages and default subtitles are associated with every streaming service?": {
@@ -1761,7 +1761,7 @@
         "n_golden_sigs": 2
       },
       "What are the tool types and names for every engineer": {
-        "ceiling_mean": 0.4898989898989899,
+        "ceiling_mean": 0.49,
         "n_golden_sigs": 2
       },
       "Show me the restriction limits every route has.": {
@@ -1771,15 +1771,15 @@
     },
     "1.25": {
       "What is the background of the photojournalist in the table?": {
-        "ceiling_mean": 0.6902356902356904,
+        "ceiling_mean": 0.6900000000000003,
         "n_golden_sigs": 3
       },
       "Show me the students and what they do?": {
-        "ceiling_mean": 0.3703703703703705,
+        "ceiling_mean": 0.37000000000000016,
         "n_golden_sigs": 3
       },
       "What is the background of the journalist named Alice?": {
-        "ceiling_mean": 0.5622895622895623,
+        "ceiling_mean": 0.5633333333333332,
         "n_golden_sigs": 3
       },
       "What functions are there performed by all the HR professionals?": {
@@ -1787,31 +1787,31 @@
         "n_golden_sigs": 2
       },
       "Describe the different designs.": {
-        "ceiling_mean": 0.3434343434343434,
+        "ceiling_mean": 0.3433333333333334,
         "n_golden_sigs": 3
       },
       "What safety measures will the architect require?": {
-        "ceiling_mean": 0.6734006734006736,
+        "ceiling_mean": 0.6733333333333336,
         "n_golden_sigs": 3
       },
       "What's the name and background of the documentary created by the oldest filmmaker?": {
-        "ceiling_mean": 0.2323232323232323,
+        "ceiling_mean": 0.23333333333333328,
         "n_golden_sigs": 3
       },
       "What can help students prepare for testing?": {
-        "ceiling_mean": 0.003367003367003367,
+        "ceiling_mean": 0.003333333333333333,
         "n_golden_sigs": 3
       },
       "Tell me the systems every support specialist works with.": {
-        "ceiling_mean": 0.51010101010101,
+        "ceiling_mean": 0.51,
         "n_golden_sigs": 2
       },
       "Show me the teachers and what they do?": {
-        "ceiling_mean": 0.45791245791245794,
+        "ceiling_mean": 0.46,
         "n_golden_sigs": 3
       },
       "What is the salary of a role that each hospital has?": {
-        "ceiling_mean": 0.03535353535353535,
+        "ceiling_mean": 0.035,
         "n_golden_sigs": 2
       },
       "Show me the roles every hospital has.": {
@@ -1823,7 +1823,7 @@
         "n_golden_sigs": 2
       },
       "What is the state of the system that each IT support specialist works with?": {
-        "ceiling_mean": 0.04040404040404041,
+        "ceiling_mean": 0.04,
         "n_golden_sigs": 2
       },
       "What name and salary do we have in medical roles for every hospital": {
@@ -1831,35 +1831,35 @@
         "n_golden_sigs": 2
       },
       "Describe the benefit we have for every employer.": {
-        "ceiling_mean": 0.015151515151515152,
+        "ceiling_mean": 0.015,
         "n_golden_sigs": 2
       },
       "What is the name and phone number of least experienced applicant.": {
-        "ceiling_mean": 0.9090909090909091,
+        "ceiling_mean": 0.91,
         "n_golden_sigs": 2
       },
       "How do students prepare for the ancient history test?": {
-        "ceiling_mean": 0.023569023569023566,
+        "ceiling_mean": 0.02333333333333333,
         "n_golden_sigs": 3
       },
       "What is the name and email of most experienced applicant.": {
-        "ceiling_mean": 0.9292929292929293,
+        "ceiling_mean": 0.925,
         "n_golden_sigs": 2
       },
       "What are the demographics of Economic Recovery Strategies readers?": {
-        "ceiling_mean": 0.003367003367003367,
+        "ceiling_mean": 0.003333333333333333,
         "n_golden_sigs": 3
       },
       "What are the demographics of Author B's readers?": {
-        "ceiling_mean": 0.013468013468013467,
+        "ceiling_mean": 0.013333333333333332,
         "n_golden_sigs": 3
       },
       "what are the side effects of a particular medication": {
-        "ceiling_mean": 0.003367003367003367,
+        "ceiling_mean": 0.003333333333333333,
         "n_golden_sigs": 3
       },
       "show the name and historical context of each healthcare facility": {
-        "ceiling_mean": 0.3905723905723907,
+        "ceiling_mean": 0.3900000000000001,
         "n_golden_sigs": 3
       },
       "show me all the employee names, position and historical context": {
@@ -1871,11 +1871,11 @@
         "n_golden_sigs": 3
       },
       "What were 19th-century books about?": {
-        "ceiling_mean": 0.6262626262626263,
+        "ceiling_mean": 0.6266666666666666,
         "n_golden_sigs": 3
       },
       "What happens to waste in New York?": {
-        "ceiling_mean": 0.10101010101010101,
+        "ceiling_mean": 0.1,
         "n_golden_sigs": 3
       },
       "What experience do I need for the open position with the greatest salary?": {
@@ -1883,15 +1883,15 @@
         "n_golden_sigs": 3
       },
       "Describe a denim jacket.": {
-        "ceiling_mean": 0.19191919191919188,
+        "ceiling_mean": 0.18999999999999997,
         "n_golden_sigs": 3
       },
       "Show me information about the context in which Hamlet was written.": {
-        "ceiling_mean": 0.9528619528619529,
+        "ceiling_mean": 0.9533333333333333,
         "n_golden_sigs": 3
       },
       "when was a movie released": {
-        "ceiling_mean": 0.861952861952862,
+        "ceiling_mean": 0.8600000000000001,
         "n_golden_sigs": 3
       },
       "What is the maximum baggage allowance?": {
@@ -1899,27 +1899,27 @@
         "n_golden_sigs": 3
       },
       "what is the prestige level of a particular university": {
-        "ceiling_mean": 0.5555555555555555,
+        "ceiling_mean": 0.5566666666666665,
         "n_golden_sigs": 3
       },
       "Where was the last doctor's appointment and what is the history of this place?": {
-        "ceiling_mean": 0.020202020202020204,
+        "ceiling_mean": 0.02,
         "n_golden_sigs": 3
       },
       "What is the demographic audience for an article written by a most senior author?": {
-        "ceiling_mean": 0.3434343434343435,
+        "ceiling_mean": 0.34666666666666673,
         "n_golden_sigs": 3
       },
       "Where did Carol Williams receive medical care and what is the history of this place?": {
-        "ceiling_mean": 0.14814814814814814,
+        "ceiling_mean": 0.14666666666666667,
         "n_golden_sigs": 3
       },
       "Give me the titles and descriptions of the jobs that every tech startup has.": {
-        "ceiling_mean": 0.20202020202020202,
+        "ceiling_mean": 0.205,
         "n_golden_sigs": 2
       },
       "Give me the species of flora and fauna that every nature reserve has.": {
-        "ceiling_mean": 0.5050505050505051,
+        "ceiling_mean": 0.51,
         "n_golden_sigs": 2
       },
       "What was the review of the drama film?": {
@@ -1927,11 +1927,11 @@
         "n_golden_sigs": 3
       },
       "Who is the author of the drama movie?": {
-        "ceiling_mean": 0.5993265993265993,
+        "ceiling_mean": 0.6,
         "n_golden_sigs": 3
       },
       "Who played in the drama movie?": {
-        "ceiling_mean": 0.3670033670033671,
+        "ceiling_mean": 0.3666666666666668,
         "n_golden_sigs": 3
       },
       "What benefits are listed for all employers?": {
@@ -1939,7 +1939,7 @@
         "n_golden_sigs": 2
       },
       "What is the offer for a job?": {
-        "ceiling_mean": 0.15824915824915825,
+        "ceiling_mean": 0.16,
         "n_golden_sigs": 3
       },
       "Give me the teachers that every student has.": {
@@ -1947,7 +1947,7 @@
         "n_golden_sigs": 2
       },
       "In which city does the most senior person live and with what amenities?": {
-        "ceiling_mean": 0.5084175084175085,
+        "ceiling_mean": 0.5100000000000001,
         "n_golden_sigs": 3
       },
       "Describe dates of diagnosis that occurred on or after January 1, 2023, medications used to treat it, and symptoms associated with that diagnosis.": {
@@ -1959,7 +1959,7 @@
         "n_golden_sigs": 3
       },
       "What are the audience demographics for the latest article?": {
-        "ceiling_mean": 0.3434343434343435,
+        "ceiling_mean": 0.34333333333333343,
         "n_golden_sigs": 3
       },
       "What are the building roles for every construction company?": {
@@ -1967,19 +1967,19 @@
         "n_golden_sigs": 2
       },
       "What initiatives are there for every community development corporation?": {
-        "ceiling_mean": 0.5909090909090909,
+        "ceiling_mean": 0.59,
         "n_golden_sigs": 2
       },
       "Show me the features every community has.": {
-        "ceiling_mean": 0.7424242424242424,
+        "ceiling_mean": 0.74,
         "n_golden_sigs": 2
       },
       "Show me the features every banking app has.": {
-        "ceiling_mean": 0.4595959595959596,
+        "ceiling_mean": 0.455,
         "n_golden_sigs": 2
       },
       "Show me features every banking platform has.": {
-        "ceiling_mean": 0.51010101010101,
+        "ceiling_mean": 0.51,
         "n_golden_sigs": 2
       },
       "Show me the services every bank offers.": {
@@ -1991,11 +1991,11 @@
         "n_golden_sigs": 2
       },
       "show me the mortality trends and names of provinces with a population greater than 1,500,000": {
-        "ceiling_mean": 0.13804713804713803,
+        "ceiling_mean": 0.13999999999999999,
         "n_golden_sigs": 3
       },
       "Show me the mortality trends and population for new york": {
-        "ceiling_mean": 0.3232323232323232,
+        "ceiling_mean": 0.3233333333333333,
         "n_golden_sigs": 3
       },
       "Tell me about the instruments every lab technician uses (their names and descriptions).": {
@@ -2003,19 +2003,19 @@
         "n_golden_sigs": 2
       },
       "Show me the roles every retail store has.": {
-        "ceiling_mean": 0.5606060606060606,
+        "ceiling_mean": 0.56,
         "n_golden_sigs": 2
       },
       "What is the profit per operation and when did that operation occur?": {
-        "ceiling_mean": 0.13131313131313133,
+        "ceiling_mean": 0.13,
         "n_golden_sigs": 3
       },
       "Select the documentary, creator, year established of the documentary published by the oldest magazine": {
-        "ceiling_mean": 0.006734006734006734,
+        "ceiling_mean": 0.006666666666666666,
         "n_golden_sigs": 3
       },
       "What is the average revenue per operation and when did this occur?": {
-        "ceiling_mean": 0.7306397306397308,
+        "ceiling_mean": 0.7300000000000001,
         "n_golden_sigs": 3
       },
       "Show me the diets that every nutritionist covers.": {
@@ -2023,31 +2023,31 @@
         "n_golden_sigs": 2
       },
       "What grade did John receive on their submission and what was the focus of that conference?": {
-        "ceiling_mean": 0.3636363636363637,
+        "ceiling_mean": 0.36333333333333345,
         "n_golden_sigs": 3
       },
       "List drugs and their effects in order of their popularity in prescriptions": {
-        "ceiling_mean": 0.020202020202020204,
+        "ceiling_mean": 0.02,
         "n_golden_sigs": 3
       },
       "what are the qualifications of the journalist who wrote the last article": {
-        "ceiling_mean": 0.006734006734006734,
+        "ceiling_mean": 0.006666666666666666,
         "n_golden_sigs": 3
       },
       "Show me the cities of territories every sales rep covers.": {
-        "ceiling_mean": 0.010101010101010102,
+        "ceiling_mean": 0.01,
         "n_golden_sigs": 2
       },
       "Tell me the territories every sales rep covers.": {
-        "ceiling_mean": 0.5252525252525253,
+        "ceiling_mean": 0.525,
         "n_golden_sigs": 2
       },
       "How many extras are in the most expensive property?": {
-        "ceiling_mean": 0.003367003367003367,
+        "ceiling_mean": 0.003333333333333333,
         "n_golden_sigs": 3
       },
       "What is the percentage distribution of annual revenue per occupational category?": {
-        "ceiling_mean": 0.016835016835016835,
+        "ceiling_mean": 0.016666666666666666,
         "n_golden_sigs": 3
       },
       "What feature values are associated with each community?": {
@@ -2059,7 +2059,7 @@
         "n_golden_sigs": 2
       },
       "What is the difficulty of the trail that is offered in each national park?": {
-        "ceiling_mean": 0.5353535353535354,
+        "ceiling_mean": 0.535,
         "n_golden_sigs": 2
       },
       "which trail IDs and difficulties are associated with every national park?": {
@@ -2075,7 +2075,7 @@
         "n_golden_sigs": 2
       },
       "Show me the IDs, difficulties and lengths of the trails every national park has.": {
-        "ceiling_mean": 0.5050505050505051,
+        "ceiling_mean": 0.505,
         "n_golden_sigs": 2
       },
       "List the activities offered by every resort.": {
@@ -2083,11 +2083,11 @@
         "n_golden_sigs": 2
       },
       "Give me the treatments that every spa has and their descriptions.": {
-        "ceiling_mean": 0.5050505050505051,
+        "ceiling_mean": 0.505,
         "n_golden_sigs": 2
       },
       "Show me the attraction types every theme park has.": {
-        "ceiling_mean": 0.5050505050505051,
+        "ceiling_mean": 0.505,
         "n_golden_sigs": 2
       },
       "Show me descriptions of treatments available for every spa.": {
@@ -2095,19 +2095,19 @@
         "n_golden_sigs": 2
       },
       "Show me the cost of projects every society has.": {
-        "ceiling_mean": 0.32323232323232326,
+        "ceiling_mean": 0.325,
         "n_golden_sigs": 2
       },
       "Give me the type of property that every land trust has.": {
-        "ceiling_mean": 0.5050505050505051,
+        "ceiling_mean": 0.505,
         "n_golden_sigs": 2
       },
       "Show me the interest rates and descriptions of the loan programs every finance agency offers.": {
-        "ceiling_mean": 0.37373737373737376,
+        "ceiling_mean": 0.375,
         "n_golden_sigs": 2
       },
       "Tell me the schools every suburb has.": {
-        "ceiling_mean": 0.702020202020202,
+        "ceiling_mean": 0.7,
         "n_golden_sigs": 2
       },
       "What facilities do we have for every condominium?": {
@@ -2115,11 +2115,11 @@
         "n_golden_sigs": 2
       },
       "Give me the devices we have for every streaming service": {
-        "ceiling_mean": 0.5050505050505051,
+        "ceiling_mean": 0.505,
         "n_golden_sigs": 2
       },
       "Show me the revenue streams of every streaming service.": {
-        "ceiling_mean": 0.5050505050505051,
+        "ceiling_mean": 0.505,
         "n_golden_sigs": 2
       },
       "Which content descriptions are associated with every streaming service?": {
@@ -2139,7 +2139,7 @@
         "n_golden_sigs": 2
       },
       "What user interface types are there for every streaming service?": {
-        "ceiling_mean": 0.5303030303030303,
+        "ceiling_mean": 0.53,
         "n_golden_sigs": 2
       },
       "Give me the name of the platform for every streaming service.": {
@@ -2163,7 +2163,7 @@
         "n_golden_sigs": 2
       },
       "What are the tool types and names for every engineer": {
-        "ceiling_mean": 0.47474747474747475,
+        "ceiling_mean": 0.475,
         "n_golden_sigs": 2
       },
       "Show me the restriction limits every route has.": {
@@ -2173,15 +2173,15 @@
     },
     "1.3": {
       "What is the background of the photojournalist in the table?": {
-        "ceiling_mean": 0.7037037037037039,
+        "ceiling_mean": 0.7066666666666669,
         "n_golden_sigs": 3
       },
       "Show me the students and what they do?": {
-        "ceiling_mean": 0.37037037037037035,
+        "ceiling_mean": 0.3733333333333333,
         "n_golden_sigs": 3
       },
       "What is the background of the journalist named Alice?": {
-        "ceiling_mean": 0.5757575757575757,
+        "ceiling_mean": 0.5766666666666665,
         "n_golden_sigs": 3
       },
       "What functions are there performed by all the HR professionals?": {
@@ -2189,35 +2189,35 @@
         "n_golden_sigs": 2
       },
       "Describe the different designs.": {
-        "ceiling_mean": 0.3501683501683503,
+        "ceiling_mean": 0.35000000000000014,
         "n_golden_sigs": 3
       },
       "What safety measures will the architect require?": {
-        "ceiling_mean": 0.6700336700336703,
+        "ceiling_mean": 0.6700000000000003,
         "n_golden_sigs": 3
       },
       "What's the name and background of the documentary created by the oldest filmmaker?": {
-        "ceiling_mean": 0.2255892255892256,
+        "ceiling_mean": 0.22333333333333333,
         "n_golden_sigs": 3
       },
       "What can help students prepare for testing?": {
-        "ceiling_mean": 0.010101010101010102,
+        "ceiling_mean": 0.01,
         "n_golden_sigs": 3
       },
       "Tell me the systems every support specialist works with.": {
-        "ceiling_mean": 0.5151515151515151,
+        "ceiling_mean": 0.515,
         "n_golden_sigs": 2
       },
       "Show me the teachers and what they do?": {
-        "ceiling_mean": 0.5185185185185184,
+        "ceiling_mean": 0.5166666666666666,
         "n_golden_sigs": 3
       },
       "What is the salary of a role that each hospital has?": {
-        "ceiling_mean": 0.03535353535353535,
+        "ceiling_mean": 0.035,
         "n_golden_sigs": 2
       },
       "Show me the roles every hospital has.": {
-        "ceiling_mean": 0.5050505050505051,
+        "ceiling_mean": 0.505,
         "n_golden_sigs": 2
       },
       "which system names and active statuses are associated with every IT support specialist?": {
@@ -2225,7 +2225,7 @@
         "n_golden_sigs": 2
       },
       "What is the state of the system that each IT support specialist works with?": {
-        "ceiling_mean": 0.045454545454545456,
+        "ceiling_mean": 0.05,
         "n_golden_sigs": 2
       },
       "What name and salary do we have in medical roles for every hospital": {
@@ -2233,39 +2233,39 @@
         "n_golden_sigs": 2
       },
       "Describe the benefit we have for every employer.": {
-        "ceiling_mean": 0.0707070707070707,
+        "ceiling_mean": 0.07,
         "n_golden_sigs": 2
       },
       "What is the name and phone number of least experienced applicant.": {
-        "ceiling_mean": 0.9292929292929293,
+        "ceiling_mean": 0.93,
         "n_golden_sigs": 2
       },
       "How do students prepare for the ancient history test?": {
-        "ceiling_mean": 0.026936026936026935,
+        "ceiling_mean": 0.026666666666666665,
         "n_golden_sigs": 3
       },
       "What is the name and email of most experienced applicant.": {
-        "ceiling_mean": 0.9040404040404041,
+        "ceiling_mean": 0.9,
         "n_golden_sigs": 2
       },
       "What are the demographics of Economic Recovery Strategies readers?": {
-        "ceiling_mean": 0.003367003367003367,
+        "ceiling_mean": 0.003333333333333333,
         "n_golden_sigs": 3
       },
       "What are the demographics of Author B's readers?": {
-        "ceiling_mean": 0.003367003367003367,
+        "ceiling_mean": 0.006666666666666666,
         "n_golden_sigs": 3
       },
       "what are the side effects of a particular medication": {
-        "ceiling_mean": 0.006734006734006734,
+        "ceiling_mean": 0.006666666666666666,
         "n_golden_sigs": 3
       },
       "show the name and historical context of each healthcare facility": {
-        "ceiling_mean": 0.39057239057239057,
+        "ceiling_mean": 0.39,
         "n_golden_sigs": 3
       },
       "show me all the employee names, position and historical context": {
-        "ceiling_mean": 0.010101010101010102,
+        "ceiling_mean": 0.01,
         "n_golden_sigs": 3
       },
       "What was Pride and Prejudice about?": {
@@ -2273,11 +2273,11 @@
         "n_golden_sigs": 3
       },
       "What were 19th-century books about?": {
-        "ceiling_mean": 0.5993265993265992,
+        "ceiling_mean": 0.5966666666666666,
         "n_golden_sigs": 3
       },
       "What happens to waste in New York?": {
-        "ceiling_mean": 0.09764309764309766,
+        "ceiling_mean": 0.10000000000000002,
         "n_golden_sigs": 3
       },
       "What experience do I need for the open position with the greatest salary?": {
@@ -2285,15 +2285,15 @@
         "n_golden_sigs": 3
       },
       "Describe a denim jacket.": {
-        "ceiling_mean": 0.1616161616161616,
+        "ceiling_mean": 0.16333333333333333,
         "n_golden_sigs": 3
       },
       "Show me information about the context in which Hamlet was written.": {
-        "ceiling_mean": 0.9595959595959598,
+        "ceiling_mean": 0.9600000000000002,
         "n_golden_sigs": 3
       },
       "when was a movie released": {
-        "ceiling_mean": 0.8619528619528619,
+        "ceiling_mean": 0.8633333333333333,
         "n_golden_sigs": 3
       },
       "What is the maximum baggage allowance?": {
@@ -2301,39 +2301,39 @@
         "n_golden_sigs": 3
       },
       "what is the prestige level of a particular university": {
-        "ceiling_mean": 0.5555555555555555,
+        "ceiling_mean": 0.5533333333333332,
         "n_golden_sigs": 3
       },
       "Where was the last doctor's appointment and what is the history of this place?": {
-        "ceiling_mean": 0.030303030303030304,
+        "ceiling_mean": 0.03333333333333333,
         "n_golden_sigs": 3
       },
       "What is the demographic audience for an article written by a most senior author?": {
-        "ceiling_mean": 0.3535353535353536,
+        "ceiling_mean": 0.35333333333333344,
         "n_golden_sigs": 3
       },
       "Where did Carol Williams receive medical care and what is the history of this place?": {
-        "ceiling_mean": 0.12794612794612795,
+        "ceiling_mean": 0.12666666666666665,
         "n_golden_sigs": 3
       },
       "Give me the titles and descriptions of the jobs that every tech startup has.": {
-        "ceiling_mean": 0.1919191919191919,
+        "ceiling_mean": 0.19,
         "n_golden_sigs": 2
       },
       "Give me the species of flora and fauna that every nature reserve has.": {
-        "ceiling_mean": 0.5151515151515151,
+        "ceiling_mean": 0.515,
         "n_golden_sigs": 2
       },
       "What was the review of the drama film?": {
-        "ceiling_mean": 0.6700336700336703,
+        "ceiling_mean": 0.6700000000000003,
         "n_golden_sigs": 3
       },
       "Who is the author of the drama movie?": {
-        "ceiling_mean": 0.6397306397306397,
+        "ceiling_mean": 0.6399999999999999,
         "n_golden_sigs": 3
       },
       "Who played in the drama movie?": {
-        "ceiling_mean": 0.38383838383838376,
+        "ceiling_mean": 0.3833333333333333,
         "n_golden_sigs": 3
       },
       "What benefits are listed for all employers?": {
@@ -2341,7 +2341,7 @@
         "n_golden_sigs": 2
       },
       "What is the offer for a job?": {
-        "ceiling_mean": 0.16835016835016833,
+        "ceiling_mean": 0.16666666666666663,
         "n_golden_sigs": 3
       },
       "Give me the teachers that every student has.": {
@@ -2349,7 +2349,7 @@
         "n_golden_sigs": 2
       },
       "In which city does the most senior person live and with what amenities?": {
-        "ceiling_mean": 0.5252525252525253,
+        "ceiling_mean": 0.5233333333333333,
         "n_golden_sigs": 3
       },
       "Describe dates of diagnosis that occurred on or after January 1, 2023, medications used to treat it, and symptoms associated with that diagnosis.": {
@@ -2361,7 +2361,7 @@
         "n_golden_sigs": 3
       },
       "What are the audience demographics for the latest article?": {
-        "ceiling_mean": 0.3367003367003367,
+        "ceiling_mean": 0.3366666666666667,
         "n_golden_sigs": 3
       },
       "What are the building roles for every construction company?": {
@@ -2369,19 +2369,19 @@
         "n_golden_sigs": 2
       },
       "What initiatives are there for every community development corporation?": {
-        "ceiling_mean": 0.6111111111111112,
+        "ceiling_mean": 0.61,
         "n_golden_sigs": 2
       },
       "Show me the features every community has.": {
-        "ceiling_mean": 0.7424242424242424,
+        "ceiling_mean": 0.745,
         "n_golden_sigs": 2
       },
       "Show me the features every banking app has.": {
-        "ceiling_mean": 0.41919191919191917,
+        "ceiling_mean": 0.42,
         "n_golden_sigs": 2
       },
       "Show me features every banking platform has.": {
-        "ceiling_mean": 0.5050505050505051,
+        "ceiling_mean": 0.505,
         "n_golden_sigs": 2
       },
       "Show me the services every bank offers.": {
@@ -2393,11 +2393,11 @@
         "n_golden_sigs": 2
       },
       "show me the mortality trends and names of provinces with a population greater than 1,500,000": {
-        "ceiling_mean": 0.13804713804713803,
+        "ceiling_mean": 0.13666666666666666,
         "n_golden_sigs": 3
       },
       "Show me the mortality trends and population for new york": {
-        "ceiling_mean": 0.3265993265993266,
+        "ceiling_mean": 0.3266666666666667,
         "n_golden_sigs": 3
       },
       "Tell me about the instruments every lab technician uses (their names and descriptions).": {
@@ -2405,19 +2405,19 @@
         "n_golden_sigs": 2
       },
       "Show me the roles every retail store has.": {
-        "ceiling_mean": 0.5404040404040404,
+        "ceiling_mean": 0.54,
         "n_golden_sigs": 2
       },
       "What is the profit per operation and when did that operation occur?": {
-        "ceiling_mean": 0.11784511784511784,
+        "ceiling_mean": 0.12,
         "n_golden_sigs": 3
       },
       "Select the documentary, creator, year established of the documentary published by the oldest magazine": {
-        "ceiling_mean": 0.010101010101010102,
+        "ceiling_mean": 0.01,
         "n_golden_sigs": 3
       },
       "What is the average revenue per operation and when did this occur?": {
-        "ceiling_mean": 0.7474747474747476,
+        "ceiling_mean": 0.7466666666666668,
         "n_golden_sigs": 3
       },
       "Show me the diets that every nutritionist covers.": {
@@ -2425,31 +2425,31 @@
         "n_golden_sigs": 2
       },
       "What grade did John receive on their submission and what was the focus of that conference?": {
-        "ceiling_mean": 0.34680134680134683,
+        "ceiling_mean": 0.34666666666666673,
         "n_golden_sigs": 3
       },
       "List drugs and their effects in order of their popularity in prescriptions": {
-        "ceiling_mean": 0.006734006734006734,
+        "ceiling_mean": 0.006666666666666666,
         "n_golden_sigs": 3
       },
       "what are the qualifications of the journalist who wrote the last article": {
-        "ceiling_mean": 0.003367003367003367,
+        "ceiling_mean": 0.003333333333333333,
         "n_golden_sigs": 3
       },
       "Show me the cities of territories every sales rep covers.": {
-        "ceiling_mean": 0.005050505050505051,
+        "ceiling_mean": 0.005,
         "n_golden_sigs": 2
       },
       "Tell me the territories every sales rep covers.": {
-        "ceiling_mean": 0.5404040404040404,
+        "ceiling_mean": 0.54,
         "n_golden_sigs": 2
       },
       "How many extras are in the most expensive property?": {
-        "ceiling_mean": 0.003367003367003367,
+        "ceiling_mean": 0.003333333333333333,
         "n_golden_sigs": 3
       },
       "What is the percentage distribution of annual revenue per occupational category?": {
-        "ceiling_mean": 0.006734006734006734,
+        "ceiling_mean": 0.006666666666666666,
         "n_golden_sigs": 3
       },
       "What feature values are associated with each community?": {
@@ -2457,11 +2457,11 @@
         "n_golden_sigs": 2
       },
       "What description of initiatives is available for each community development corporation?": {
-        "ceiling_mean": 0.51010101010101,
+        "ceiling_mean": 0.51,
         "n_golden_sigs": 2
       },
       "What is the difficulty of the trail that is offered in each national park?": {
-        "ceiling_mean": 0.5404040404040404,
+        "ceiling_mean": 0.54,
         "n_golden_sigs": 2
       },
       "which trail IDs and difficulties are associated with every national park?": {
@@ -2477,7 +2477,7 @@
         "n_golden_sigs": 2
       },
       "Show me the IDs, difficulties and lengths of the trails every national park has.": {
-        "ceiling_mean": 0.51010101010101,
+        "ceiling_mean": 0.51,
         "n_golden_sigs": 2
       },
       "List the activities offered by every resort.": {
@@ -2485,7 +2485,7 @@
         "n_golden_sigs": 2
       },
       "Give me the treatments that every spa has and their descriptions.": {
-        "ceiling_mean": 0.5050505050505051,
+        "ceiling_mean": 0.505,
         "n_golden_sigs": 2
       },
       "Show me the attraction types every theme park has.": {
@@ -2497,19 +2497,19 @@
         "n_golden_sigs": 2
       },
       "Show me the cost of projects every society has.": {
-        "ceiling_mean": 0.3484848484848485,
+        "ceiling_mean": 0.35,
         "n_golden_sigs": 2
       },
       "Give me the type of property that every land trust has.": {
-        "ceiling_mean": 0.51010101010101,
+        "ceiling_mean": 0.51,
         "n_golden_sigs": 2
       },
       "Show me the interest rates and descriptions of the loan programs every finance agency offers.": {
-        "ceiling_mean": 0.3484848484848485,
+        "ceiling_mean": 0.35,
         "n_golden_sigs": 2
       },
       "Tell me the schools every suburb has.": {
-        "ceiling_mean": 0.6565656565656566,
+        "ceiling_mean": 0.66,
         "n_golden_sigs": 2
       },
       "What facilities do we have for every condominium?": {
@@ -2517,7 +2517,7 @@
         "n_golden_sigs": 2
       },
       "Give me the devices we have for every streaming service": {
-        "ceiling_mean": 0.51010101010101,
+        "ceiling_mean": 0.51,
         "n_golden_sigs": 2
       },
       "Show me the revenue streams of every streaming service.": {
@@ -2541,11 +2541,11 @@
         "n_golden_sigs": 2
       },
       "What user interface types are there for every streaming service?": {
-        "ceiling_mean": 0.5353535353535354,
+        "ceiling_mean": 0.535,
         "n_golden_sigs": 2
       },
       "Give me the name of the platform for every streaming service.": {
-        "ceiling_mean": 0.5050505050505051,
+        "ceiling_mean": 0.505,
         "n_golden_sigs": 2
       },
       "Which languages and default subtitles are associated with every streaming service?": {
@@ -2557,7 +2557,7 @@
         "n_golden_sigs": 2
       },
       "Give me the function that every traffic camera has.": {
-        "ceiling_mean": 0.51010101010101,
+        "ceiling_mean": 0.51,
         "n_golden_sigs": 2
       },
       "Give me the tools that all traffic engineers use.": {
@@ -2565,7 +2565,7 @@
         "n_golden_sigs": 2
       },
       "What are the tool types and names for every engineer": {
-        "ceiling_mean": 0.48484848484848486,
+        "ceiling_mean": 0.485,
         "n_golden_sigs": 2
       },
       "Show me the restriction limits every route has.": {
@@ -2575,15 +2575,15 @@
     },
     "1.5": {
       "What is the background of the photojournalist in the table?": {
-        "ceiling_mean": 0.7171717171717173,
+        "ceiling_mean": 0.7166666666666669,
         "n_golden_sigs": 3
       },
       "Show me the students and what they do?": {
-        "ceiling_mean": 0.3535353535353536,
+        "ceiling_mean": 0.35333333333333344,
         "n_golden_sigs": 3
       },
       "What is the background of the journalist named Alice?": {
-        "ceiling_mean": 0.632996632996633,
+        "ceiling_mean": 0.6333333333333333,
         "n_golden_sigs": 3
       },
       "What functions are there performed by all the HR professionals?": {
@@ -2591,19 +2591,19 @@
         "n_golden_sigs": 2
       },
       "Describe the different designs.": {
-        "ceiling_mean": 0.35690235690235694,
+        "ceiling_mean": 0.3566666666666667,
         "n_golden_sigs": 3
       },
       "What safety measures will the architect require?": {
-        "ceiling_mean": 0.6801346801346804,
+        "ceiling_mean": 0.6800000000000003,
         "n_golden_sigs": 3
       },
       "What's the name and background of the documentary created by the oldest filmmaker?": {
-        "ceiling_mean": 0.13804713804713803,
+        "ceiling_mean": 0.14,
         "n_golden_sigs": 3
       },
       "What can help students prepare for testing?": {
-        "ceiling_mean": 0.003367003367003367,
+        "ceiling_mean": 0.003333333333333333,
         "n_golden_sigs": 3
       },
       "Tell me the systems every support specialist works with.": {
@@ -2611,11 +2611,11 @@
         "n_golden_sigs": 2
       },
       "Show me the teachers and what they do?": {
-        "ceiling_mean": 0.49494949494949486,
+        "ceiling_mean": 0.4966666666666666,
         "n_golden_sigs": 3
       },
       "What is the salary of a role that each hospital has?": {
-        "ceiling_mean": 0.07575757575757576,
+        "ceiling_mean": 0.075,
         "n_golden_sigs": 2
       },
       "Show me the roles every hospital has.": {
@@ -2627,7 +2627,7 @@
         "n_golden_sigs": 2
       },
       "What is the state of the system that each IT support specialist works with?": {
-        "ceiling_mean": 0.03535353535353535,
+        "ceiling_mean": 0.035,
         "n_golden_sigs": 2
       },
       "What name and salary do we have in medical roles for every hospital": {
@@ -2635,19 +2635,19 @@
         "n_golden_sigs": 2
       },
       "Describe the benefit we have for every employer.": {
-        "ceiling_mean": 0.050505050505050504,
+        "ceiling_mean": 0.05,
         "n_golden_sigs": 2
       },
       "What is the name and phone number of least experienced applicant.": {
-        "ceiling_mean": 0.8737373737373737,
+        "ceiling_mean": 0.875,
         "n_golden_sigs": 2
       },
       "How do students prepare for the ancient history test?": {
-        "ceiling_mean": 0.003367003367003367,
+        "ceiling_mean": 0.003333333333333333,
         "n_golden_sigs": 3
       },
       "What is the name and email of most experienced applicant.": {
-        "ceiling_mean": 0.8282828282828283,
+        "ceiling_mean": 0.83,
         "n_golden_sigs": 2
       },
       "What are the demographics of Economic Recovery Strategies readers?": {
@@ -2655,31 +2655,31 @@
         "n_golden_sigs": 3
       },
       "What are the demographics of Author B's readers?": {
-        "ceiling_mean": 0.003367003367003367,
+        "ceiling_mean": 0.003333333333333333,
         "n_golden_sigs": 3
       },
       "what are the side effects of a particular medication": {
-        "ceiling_mean": 0.013468013468013467,
+        "ceiling_mean": 0.013333333333333332,
         "n_golden_sigs": 3
       },
       "show the name and historical context of each healthcare facility": {
-        "ceiling_mean": 0.4478114478114478,
+        "ceiling_mean": 0.4466666666666667,
         "n_golden_sigs": 3
       },
       "show me all the employee names, position and historical context": {
-        "ceiling_mean": 0.016835016835016835,
+        "ceiling_mean": 0.016666666666666666,
         "n_golden_sigs": 3
       },
       "What was Pride and Prejudice about?": {
-        "ceiling_mean": 0.3434343434343435,
+        "ceiling_mean": 0.34333333333333343,
         "n_golden_sigs": 3
       },
       "What were 19th-century books about?": {
-        "ceiling_mean": 0.5858585858585857,
+        "ceiling_mean": 0.5866666666666666,
         "n_golden_sigs": 3
       },
       "What happens to waste in New York?": {
-        "ceiling_mean": 0.060606060606060594,
+        "ceiling_mean": 0.05999999999999999,
         "n_golden_sigs": 3
       },
       "What experience do I need for the open position with the greatest salary?": {
@@ -2687,55 +2687,55 @@
         "n_golden_sigs": 3
       },
       "Describe a denim jacket.": {
-        "ceiling_mean": 0.17508417508417506,
+        "ceiling_mean": 0.1733333333333333,
         "n_golden_sigs": 3
       },
       "Show me information about the context in which Hamlet was written.": {
-        "ceiling_mean": 0.8888888888888888,
+        "ceiling_mean": 0.8866666666666667,
         "n_golden_sigs": 3
       },
       "when was a movie released": {
-        "ceiling_mean": 0.7104377104377104,
+        "ceiling_mean": 0.71,
         "n_golden_sigs": 3
       },
       "What is the maximum baggage allowance?": {
-        "ceiling_mean": 0.34006734006734013,
+        "ceiling_mean": 0.3433333333333334,
         "n_golden_sigs": 3
       },
       "what is the prestige level of a particular university": {
-        "ceiling_mean": 0.5589225589225588,
+        "ceiling_mean": 0.5566666666666666,
         "n_golden_sigs": 3
       },
       "Where was the last doctor's appointment and what is the history of this place?": {
-        "ceiling_mean": 0.006734006734006734,
+        "ceiling_mean": 0.006666666666666666,
         "n_golden_sigs": 3
       },
       "What is the demographic audience for an article written by a most senior author?": {
-        "ceiling_mean": 0.3468013468013469,
+        "ceiling_mean": 0.3466666666666668,
         "n_golden_sigs": 3
       },
       "Where did Carol Williams receive medical care and what is the history of this place?": {
-        "ceiling_mean": 0.057239057239057235,
+        "ceiling_mean": 0.05999999999999999,
         "n_golden_sigs": 3
       },
       "Give me the titles and descriptions of the jobs that every tech startup has.": {
-        "ceiling_mean": 0.11616161616161616,
+        "ceiling_mean": 0.115,
         "n_golden_sigs": 2
       },
       "Give me the species of flora and fauna that every nature reserve has.": {
-        "ceiling_mean": 0.5050505050505051,
+        "ceiling_mean": 0.505,
         "n_golden_sigs": 2
       },
       "What was the review of the drama film?": {
-        "ceiling_mean": 0.632996632996633,
+        "ceiling_mean": 0.6333333333333333,
         "n_golden_sigs": 3
       },
       "Who is the author of the drama movie?": {
-        "ceiling_mean": 0.6161616161616161,
+        "ceiling_mean": 0.6166666666666666,
         "n_golden_sigs": 3
       },
       "Who played in the drama movie?": {
-        "ceiling_mean": 0.3771043771043772,
+        "ceiling_mean": 0.37666666666666676,
         "n_golden_sigs": 3
       },
       "What benefits are listed for all employers?": {
@@ -2743,7 +2743,7 @@
         "n_golden_sigs": 2
       },
       "What is the offer for a job?": {
-        "ceiling_mean": 0.037037037037037035,
+        "ceiling_mean": 0.04,
         "n_golden_sigs": 3
       },
       "Give me the teachers that every student has.": {
@@ -2751,7 +2751,7 @@
         "n_golden_sigs": 2
       },
       "In which city does the most senior person live and with what amenities?": {
-        "ceiling_mean": 0.4814814814814815,
+        "ceiling_mean": 0.48333333333333334,
         "n_golden_sigs": 3
       },
       "Describe dates of diagnosis that occurred on or after January 1, 2023, medications used to treat it, and symptoms associated with that diagnosis.": {
@@ -2771,15 +2771,15 @@
         "n_golden_sigs": 2
       },
       "What initiatives are there for every community development corporation?": {
-        "ceiling_mean": 0.3434343434343434,
+        "ceiling_mean": 0.35,
         "n_golden_sigs": 2
       },
       "Show me the features every community has.": {
-        "ceiling_mean": 0.4595959595959596,
+        "ceiling_mean": 0.46,
         "n_golden_sigs": 2
       },
       "Show me the features every banking app has.": {
-        "ceiling_mean": 0.20202020202020202,
+        "ceiling_mean": 0.2,
         "n_golden_sigs": 2
       },
       "Show me features every banking platform has.": {
@@ -2795,11 +2795,11 @@
         "n_golden_sigs": 2
       },
       "show me the mortality trends and names of provinces with a population greater than 1,500,000": {
-        "ceiling_mean": 0.060606060606060594,
+        "ceiling_mean": 0.05999999999999999,
         "n_golden_sigs": 3
       },
       "Show me the mortality trends and population for new york": {
-        "ceiling_mean": 0.22558922558922553,
+        "ceiling_mean": 0.2266666666666666,
         "n_golden_sigs": 3
       },
       "Tell me about the instruments every lab technician uses (their names and descriptions).": {
@@ -2811,15 +2811,15 @@
         "n_golden_sigs": 2
       },
       "What is the profit per operation and when did that operation occur?": {
-        "ceiling_mean": 0.03367003367003367,
+        "ceiling_mean": 0.03333333333333333,
         "n_golden_sigs": 3
       },
       "Select the documentary, creator, year established of the documentary published by the oldest magazine": {
-        "ceiling_mean": 0.003367003367003367,
+        "ceiling_mean": 0.003333333333333333,
         "n_golden_sigs": 3
       },
       "What is the average revenue per operation and when did this occur?": {
-        "ceiling_mean": 0.5690235690235691,
+        "ceiling_mean": 0.57,
         "n_golden_sigs": 3
       },
       "Show me the diets that every nutritionist covers.": {
@@ -2827,11 +2827,11 @@
         "n_golden_sigs": 2
       },
       "What grade did John receive on their submission and what was the focus of that conference?": {
-        "ceiling_mean": 0.18855218855218855,
+        "ceiling_mean": 0.19,
         "n_golden_sigs": 3
       },
       "List drugs and their effects in order of their popularity in prescriptions": {
-        "ceiling_mean": 0.003367003367003367,
+        "ceiling_mean": 0.003333333333333333,
         "n_golden_sigs": 3
       },
       "what are the qualifications of the journalist who wrote the last article": {
@@ -2839,11 +2839,11 @@
         "n_golden_sigs": 3
       },
       "Show me the cities of territories every sales rep covers.": {
-        "ceiling_mean": 0.005050505050505051,
+        "ceiling_mean": 0.005,
         "n_golden_sigs": 2
       },
       "Tell me the territories every sales rep covers.": {
-        "ceiling_mean": 0.5050505050505051,
+        "ceiling_mean": 0.505,
         "n_golden_sigs": 2
       },
       "How many extras are in the most expensive property?": {
@@ -2863,7 +2863,7 @@
         "n_golden_sigs": 2
       },
       "What is the difficulty of the trail that is offered in each national park?": {
-        "ceiling_mean": 0.51010101010101,
+        "ceiling_mean": 0.51,
         "n_golden_sigs": 2
       },
       "which trail IDs and difficulties are associated with every national park?": {
@@ -2879,7 +2879,7 @@
         "n_golden_sigs": 2
       },
       "Show me the IDs, difficulties and lengths of the trails every national park has.": {
-        "ceiling_mean": 0.494949494949495,
+        "ceiling_mean": 0.495,
         "n_golden_sigs": 2
       },
       "List the activities offered by every resort.": {
@@ -2899,19 +2899,19 @@
         "n_golden_sigs": 2
       },
       "Show me the cost of projects every society has.": {
-        "ceiling_mean": 0.25252525252525254,
+        "ceiling_mean": 0.255,
         "n_golden_sigs": 2
       },
       "Give me the type of property that every land trust has.": {
-        "ceiling_mean": 0.51010101010101,
+        "ceiling_mean": 0.51,
         "n_golden_sigs": 2
       },
       "Show me the interest rates and descriptions of the loan programs every finance agency offers.": {
-        "ceiling_mean": 0.3383838383838384,
+        "ceiling_mean": 0.34,
         "n_golden_sigs": 2
       },
       "Tell me the schools every suburb has.": {
-        "ceiling_mean": 0.5151515151515151,
+        "ceiling_mean": 0.515,
         "n_golden_sigs": 2
       },
       "What facilities do we have for every condominium?": {
@@ -2939,7 +2939,7 @@
         "n_golden_sigs": 2
       },
       "Show me the video quality that every streaming service offers.": {
-        "ceiling_mean": 0.5050505050505051,
+        "ceiling_mean": 0.505,
         "n_golden_sigs": 2
       },
       "What user interface types are there for every streaming service?": {
@@ -2967,7 +2967,7 @@
         "n_golden_sigs": 2
       },
       "What are the tool types and names for every engineer": {
-        "ceiling_mean": 0.4696969696969697,
+        "ceiling_mean": 0.47,
         "n_golden_sigs": 2
       },
       "Show me the restriction limits every route has.": {

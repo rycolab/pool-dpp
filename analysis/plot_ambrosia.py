@@ -9,7 +9,7 @@ Headline methods (mirrors the paper figure):
   - PoolDPP-Samp                  : hold sT=1.0, sweep T.
   - PoolDPP-MAP (greedy MAP DPP)  : hold sT=1.5, sweep T.
 The naive DPP is not run on Ambrosia: at sT 0.6 and 0.7, about 2.7% and 1.9% of (question, pool) cells
-have Zhat = 0, against 0.24% for PoolDPP-Samp at sT=1, so neither a redraw nor a zero score compares fairly.
+have Zhat = 0, against 0.25% for PoolDPP-Samp at sT=1, so neither a redraw nor a zero score compares fairly.
 --knob tau plots the tau grid instead of T.
 
 T sets the target quality kappa = plm^(1/T) in both PoolDPP modes. Samp draws from the pool, so its

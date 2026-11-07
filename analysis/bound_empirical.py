@@ -311,11 +311,10 @@ def mc_relvar(Phi, rho, q, K, M, logZ, R, rng, batch=256):
     v = np.concatenate(vals)
     v = v[np.isfinite(v)]
     mu = float(v.mean())
-    rv = float(v.var(ddof=1) / (mu * mu)) if mu > 0 else float("nan")
+    rv = float((v / mu).var(ddof=1)) if mu > 0 else float("nan")  # v / mu first: mu * mu underflows at sharp T
     # SE of the relative variance (delta method on the 2nd/1st moment ratio)
     m2 = float((v ** 2).mean())
-    se_m2 = float(v.__pow__(2).std(ddof=1) / math.sqrt(len(v)))
-    se_rv = se_m2 / (mu * mu) if mu > 0 else float("nan")
+    se_rv = float(((v / mu) ** 2).std(ddof=1) / math.sqrt(len(v))) if mu > 0 else float("nan")
     return dict(relvar=rv, mean_ratio=mu, se_relvar=se_rv, n=int(len(v)),
                 m2_over_Z2=m2)
 

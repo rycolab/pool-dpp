@@ -10,7 +10,7 @@ cd "$(dirname "$0")/.."
 export OPENBLAS_NUM_THREADS=${OPENBLAS_NUM_THREADS:-1}
 
 CPUS=${CPUS:-8}
-GROUPS_ALL="frontiers ablations bounds ndial weights pools significance baselines beam cost probe"
+GROUPS_ALL="frontiers ablations bounds ndial weights pools significance baselines beam cost probe checks"
 
 frontiers() {
     python analysis/plot_intrinsic.py --ci-mode pool_t
@@ -61,6 +61,10 @@ pools() {
 }
 cost() { python analysis/dual_vs_primal.py; }
 probe() { python analysis/embedder_probe.py --n-items 600 --device "${DEVICE:-cpu}"; }
+checks() {
+    python analysis/zhat_zero_counts.py --workers "$CPUS"
+    python analysis/pool_checks.py
+}
 
 for g in ${@:-$GROUPS_ALL}; do
     echo "=== $g"

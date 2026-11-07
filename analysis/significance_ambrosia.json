@@ -2,145 +2,145 @@
   "matched_note": "PoolDPP-MAP is anchored at sT=1.5 and PoolDPP-Samp at sT=1.0, as in the figure, so 'matched' applies to the Samp comparisons only; MAP is compared against each baseline at that baseline's best sT.",
   "per_method_knob": {
     "Ancestral|0.6": {
-      "set_metric": 0.22342760942760945,
-      "item_metric": 0.4159057239057239,
-      "n_cells": 9900
+      "set_metric": 0.22341999999999998,
+      "item_metric": 0.41595666666666664,
+      "n_cells": 10000
     },
     "Ancestral|0.7": {
-      "set_metric": 0.22582996632996638,
-      "item_metric": 0.411993265993266,
-      "n_cells": 9900
+      "set_metric": 0.22581833333333334,
+      "item_metric": 0.41203500000000004,
+      "n_cells": 10000
     },
     "Ancestral|1.0": {
-      "set_metric": 0.23305555555555554,
-      "item_metric": 0.3937104377104376,
-      "n_cells": 9900
+      "set_metric": 0.2330833333333333,
+      "item_metric": 0.39378499999999994,
+      "n_cells": 10000
     },
     "Ancestral|1.2": {
-      "set_metric": 0.23216329966329965,
-      "item_metric": 0.3641666666666667,
-      "n_cells": 9900
+      "set_metric": 0.2321333333333333,
+      "item_metric": 0.36398,
+      "n_cells": 10000
     },
     "Ancestral|1.25": {
-      "set_metric": 0.22987542087542084,
-      "item_metric": 0.3498905723905724,
-      "n_cells": 9900
+      "set_metric": 0.22991666666666666,
+      "item_metric": 0.34996166666666667,
+      "n_cells": 10000
     },
     "Ancestral|1.3": {
-      "set_metric": 0.22655387205387204,
-      "item_metric": 0.3330976430976431,
-      "n_cells": 9900
+      "set_metric": 0.22649333333333335,
+      "item_metric": 0.33298833333333333,
+      "n_cells": 10000
     },
     "k-Means|0.6": {
-      "set_metric": 0.23835858585858585,
-      "item_metric": 0.3814023569023569,
-      "n_cells": 9900
+      "set_metric": 0.23833833333333332,
+      "item_metric": 0.38139166666666663,
+      "n_cells": 10000
     },
     "k-Means|0.7": {
-      "set_metric": 0.2385993265993266,
-      "item_metric": 0.376040404040404,
-      "n_cells": 9900
+      "set_metric": 0.23854333333333333,
+      "item_metric": 0.37601666666666667,
+      "n_cells": 10000
     },
     "k-Means|1.0": {
-      "set_metric": 0.23956060606060606,
-      "item_metric": 0.36446801346801344,
-      "n_cells": 9900
+      "set_metric": 0.23958833333333338,
+      "item_metric": 0.36446,
+      "n_cells": 10000
     },
     "k-Means|1.2": {
-      "set_metric": 0.2398888888888889,
-      "item_metric": 0.3552323232323232,
-      "n_cells": 9900
+      "set_metric": 0.2398266666666667,
+      "item_metric": 0.3551066666666667,
+      "n_cells": 10000
     },
     "k-Means|1.25": {
-      "set_metric": 0.23907912457912456,
-      "item_metric": 0.3506161616161616,
-      "n_cells": 9900
+      "set_metric": 0.23910833333333334,
+      "item_metric": 0.35055,
+      "n_cells": 10000
     },
     "k-Means|1.3": {
-      "set_metric": 0.23326430976430976,
-      "item_metric": 0.3314814814814815,
-      "n_cells": 9900
+      "set_metric": 0.23331500000000002,
+      "item_metric": 0.33132333333333336,
+      "n_cells": 10000
     },
     "PoolDPP-Samp|0.428571": {
-      "set_metric": 0.23380639730639732,
-      "item_metric": 0.39431649831649834,
-      "n_cells": 9900
+      "set_metric": 0.23378333333333334,
+      "item_metric": 0.39435,
+      "n_cells": 10000
     },
     "PoolDPP-Samp|0.538462": {
-      "set_metric": 0.23719696969696968,
-      "item_metric": 0.39073063973063976,
-      "n_cells": 9900
+      "set_metric": 0.23720500000000003,
+      "item_metric": 0.3907666666666667,
+      "n_cells": 10000
     },
     "PoolDPP-Samp|0.666667": {
-      "set_metric": 0.24130303030303032,
-      "item_metric": 0.3850437710437711,
-      "n_cells": 9900
+      "set_metric": 0.24128666666666668,
+      "item_metric": 0.3851366666666667,
+      "n_cells": 10000
     },
     "PoolDPP-Samp|0.818182": {
-      "set_metric": 0.24441077441077444,
-      "item_metric": 0.3750976430976431,
-      "n_cells": 9900
+      "set_metric": 0.24439833333333336,
+      "item_metric": 0.3751366666666667,
+      "n_cells": 10000
     },
     "PoolDPP-Samp|1": {
-      "set_metric": 0.2444680134680135,
-      "item_metric": 0.35328956228956226,
-      "n_cells": 9900
+      "set_metric": 0.244475,
+      "item_metric": 0.35325666666666666,
+      "n_cells": 10000
     },
     "PoolDPP-MAP|10": {
-      "set_metric": 0.25077441077441076,
-      "item_metric": 0.32222222222222224,
-      "n_cells": 9900
+      "set_metric": 0.25065,
+      "item_metric": 0.3220333333333333,
+      "n_cells": 10000
     },
     "PoolDPP-MAP|7.5": {
-      "set_metric": 0.24966329966329964,
-      "item_metric": 0.33488215488215484,
-      "n_cells": 9900
+      "set_metric": 0.24955,
+      "item_metric": 0.3348,
+      "n_cells": 10000
     },
     "PoolDPP-MAP|3": {
-      "set_metric": 0.24329966329966332,
-      "item_metric": 0.3652188552188553,
-      "n_cells": 9900
+      "set_metric": 0.2432166666666667,
+      "item_metric": 0.3652,
+      "n_cells": 10000
     },
     "PoolDPP-MAP|1": {
-      "set_metric": 0.23754208754208753,
-      "item_metric": 0.3914814814814815,
-      "n_cells": 9900
+      "set_metric": 0.2375833333333333,
+      "item_metric": 0.3916,
+      "n_cells": 10000
     }
   },
   "tests": {
     "Samp(T=0.666667,sT=1.0) vs Ancestral(sT=1.0) [matched sT]": {
       "question_level|set_metric": {
         "n": 100,
-        "mean_diff": 0.008247474747474748,
-        "ci_lo": 0.0017215067340067378,
-        "ci_hi": 0.014989983164983161,
-        "p": 0.01821,
+        "mean_diff": 0.00820333333333333,
+        "ci_lo": 0.001621666666666664,
+        "ci_hi": 0.014978458333333331,
+        "p": 0.01926,
         "p_at_resolution_floor": false,
         "n_perm": 100000
       },
       "question_level|item_metric": {
         "n": 100,
-        "mean_diff": -0.008666666666666661,
-        "ci_lo": -0.019964772727272727,
-        "ci_hi": 0.002335395622895605,
-        "p": 0.14164,
+        "mean_diff": -0.008648333333333336,
+        "ci_lo": -0.020018416666666653,
+        "ci_hi": 0.0024033749999999954,
+        "p": 0.14317,
         "p_at_resolution_floor": false,
         "n_perm": 100000
       },
       "pool_level|set_metric": {
-        "n": 99,
-        "mean_diff": 0.008247474747474741,
-        "ci_lo": 0.007366961279461268,
-        "ci_hi": 0.009134722222222216,
+        "n": 100,
+        "mean_diff": 0.008203333333333326,
+        "ci_lo": 0.007334999999999998,
+        "ci_hi": 0.00908004166666666,
         "p": 1e-05,
         "p_at_resolution_floor": true,
         "n_perm": 100000
       },
       "pool_level|item_metric": {
-        "n": 99,
-        "mean_diff": -0.008666666666666658,
-        "ci_lo": -0.010042171717171713,
-        "ci_hi": -0.007334974747474741,
+        "n": 100,
+        "mean_diff": -0.008648333333333324,
+        "ci_lo": -0.010009999999999977,
+        "ci_hi": -0.007301624999999994,
         "p": 1e-05,
         "p_at_resolution_floor": true,
         "n_perm": 100000
@@ -149,36 +149,36 @@
     "Samp(T=0.666667,sT=1.0) vs k-Means(sT=1.0) [matched sT]": {
       "question_level|set_metric": {
         "n": 100,
-        "mean_diff": 0.001742424242424235,
-        "ci_lo": -0.012415909090909104,
-        "ci_hi": 0.017320328282828274,
-        "p": 0.82752,
+        "mean_diff": 0.0016983333333333264,
+        "ci_lo": -0.012476958333333343,
+        "ci_hi": 0.017286708333333338,
+        "p": 0.83195,
         "p_at_resolution_floor": false,
         "n_perm": 100000
       },
       "question_level|item_metric": {
         "n": 100,
-        "mean_diff": 0.020575757575757546,
-        "ci_lo": 0.003505050505050489,
-        "ci_hi": 0.03884217171717168,
-        "p": 0.02332,
+        "mean_diff": 0.02067666666666663,
+        "ci_lo": 0.0036255833333333084,
+        "ci_hi": 0.038990499999999956,
+        "p": 0.02289,
         "p_at_resolution_floor": false,
         "n_perm": 100000
       },
       "pool_level|set_metric": {
-        "n": 99,
-        "mean_diff": 0.0017424242424242285,
-        "ci_lo": 0.0006649410774410624,
-        "ci_hi": 0.002804713804713788,
-        "p": 0.00215,
+        "n": 100,
+        "mean_diff": 0.0016983333333333193,
+        "ci_lo": 0.0006299583333333216,
+        "ci_hi": 0.0027733749999999885,
+        "p": 0.0025,
         "p_at_resolution_floor": false,
         "n_perm": 100000
       },
       "pool_level|item_metric": {
-        "n": 99,
-        "mean_diff": 0.020575757575757563,
-        "ci_lo": 0.019255892255892245,
-        "ci_hi": 0.021835101010101013,
+        "n": 100,
+        "mean_diff": 0.02067666666666665,
+        "ci_lo": 0.01938333333333332,
+        "ci_hi": 0.02195999999999998,
         "p": 1e-05,
         "p_at_resolution_floor": true,
         "n_perm": 100000
@@ -187,36 +187,36 @@
     "Samp(T=0.818182,sT=1.0) vs Ancestral(sT=1.0) [matched sT]": {
       "question_level|set_metric": {
         "n": 100,
-        "mean_diff": 0.01135521885521885,
-        "ci_lo": 0.00585353535353535,
-        "ci_hi": 0.01755054713804713,
+        "mean_diff": 0.011314999999999995,
+        "ci_lo": 0.005821624999999994,
+        "ci_hi": 0.017475041666666653,
         "p": 6e-05,
         "p_at_resolution_floor": false,
         "n_perm": 100000
       },
       "question_level|item_metric": {
         "n": 100,
-        "mean_diff": -0.018612794612794616,
-        "ci_lo": -0.030227441077441086,
-        "ci_hi": -0.007624452861952878,
-        "p": 0.00122,
+        "mean_diff": -0.018648333333333343,
+        "ci_lo": -0.030259041666666674,
+        "ci_hi": -0.007634208333333348,
+        "p": 0.00121,
         "p_at_resolution_floor": false,
         "n_perm": 100000
       },
       "pool_level|set_metric": {
-        "n": 99,
-        "mean_diff": 0.011355218855218849,
-        "ci_lo": 0.010392255892255894,
-        "ci_hi": 0.012350210437710436,
+        "n": 100,
+        "mean_diff": 0.011314999999999995,
+        "ci_lo": 0.010343291666666659,
+        "ci_hi": 0.012284999999999996,
         "p": 1e-05,
         "p_at_resolution_floor": true,
         "n_perm": 100000
       },
       "pool_level|item_metric": {
-        "n": 99,
-        "mean_diff": -0.018612794612794598,
-        "ci_lo": -0.01999663299663298,
-        "ci_hi": -0.017201978114478083,
+        "n": 100,
+        "mean_diff": -0.01864833333333332,
+        "ci_lo": -0.020028416666666663,
+        "ci_hi": -0.01723166666666666,
         "p": 1e-05,
         "p_at_resolution_floor": true,
         "n_perm": 100000
@@ -225,36 +225,36 @@
     "Samp(T=0.818182,sT=1.0) vs k-Means(sT=1.0) [matched sT]": {
       "question_level|set_metric": {
         "n": 100,
-        "mean_diff": 0.0048501683501683416,
-        "ci_lo": -0.008742676767676772,
-        "ci_hi": 0.020631481481481473,
-        "p": 0.53262,
+        "mean_diff": 0.004809999999999991,
+        "ci_lo": -0.008797041666666677,
+        "ci_hi": 0.02060349999999999,
+        "p": 0.53618,
         "p_at_resolution_floor": false,
         "n_perm": 100000
       },
       "question_level|item_metric": {
         "n": 100,
-        "mean_diff": 0.010629629629629591,
-        "ci_lo": -0.005074410774410823,
-        "ci_hi": 0.027316835016834976,
-        "p": 0.20714,
+        "mean_diff": 0.010676666666666628,
+        "ci_lo": -0.005060000000000037,
+        "ci_hi": 0.027427166666666607,
+        "p": 0.2055,
         "p_at_resolution_floor": false,
         "n_perm": 100000
       },
       "pool_level|set_metric": {
-        "n": 99,
-        "mean_diff": 0.00485016835016834,
-        "ci_lo": 0.0038097643097642978,
-        "ci_hi": 0.005877146464646451,
+        "n": 100,
+        "mean_diff": 0.00480999999999999,
+        "ci_lo": 0.003768333333333324,
+        "ci_hi": 0.005831708333333325,
         "p": 1e-05,
         "p_at_resolution_floor": true,
         "n_perm": 100000
       },
       "pool_level|item_metric": {
-        "n": 99,
-        "mean_diff": 0.010629629629629623,
-        "ci_lo": 0.009191919191919182,
-        "ci_hi": 0.012026936026936013,
+        "n": 100,
+        "mean_diff": 0.010676666666666659,
+        "ci_lo": 0.009266666666666661,
+        "ci_hi": 0.012069999999999994,
         "p": 1e-05,
         "p_at_resolution_floor": true,
         "n_perm": 100000
@@ -263,36 +263,36 @@
     "MAP(T=10,sT=1.5) vs k-Means(sT=1.0) [k-means best recall]": {
       "question_level|set_metric": {
         "n": 100,
-        "mean_diff": 0.011213804713804698,
-        "ci_lo": -0.001924452861952882,
-        "ci_hi": 0.025670075757575753,
-        "p": 0.1192,
+        "mean_diff": 0.011061666666666654,
+        "ci_lo": -0.0020085416666666806,
+        "ci_hi": 0.02546383333333331,
+        "p": 0.1231,
         "p_at_resolution_floor": false,
         "n_perm": 100000
       },
       "question_level|item_metric": {
         "n": 100,
-        "mean_diff": -0.04224579124579129,
-        "ci_lo": -0.06462676767676771,
-        "ci_hi": -0.020483670033670066,
-        "p": 0.00032,
+        "mean_diff": -0.042426666666666696,
+        "ci_lo": -0.06478758333333336,
+        "ci_hi": -0.020642750000000022,
+        "p": 0.00028,
         "p_at_resolution_floor": false,
         "n_perm": 100000
       },
       "pool_level|set_metric": {
-        "n": 99,
-        "mean_diff": 0.011213804713804685,
-        "ci_lo": 0.009141372053872025,
-        "ci_hi": 0.013266077441077412,
+        "n": 100,
+        "mean_diff": 0.011061666666666638,
+        "ci_lo": 0.009001624999999968,
+        "ci_hi": 0.0131733333333333,
         "p": 1e-05,
         "p_at_resolution_floor": true,
         "n_perm": 100000
       },
       "pool_level|item_metric": {
-        "n": 99,
-        "mean_diff": -0.04224579124579126,
-        "ci_lo": -0.045053872053872075,
-        "ci_hi": -0.03952861952861955,
+        "n": 100,
+        "mean_diff": -0.04242666666666668,
+        "ci_lo": -0.04519333333333336,
+        "ci_hi": -0.03966991666666669,
         "p": 1e-05,
         "p_at_resolution_floor": true,
         "n_perm": 100000
@@ -301,36 +301,36 @@
     "MAP(T=10,sT=1.5) vs Ancestral(sT=1.0) [ancestral best recall]": {
       "question_level|set_metric": {
         "n": 100,
-        "mean_diff": 0.01771885521885521,
-        "ci_lo": 0.003956018518518512,
-        "ci_hi": 0.03210479797979796,
-        "p": 0.01439,
+        "mean_diff": 0.01756666666666666,
+        "ci_lo": 0.0037499166666666597,
+        "ci_hi": 0.032003375,
+        "p": 0.01523,
         "p_at_resolution_floor": false,
         "n_perm": 100000
       },
       "question_level|item_metric": {
         "n": 100,
-        "mean_diff": -0.07148821548821548,
-        "ci_lo": -0.10039234006734003,
-        "ci_hi": -0.04352159090909089,
+        "mean_diff": -0.07175166666666666,
+        "ci_lo": -0.10077599999999998,
+        "ci_hi": -0.04366629166666666,
         "p": 1e-05,
         "p_at_resolution_floor": false,
         "n_perm": 100000
       },
       "pool_level|set_metric": {
-        "n": 99,
-        "mean_diff": 0.0177188552188552,
-        "ci_lo": 0.015784259259259237,
-        "ci_hi": 0.019599326599326578,
+        "n": 100,
+        "mean_diff": 0.017566666666666647,
+        "ci_lo": 0.015623333333333312,
+        "ci_hi": 0.01948166666666664,
         "p": 1e-05,
         "p_at_resolution_floor": true,
         "n_perm": 100000
       },
       "pool_level|item_metric": {
-        "n": 99,
-        "mean_diff": -0.07148821548821549,
-        "ci_lo": -0.07406401515151517,
-        "ci_hi": -0.0689661616161616,
+        "n": 100,
+        "mean_diff": -0.07175166666666666,
+        "ci_lo": -0.07436841666666667,
+        "ci_hi": -0.06923158333333333,
         "p": 1e-05,
         "p_at_resolution_floor": true,
         "n_perm": 100000
@@ -339,36 +339,36 @@
     "MAP(T=10,sT=1.5) vs Samp(T=0.818182,sT=1.0)": {
       "question_level|set_metric": {
         "n": 100,
-        "mean_diff": 0.00636363636363636,
-        "ci_lo": -0.005049242424242432,
-        "ci_hi": 0.017825,
-        "p": 0.27696,
+        "mean_diff": 0.00625166666666666,
+        "ci_lo": -0.005208374999999999,
+        "ci_hi": 0.017750083333333316,
+        "p": 0.28647,
         "p_at_resolution_floor": false,
         "n_perm": 100000
       },
       "question_level|item_metric": {
         "n": 100,
-        "mean_diff": -0.05287542087542087,
-        "ci_lo": -0.07385867003367001,
-        "ci_hi": -0.0328510101010101,
+        "mean_diff": -0.053103333333333336,
+        "ci_lo": -0.07415033333333333,
+        "ci_hi": -0.032909916666666636,
         "p": 1e-05,
         "p_at_resolution_floor": true,
         "n_perm": 100000
       },
       "pool_level|set_metric": {
-        "n": 99,
-        "mean_diff": 0.006363636363636348,
-        "ci_lo": 0.0044494528619528385,
-        "ci_hi": 0.008240824915824896,
+        "n": 100,
+        "mean_diff": 0.006251666666666651,
+        "ci_lo": 0.00431995833333331,
+        "ci_hi": 0.008174999999999983,
         "p": 1e-05,
         "p_at_resolution_floor": true,
         "n_perm": 100000
       },
       "pool_level|item_metric": {
-        "n": 99,
-        "mean_diff": -0.0528754208754209,
-        "ci_lo": -0.05539074074074077,
-        "ci_hi": -0.050400589225589223,
+        "n": 100,
+        "mean_diff": -0.053103333333333363,
+        "ci_lo": -0.05563666666666668,
+        "ci_hi": -0.050616666666666685,
         "p": 1e-05,
         "p_at_resolution_floor": true,
         "n_perm": 100000
@@ -376,13 +376,13 @@
     }
   },
   "best_knob": {
-    "PoolDPP-Samp": [
-      "PoolDPP-Samp",
-      "1"
-    ],
     "Ancestral": [
       "Ancestral",
       "1.0"
+    ],
+    "PoolDPP-Samp": [
+      "PoolDPP-Samp",
+      "1"
     ],
     "PoolDPP-MAP": [
       "PoolDPP-MAP",

@@ -1,0 +1,94 @@
+{
+  "pool": 25,
+  "embeddings": {
+    "strings": 19470,
+    "identical_rows": 0,
+    "one_minus_cos_max": 0.0004907462124315032,
+    "coordinate_diff_max": 0.00079345703125,
+    "gram_entry_diff_max": 0.0018597070271653138
+  },
+  "control_batch64": {
+    "ancestral": {
+      "records": 2000,
+      "same_selection": 1.0,
+      "max_abs_d_pass": 0.0,
+      "mean_d_pass": 0.0,
+      "max_abs_d_logdet": 0.0,
+      "mean_d_logdet": 0.0
+    },
+    "kmeans": {
+      "records": 2000,
+      "same_selection": 1.0,
+      "max_abs_d_pass": 0.0,
+      "mean_d_pass": 0.0,
+      "max_abs_d_logdet": 0.0,
+      "mean_d_logdet": 0.0
+    },
+    "map": {
+      "records": 900,
+      "same_selection": 1.0,
+      "max_abs_d_pass": 0.0,
+      "mean_d_pass": 0.0,
+      "max_abs_d_logdet": 0.0,
+      "mean_d_logdet": 0.0
+    },
+    "naive": {
+      "records": 2000,
+      "same_selection": 1.0,
+      "max_abs_d_pass": 0.0,
+      "mean_d_pass": 0.0,
+      "max_abs_d_logdet": 0.0,
+      "mean_d_logdet": 0.0
+    },
+    "samp": {
+      "records": 9000,
+      "same_selection": 1.0,
+      "max_abs_d_pass": 0.0,
+      "mean_d_pass": 0.0,
+      "max_abs_d_logdet": 0.0,
+      "mean_d_logdet": 0.0
+    }
+  },
+  "batch8": {
+    "ancestral": {
+      "records": 2000,
+      "same_selection": 1.0,
+      "max_abs_d_pass": 0.0,
+      "mean_d_pass": 0.0,
+      "max_abs_d_logdet": 0.0053317588394961035,
+      "mean_d_logdet": -0.0023309400168489702
+    },
+    "kmeans": {
+      "records": 2000,
+      "same_selection": 0.712,
+      "max_abs_d_pass": 0.006000000000000005,
+      "mean_d_pass": -0.0010000000000000009,
+      "max_abs_d_logdet": 0.04426616567990571,
+      "mean_d_logdet": 0.011485778143991876
+    },
+    "map": {
+      "records": 900,
+      "same_selection": 0.9355555555555556,
+      "max_abs_d_pass": 0.0,
+      "mean_d_pass": 0.0,
+      "max_abs_d_logdet": 0.050520085131939396,
+      "mean_d_logdet": 0.004679512279546117
+    },
+    "naive": {
+      "records": 2000,
+      "same_selection": 0.2725,
+      "max_abs_d_pass": 0.0039999999999998925,
+      "mean_d_pass": 0.0019999999999999463,
+      "max_abs_d_logdet": 0.09628404011424152,
+      "mean_d_logdet": -0.03661022417653115
+    },
+    "samp": {
+      "records": 9000,
+      "same_selection": 0.4905555555555556,
+      "max_abs_d_pass": 0.006000000000000116,
+      "mean_d_pass": 0.00011111111111112354,
+      "max_abs_d_logdet": 0.08617322509798697,
+      "mean_d_logdet": -0.01702674665852734
+    }
+  }
+}

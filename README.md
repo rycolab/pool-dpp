@@ -60,6 +60,30 @@ resumes where it stopped.
 | LLM-based selection | `llm_selection.py` |
 | MATH-500 saturation check | `math500.py` |
 | Dual versus primal cost | `dual_vs_primal.py` |
+| Prompts with Zhat = 0 and the redraw rule | `zhat_zero_counts.py` |
+| GSM8K pools from different runs, embedding batch size | `pool_checks.py`, `embed_batch_check.py` |
+
+## Pools
+
+Ambrosia and GSM8K use 100 pools and FineWeb uses 10, with the pool index as the seed. At 10 pools, FineWeb's largest
+half-width is 2.3% of the plotted range of log-det and 0.4% of the plotted range of quality. The pools come from separate runs:
+
+| Pools | Card | `dpp-sample` settings |
+|---|---|---|
+| GSM8K 0-19, Ambrosia 0-29 | first run, not recorded here | not recorded here |
+| GSM8K 20, 22-24, 26-28 | RTX PRO 6000 | the default of `scripts/run_gsm8k.sh` |
+| GSM8K 21, 25, 29 | RTX 3090 | 24 GB settings |
+| GSM8K 30-99 | RTX 4090, and RTX 3090 for 79, 81, 83, 88, 89, 90, 95, 96, 98, 99 | 24 GB settings |
+| Ambrosia 30-99 | 24 GB cards | 24 GB settings |
+
+The 24 GB settings are the `SAMPLE_ARGS` value in the comment of each run script. The instructed GSM8K embeddings use
+`--batch-size 64` on pools 0-29 and `--batch-size 8` on pools 30-99.
+
+`analysis/pool_checks.json` compares these runs. With the plain GSM8K kernel, log-det is lower on pools 30-99 than on pools
+0-29 at all 29 plotted settings, by up to 0.26 nats for PoolDPP-MAP (T=50: -14.02 vs. -13.76, z = -4.5) and by 0.01 for
+Ancestral at sT=1.2. One of the 29 pass@10 comparisons has |z| above 1.96, at z = 2.09. Within pools 30-99, RTX 3090 and RTX 4090 pools show
+no systematic difference (mean z 0.01). The cause of the log-det difference is not established. `analysis/embed_batch_check.json` re-embeds one pool at batch 8: mean PoolDPP-MAP
+log-det moves by 0.005 and the control at batch 64 reproduces the stored selections exactly.
 
 ## Layout
 

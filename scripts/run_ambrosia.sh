@@ -9,6 +9,8 @@ cd "$(dirname "$0")/.."
 export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1
 
 N_POOLS=${N_POOLS:-100}
+# on 24 GB cards: SAMPLE_ARGS="--gpu-mem-util 0.95 --max-num-seqs 128 --max-num-batched-tokens 1024 --sample-concurrency 4"
+SAMPLE_ARGS=${SAMPLE_ARGS:-"--gpu-mem-util 0.90 --sample-concurrency 50"}
 STAGES=${STAGES:-"sample estimate"}
 J=${J:-1}
 
@@ -45,7 +47,7 @@ case " $STAGES " in *" sample "*)
         CD="cache-ambrosia/pool$i"
         dpp-sample --mode ambrosia-top100 --chat-template --n-samples 200 \
             --temperatures 0.6 0.7 1.0 1.2 1.25 1.3 1.5 --max-new-tokens 800 \
-            --gpu-mem-util 0.90 --sample-concurrency 50 --model "$LM" --cache-dir "$CD" --seed "$i"
+            $SAMPLE_ARGS --model "$LM" --cache-dir "$CD" --seed "$i"
         dpp-embeddings --samples_file "$CD/${MN}.pkl" --model_name "$EMB" \
             --output_file "$CD/${EMN}_embeddings.pkl"
     done ;;
