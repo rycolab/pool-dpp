@@ -36,6 +36,7 @@ The Ambrosia experiments read `ambrosia.csv` from the repository root. Download 
 | Larger pools | `bash scripts/run_large_pools.sh` | GPU |
 | Beam-search baselines | `METHOD=sbs`, `cps`, `detbs`, or `divbs` `bash scripts/run_beam_baselines.sh` | GPU |
 | MATH-500 pools, selections, and figure | `bash scripts/run_math500.sh` | GPU, then CPU |
+| Generation cap: stop token in the scores | `python analysis/length_cap.py stored`, then `probe --csv-path ambrosia.csv`, after the pools | GPU |
 | LLM-based selection | `python analysis/llm_selection.py`, after the FineWeb pools | GPU |
 | Pair judge | `GEMINI_API_KEY=... python analysis/pair_judge.py validate`, then `score`, after the GSM8K selections | Gemini API |
 | All other figures and tables | `bash scripts/make_figures.sh` | CPU |
@@ -55,6 +56,7 @@ resumes where it stopped.
 | Held-out diversity metrics | `heldout_diversity.py` |
 | Pool ceiling | `pool_ceiling.py` |
 | Length and log-probability | `length_analysis.py`, `length_stratified.py` |
+| Generation cap | `length_cap.py` |
 | Embedder probe | `embedder_probe.py` |
 | Pair decomposition of GSM8K sets | `pair_judge.py` |
 | LLM-based selection | `llm_selection.py` |

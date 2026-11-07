@@ -58,6 +58,7 @@ pools() {
     python analysis/pool_ceiling.py --part B --n-pools 100
     python analysis/length_stratified.py
     python analysis/length_analysis.py
+    python analysis/length_cap.py cap
 }
 cost() { python analysis/dual_vs_primal.py; }
 probe() { python analysis/embedder_probe.py --n-items 600 --device "${DEVICE:-cpu}"; }
