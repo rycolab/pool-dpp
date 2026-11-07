@@ -16,7 +16,7 @@ forward pass per beam per step, so a full run takes about 25 minutes on four GPU
 | `generate.py` | the port (greedy Cholesky MAP step in log space, kernel DP) |
 | `run_intrinsic_baselines.py` | runs DivBS (`--method dbs`) or DetBS (`--method detbs`) and saves `(prompt, sents, logps, embeddings)` per prompt |
 | `sweep_detbs.sh` | DetBS over T in {0.7, 1.0, 1.3} and w on the first 8 prompts |
-| `test_det_beam_search.py` | tests of the kernel and the greedy MAP step |
+| `test_det_beam_search.py` | tests that the incremental kernel DP matches the full DP, that the cross-step cache is consistent, and a full `generate()` run on a small model |
 
 ```bash
 for SHARD in 0 1 2 3; do
