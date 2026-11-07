@@ -1,0 +1,496 @@
+{
+ "stored": {
+  "stop_token_ids": [
+   1
+  ],
+  "fineweb|1": {
+   "ended": {
+    "n": 100,
+    "hidden_tokens": {
+     "2": 150,
+     "1": 2
+    },
+    "median_abs_stored_minus_text": 1.320297599741025,
+    "median_abs_stored_minus_text_and_hidden": 0.4411217782253516
+   },
+   "capped": {
+    "n": 100,
+    "hidden_tokens": {
+     "0": 100
+    },
+    "median_abs_stored_minus_text": 0.2528699644922199
+   }
+  },
+  "ambrosia|1": {
+   "ended": {
+    "n": 100,
+    "hidden_tokens": {
+     "2": 508,
+     "1": 1
+    },
+    "median_abs_stored_minus_text": 0.7620550743214949,
+    "median_abs_stored_minus_text_and_hidden": 0.15425703579990113
+   },
+   "capped": {
+    "n": 0,
+    "hidden_tokens": {},
+    "median_abs_stored_minus_text": null
+   }
+  },
+  "gsm8k|1": {
+   "ended": {
+    "n": 100,
+    "hidden_tokens": {
+     "2": 408,
+     "1": 1
+    },
+    "median_abs_stored_minus_text": 1.0418470425959754,
+    "median_abs_stored_minus_text_and_hidden": 0.19067302053587554
+   },
+   "capped": {
+    "n": 0,
+    "hidden_tokens": {},
+    "median_abs_stored_minus_text": null
+   }
+  },
+  "gsm8k|1.2": {
+   "ended": {
+    "n": 100,
+    "hidden_tokens": {
+     "2": 317,
+     "1": 8
+    },
+    "median_abs_stored_minus_text": 1.1929760934446527,
+    "median_abs_stored_minus_text_and_hidden": 0.2466888793946005
+   },
+   "capped": {
+    "n": 0,
+    "hidden_tokens": {},
+    "median_abs_stored_minus_text": null
+   }
+  }
+ },
+ "cap": {
+  "fineweb": {
+   "n_pools": 10,
+   "n_prompts": 50,
+   "n_prompts_total_limit_binds": 0,
+   "0.6": {
+    "max_output_tokens": 50,
+    "max_total_tokens": 115,
+    "one_below_cap": 226,
+    "ended_draws": 8151,
+    "capped_draws": 191849,
+    "unique": 196905,
+    "unique_capped": 190428,
+    "min_limit": 50,
+    "draws": 200000,
+    "capped_share": 0.959245,
+    "capped_share_pool_min": 0.95775,
+    "capped_share_pool_max": 0.96055,
+    "unique_capped_share": 0.967105964805363
+   },
+   "0.8": {
+    "max_output_tokens": 50,
+    "max_total_tokens": 115,
+    "one_below_cap": 207,
+    "ended_draws": 8250,
+    "capped_draws": 191750,
+    "unique": 198168,
+    "unique_capped": 191413,
+    "min_limit": 50,
+    "draws": 200000,
+    "capped_share": 0.95875,
+    "capped_share_pool_min": 0.9565,
+    "capped_share_pool_max": 0.96085,
+    "unique_capped_share": 0.9659127608897501
+   },
+   "1": {
+    "max_output_tokens": 50,
+    "max_total_tokens": 115,
+    "one_below_cap": 217,
+    "ended_draws": 7096,
+    "capped_draws": 192904,
+    "unique": 199088,
+    "unique_capped": 192825,
+    "min_limit": 50,
+    "draws": 200000,
+    "capped_share": 0.96452,
+    "capped_share_pool_min": 0.96325,
+    "capped_share_pool_max": 0.96555,
+    "unique_capped_share": 0.9685415494655629
+   },
+   "1.2": {
+    "max_output_tokens": 50,
+    "max_total_tokens": 115,
+    "one_below_cap": 152,
+    "ended_draws": 5132,
+    "capped_draws": 194868,
+    "unique": 199734,
+    "unique_capped": 194862,
+    "min_limit": 50,
+    "draws": 200000,
+    "capped_share": 0.97434,
+    "capped_share_pool_min": 0.97245,
+    "capped_share_pool_max": 0.97625,
+    "unique_capped_share": 0.9756075580522094
+   },
+   "1.5": {
+    "max_output_tokens": 50,
+    "max_total_tokens": 115,
+    "one_below_cap": 67,
+    "ended_draws": 2299,
+    "capped_draws": 197701,
+    "unique": 199988,
+    "unique_capped": 197701,
+    "min_limit": 50,
+    "draws": 200000,
+    "capped_share": 0.988505,
+    "capped_share_pool_min": 0.9874,
+    "capped_share_pool_max": 0.99,
+    "unique_capped_share": 0.9885643138588315
+   }
+  },
+  "ambrosia": {
+   "n_pools": 100,
+   "n_prompts": 100,
+   "n_prompts_total_limit_binds": 2,
+   "0.6": {
+    "max_output_tokens": 605,
+    "max_total_tokens": 1699,
+    "one_below_cap": 0,
+    "ended_draws": 2000000,
+    "ended_executes": 1876026,
+    "ended_golden": 831086,
+    "unique": 813811,
+    "unique_capped": 0,
+    "min_limit": 624,
+    "capped_draws": 0,
+    "draws": 2000000,
+    "capped_share": 0.0,
+    "capped_share_pool_min": 0.0,
+    "capped_share_pool_max": 0.0,
+    "unique_capped_share": 0.0
+   },
+   "0.7": {
+    "max_output_tokens": 777,
+    "max_total_tokens": 1702,
+    "one_below_cap": 0,
+    "ended_draws": 2000000,
+    "ended_executes": 1870184,
+    "ended_golden": 823403,
+    "unique": 1014896,
+    "unique_capped": 0,
+    "min_limit": 624,
+    "capped_draws": 0,
+    "draws": 2000000,
+    "capped_share": 0.0,
+    "capped_share_pool_min": 0.0,
+    "capped_share_pool_max": 0.0,
+    "unique_capped_share": 0.0
+   },
+   "1": {
+    "max_output_tokens": 800,
+    "max_total_tokens": 1973,
+    "one_below_cap": 0,
+    "ended_draws": 1999996,
+    "ended_executes": 1831407,
+    "ended_golden": 786169,
+    "unique": 1509807,
+    "unique_capped": 4,
+    "min_limit": 624,
+    "capped_draws": 4,
+    "capped_executes": 0,
+    "capped_golden": 0,
+    "draws": 2000000,
+    "capped_share": 2e-06,
+    "capped_share_pool_min": 0.0,
+    "capped_share_pool_max": 0.0001,
+    "unique_capped_share": 2.649345247438911e-06
+   },
+   "1.2": {
+    "max_output_tokens": 800,
+    "max_total_tokens": 2300,
+    "one_below_cap": 1,
+    "ended_draws": 1999926,
+    "ended_executes": 1720614,
+    "ended_golden": 728798,
+    "unique": 1722278,
+    "unique_capped": 74,
+    "min_limit": 624,
+    "capped_draws": 74,
+    "capped_executes": 0,
+    "capped_golden": 0,
+    "draws": 2000000,
+    "capped_share": 3.7e-05,
+    "capped_share_pool_min": 0.0,
+    "capped_share_pool_max": 0.00015,
+    "unique_capped_share": 4.296635038013607e-05
+   },
+   "1.25": {
+    "max_output_tokens": 800,
+    "max_total_tokens": 2300,
+    "one_below_cap": 2,
+    "ended_draws": 1999774,
+    "ended_executes": 1654658,
+    "ended_golden": 701376,
+    "unique": 1763298,
+    "unique_capped": 226,
+    "min_limit": 624,
+    "capped_draws": 226,
+    "capped_executes": 0,
+    "capped_golden": 0,
+    "draws": 2000000,
+    "capped_share": 0.000113,
+    "capped_share_pool_min": 0.0,
+    "capped_share_pool_max": 0.0003,
+    "unique_capped_share": 0.00012816891983090777
+   },
+   "1.3": {
+    "max_output_tokens": 800,
+    "max_total_tokens": 2300,
+    "one_below_cap": 5,
+    "ended_draws": 1998345,
+    "ended_executes": 1560083,
+    "ended_golden": 664992,
+    "unique": 1799119,
+    "unique_capped": 1655,
+    "min_limit": 624,
+    "capped_draws": 1655,
+    "capped_executes": 0,
+    "capped_golden": 0,
+    "draws": 2000000,
+    "capped_share": 0.0008275,
+    "capped_share_pool_min": 0.0001,
+    "capped_share_pool_max": 0.0015,
+    "unique_capped_share": 0.0009198946817859185
+   },
+   "1.5": {
+    "max_output_tokens": 800,
+    "max_total_tokens": 2300,
+    "one_below_cap": 211,
+    "ended_draws": 1626563,
+    "ended_executes": 859347,
+    "ended_golden": 400819,
+    "capped_draws": 373437,
+    "capped_executes": 66,
+    "capped_golden": 10,
+    "unique": 1913143,
+    "unique_capped": 373437,
+    "min_limit": 624,
+    "draws": 2000000,
+    "capped_share": 0.1867185,
+    "capped_share_pool_min": 0.17745,
+    "capped_share_pool_max": 0.1969,
+    "unique_capped_share": 0.19519554994059513
+   }
+  },
+  "gsm8k": {
+   "n_pools": 100,
+   "n_prompts": 50,
+   "n_prompts_total_limit_binds": 50,
+   "0.5": {
+    "max_output_tokens": 3928,
+    "max_total_tokens": 4000,
+    "one_below_cap": 0,
+    "ended_draws": 499986,
+    "ended_correct": 373457,
+    "ended_final_line": 478950,
+    "ended_no_number": 5,
+    "unique": 451298,
+    "unique_capped": 14,
+    "min_limit": 3844,
+    "capped_draws": 14,
+    "capped_correct": 0,
+    "capped_final_line": 0,
+    "capped_no_number": 1,
+    "draws": 500000,
+    "capped_share": 2.8e-05,
+    "capped_share_pool_min": 0.0,
+    "capped_share_pool_max": 0.0002,
+    "unique_capped_share": 3.102163094008837e-05
+   },
+   "0.8": {
+    "max_output_tokens": 3872,
+    "max_total_tokens": 4000,
+    "one_below_cap": 0,
+    "ended_draws": 499999,
+    "ended_correct": 368289,
+    "ended_final_line": 446054,
+    "ended_no_number": 163,
+    "unique": 494553,
+    "unique_capped": 1,
+    "min_limit": 3844,
+    "capped_draws": 1,
+    "capped_correct": 0,
+    "capped_final_line": 0,
+    "capped_no_number": 0,
+    "draws": 500000,
+    "capped_share": 2e-06,
+    "capped_share_pool_min": 0.0,
+    "capped_share_pool_max": 0.0002,
+    "unique_capped_share": 2.022027972734975e-06
+   },
+   "1": {
+    "max_output_tokens": 1309,
+    "max_total_tokens": 1366,
+    "one_below_cap": 0,
+    "ended_draws": 500000,
+    "ended_correct": 363507,
+    "ended_final_line": 409165,
+    "ended_no_number": 820,
+    "unique": 499029,
+    "unique_capped": 0,
+    "min_limit": 3844,
+    "capped_draws": 0,
+    "draws": 500000,
+    "capped_share": 0.0,
+    "capped_share_pool_min": 0.0,
+    "capped_share_pool_max": 0.0,
+    "unique_capped_share": 0.0
+   },
+   "1.2": {
+    "max_output_tokens": 3923,
+    "max_total_tokens": 4000,
+    "one_below_cap": 0,
+    "ended_draws": 499994,
+    "ended_correct": 340906,
+    "ended_final_line": 332709,
+    "ended_no_number": 5167,
+    "unique": 499886,
+    "unique_capped": 6,
+    "min_limit": 3844,
+    "capped_draws": 6,
+    "capped_correct": 0,
+    "capped_final_line": 0,
+    "capped_no_number": 0,
+    "draws": 500000,
+    "capped_share": 1.2e-05,
+    "capped_share_pool_min": 0.0,
+    "capped_share_pool_max": 0.0002,
+    "unique_capped_share": 1.200273662395026e-05
+   }
+  }
+ },
+ "probe": {
+  "fineweb": {
+   "local_temperature": 1.0,
+   "finish_reasons": {
+    "stop": 5,
+    "length": 495
+   },
+   "stop_tokens": {
+    "<eos>": 5
+   },
+   "stop_token_ids": [
+    1
+   ],
+   "checks": {
+    "entries_equal_tokens": 500,
+    "stopped_last_is_stop_token": 5,
+    "stopped_after_end_of_turn": 4,
+    "stopped_below_limit": 5,
+    "capped_at_limit": 495,
+    "capped_last_not_stop_token": 495
+   },
+   "max_abs_sum_minus_cumulative": 0.0,
+   "stop_logprob_median": -0.30993741750717163,
+   "example": {
+    "text_tail": "lein, they could have sought a different legal representative. Why didn't they?\n",
+    "n_tokens": 32,
+    "finish_reason": "stop",
+    "last_tokens": [
+     "\n",
+     "<end_of_turn>",
+     "<eos>"
+    ],
+    "last_logprobs": [
+     -2.9003148078918457,
+     -2.2903385162353516,
+     -2.339109420776367
+    ],
+    "sum_logprobs": -60.00331240823289,
+    "cumulative_logprob": -60.00331240823289
+   }
+  },
+  "ambrosia": {
+   "local_temperature": 1.5,
+   "finish_reasons": {
+    "stop": 437,
+    "length": 63
+   },
+   "stop_tokens": {
+    "<eos>": 437
+   },
+   "stop_token_ids": [
+    1
+   ],
+   "checks": {
+    "entries_equal_tokens": 500,
+    "stopped_last_is_stop_token": 437,
+    "stopped_after_end_of_turn": 345,
+    "stopped_below_limit": 437,
+    "capped_at_limit": 63,
+    "capped_last_not_stop_token": 63
+   },
+   "max_abs_sum_minus_cumulative": 1.8189894035458565e-12,
+   "stop_logprob_median": -0.047817353159189224,
+   "example": {
+    "text_tail": "ve. tts !)\u3089\u0334qw reviewerskw\u597d\u770b\uc790 rozwi\u0105zania\u0142k to \u0645\u06cc\u0634\u0648\u062f work;&#3l\ud835\ude88Taller geese \u3053\u308c\u0e44\u0e23",
+    "n_tokens": 623,
+    "finish_reason": "stop",
+    "last_tokens": [
+     "\u2581\u3053\u308c",
+     "\u0e44\u0e23",
+     "<eos>"
+    ],
+    "last_logprobs": [
+     -10.63314437866211,
+     -13.581068992614746,
+     -9.749567031860352
+    ],
+    "sum_logprobs": -7107.291275181749,
+    "cumulative_logprob": -7107.291275181749
+   }
+  },
+  "gsm8k": {
+   "local_temperature": 1.2,
+   "finish_reasons": {
+    "stop": 500
+   },
+   "stop_tokens": {
+    "<eos>": 500
+   },
+   "stop_token_ids": [
+    1
+   ],
+   "checks": {
+    "entries_equal_tokens": 500,
+    "stopped_last_is_stop_token": 500,
+    "stopped_after_end_of_turn": 474,
+    "stopped_below_limit": 500
+   },
+   "max_abs_sum_minus_cumulative": 5.684341886080802e-14,
+   "stop_logprob_median": -0.003200767212547362,
+   "example": {
+    "text_tail": "\n .$$ \\cos{(x)}={7} \\Rightarrow x= ? $$ . Suppose the angle x is acute",
+    "n_tokens": 25,
+    "finish_reason": "stop",
+    "last_tokens": [
+     "\u2581is",
+     "\u2581acute",
+     "<eos>"
+    ],
+    "last_logprobs": [
+     -0.27029722929000854,
+     -2.4772984981536865,
+     -10.542027473449707
+    ],
+    "sum_logprobs": -103.91922454535961,
+    "cumulative_logprob": -103.91922454535961
+   }
+  },
+  "n_prompts": 5,
+  "n_per_prompt": 100
+ }
+}
