@@ -1,0 +1,145 @@
+{
+ "DivBS|G=10|penalty=1.0": {
+  "quality_mean_logp": -14.98114893054962,
+  "quality_sd": 3.6899768657302743,
+  "kernel_logdet_minilm": -15.103571813630552,
+  "logdet_sd": 5.324620304408506,
+  "distinct_2": 0.5805313285999761,
+  "distinct_2_sd": 0.10114397184797026,
+  "n_prompts": 50,
+  "n_skipped": 0,
+  "n_files": 1
+ },
+ "DivBS|G=3|penalty=1.0|K=6": {
+  "quality_mean_logp": -13.193358908494313,
+  "quality_sd": 3.238491266540949,
+  "kernel_logdet_minilm": -14.983458764330296,
+  "logdet_sd": 4.713572955615472,
+  "distinct_2": 0.4651683530525163,
+  "distinct_2_sd": 0.06362185513910901,
+  "n_prompts": 50,
+  "n_skipped": 0,
+  "n_files": 1
+ },
+ "DetBS-SSK|T=1.0|w=1.0": {
+  "quality_mean_logp": -161.84443737268447,
+  "quality_sd": 19.184267715722083,
+  "kernel_logdet_minilm": -5.2215806235518425,
+  "logdet_sd": 1.8516143176304602,
+  "distinct_2": 0.8691824935047023,
+  "distinct_2_sd": 0.0630926370855422,
+  "n_prompts": 50,
+  "n_skipped": 0,
+  "n_files": 1
+ },
+ "DetBS-SSK|T=1.0|w=0.1": {
+  "quality_mean_logp": -26.262236100673675,
+  "quality_sd": 16.544124577244066,
+  "kernel_logdet_minilm": -29.159557549444827,
+  "logdet_sd": 11.448979544698105,
+  "distinct_2": 0.3862426656538019,
+  "distinct_2_sd": 0.06540044143638923,
+  "n_prompts": 50,
+  "n_skipped": 0,
+  "n_files": 4
+ },
+ "DetBS-SSK|T=1.0|w=0.05|subset": {
+  "quality_mean_logp": -10.387705183029174,
+  "quality_sd": 2.4943386167131267,
+  "kernel_logdet_minilm": -42.757606434290096,
+  "logdet_sd": 19.53524061993296,
+  "distinct_2": 0.24244488402745767,
+  "distinct_2_sd": 0.062106776502787946,
+  "n_prompts": 8,
+  "n_skipped": 0,
+  "n_files": 1
+ },
+ "DetBS-SSK|T=1.0|w=0.3|subset": {
+  "quality_mean_logp": -106.8792526304722,
+  "quality_sd": 24.89866977137812,
+  "kernel_logdet_minilm": -14.634032704378,
+  "logdet_sd": 4.562325759592383,
+  "distinct_2": 0.7033685291710388,
+  "distinct_2_sd": 0.05490307859411784,
+  "n_prompts": 8,
+  "n_skipped": 0,
+  "n_files": 1
+ },
+ "DetBS-SSK|T=1.0|w=0.5|subset": {
+  "quality_mean_logp": -137.99110292196275,
+  "quality_sd": 14.778645969594802,
+  "kernel_logdet_minilm": -8.706480285143787,
+  "logdet_sd": 4.246854779808056,
+  "distinct_2": 0.8088738365225442,
+  "distinct_2_sd": 0.03328940016758381,
+  "n_prompts": 8,
+  "n_skipped": 0,
+  "n_files": 1
+ },
+ "DetBS-SSK|T=1.0|w=2.0|subset": {
+  "quality_mean_logp": -179.13676376342775,
+  "quality_sd": 15.067171014532937,
+  "kernel_logdet_minilm": -3.652979475974727,
+  "logdet_sd": 0.6533819346995856,
+  "distinct_2": 0.8923950235400788,
+  "distinct_2_sd": 0.04498142911505517,
+  "n_prompts": 8,
+  "n_skipped": 0,
+  "n_files": 1
+ },
+ "DetBS-SSK|T=1.3|w=0.1|subset": {
+  "quality_mean_logp": -23.947859507799144,
+  "quality_sd": 10.251693607117922,
+  "kernel_logdet_minilm": -36.37582857271633,
+  "logdet_sd": 12.703896703070646,
+  "distinct_2": 0.3306707450112571,
+  "distinct_2_sd": 0.03564691434798349,
+  "n_prompts": 8,
+  "n_skipped": 0,
+  "n_files": 1
+ },
+ "DetBS-SSK|T=1.3|w=0.3|subset": {
+  "quality_mean_logp": -111.90031901597976,
+  "quality_sd": 25.56050554456156,
+  "kernel_logdet_minilm": -13.62301690284718,
+  "logdet_sd": 5.29042032036848,
+  "distinct_2": 0.7140864746070479,
+  "distinct_2_sd": 0.05029451296507335,
+  "n_prompts": 8,
+  "n_skipped": 0,
+  "n_files": 1
+ },
+ "DetBS-SSK|T=1.3|w=1.0|subset": {
+  "quality_mean_logp": -157.65262228250504,
+  "quality_sd": 15.640796945107722,
+  "kernel_logdet_minilm": -4.878062846456168,
+  "logdet_sd": 1.2042907995949403,
+  "distinct_2": 0.8634478766275714,
+  "distinct_2_sd": 0.0546655010166571,
+  "n_prompts": 8,
+  "n_skipped": 0,
+  "n_files": 1
+ },
+ "DetBS-SSK|T=0.7|w=0.3|subset": {
+  "quality_mean_logp": -118.17694546580314,
+  "quality_sd": 27.023010924732525,
+  "kernel_logdet_minilm": -10.373508456351914,
+  "logdet_sd": 4.26184412746393,
+  "distinct_2": 0.7343145057329864,
+  "distinct_2_sd": 0.0730072668945288,
+  "n_prompts": 8,
+  "n_skipped": 0,
+  "n_files": 1
+ },
+ "DetBS-SSK|T=0.7|w=1.0|subset": {
+  "quality_mean_logp": -164.58647136092185,
+  "quality_sd": 17.40606419314585,
+  "kernel_logdet_minilm": -4.47235660087694,
+  "logdet_sd": 0.9438672920467782,
+  "distinct_2": 0.8524612807275453,
+  "distinct_2_sd": 0.03951308996810537,
+  "n_prompts": 8,
+  "n_skipped": 0,
+  "n_files": 1
+ }
+}

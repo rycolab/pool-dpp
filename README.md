@@ -53,6 +53,7 @@ resumes where it stopped.
 | Significance tests | `significance.py` |
 | Set-level baselines, GSM8K kernels | `baselines.py`, `baselines_gsm8k.py` |
 | Beam-search baselines | `beam_baselines.py` |
+| DivBS and string-subsequence DetBS on FineWeb | `beam_baselines_intrinsic.py` (runs in `baselines/detbs_ssk/`) |
 | Held-out diversity metrics | `heldout_diversity.py` |
 | Pool ceiling | `pool_ceiling.py` |
 | Length and log-probability | `length_analysis.py`, `length_stratified.py` |
