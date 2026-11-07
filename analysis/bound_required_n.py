@@ -30,25 +30,21 @@ M >= K^2 chi2_1 / (e^target - 1) (bound_formulas.required_N_lower_hoeffding),
 with no floor effects.
 
 Search for the other three (bound_formulas.required_N). They are non-increasing in M only for
-M >= K^2 - 1; below that the a_c are not monotone (a_1 = 0 for M < 2K - 1). The
-old code bisected on [2K, 10^9] as if the bound were monotone everywhere (so
-its smallest answer was 2K + 1) and returned None when the bound was still
-above the target at 10^9, which dropped that prompt from the median silently.
-Now: bisection on [K^2 - 1, --M-hi], a walk down below K^2 - 1 when the bound
-is already under the target there (a result of K means the bound rules out no
-pool size; n_at_K counts these prompts), and a prompt that does not reach the
-target by --M-hi raises an error. The answers agree with the old code whenever
-the crossing is above K^2 - 1.
+M >= K^2 - 1; below that the a_c are not monotone (a_1 = 0 for M < 2K - 1). So
+we bisect on [K^2 - 1, --M-hi] and walk down below K^2 - 1 when the bound is
+already under the target there (a result of K means the bound rules out no pool
+size; n_at_K counts these prompts). A prompt that does not reach the target by
+--M-hi raises an error.
 
 Output keys (analysis/bound_required_n.json), per "{task}|T=..." setting:
   "KL<={target}|necessary_hoeffding"   lower bound on the required M from (K^2/M) chi2_1
-                                       (new, primary)
+                                       (primary)
   "KL<={target}|necessary_leading"     lower bound on the required M from a_1(M) chi2_1
-                                       (secondary; meaning unchanged)
-  "KL<={target}|sufficient_hybrid_m1"  M from the second-moment hybrid (new, primary)
-  "KL<={target}|sufficient_hybrid"     M from the r_1 hybrid (secondary; meaning unchanged)
+                                       (secondary)
+  "KL<={target}|sufficient_hybrid_m1"  M from the second-moment hybrid (primary)
+  "KL<={target}|sufficient_hybrid"     M from the r_1 hybrid (secondary)
 each with median_M, q25, q75, log10_median, n (= number of prompts) and
-n_at_K (new: prompts whose answer is M = K).
+n_at_K (prompts whose answer is M = K).
 
 Inputs are the per-prompt rows analysis/bound_raw_{task}.json.
 

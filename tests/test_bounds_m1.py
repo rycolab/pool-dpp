@@ -285,8 +285,8 @@ def _old_cert(N, K, chi2_1, r1):
     return math.log1p(v)
 
 
-def _old_required_M(K, chi2_1, r1, target, hybrid, M_hi=10 ** 9):
-    """bound_required_n.py's search before this change."""
+def _plain_bisection(K, chi2_1, r1, target, hybrid, M_hi=10 ** 9):
+    """Plain bisection on [2K, M_hi], which treats the bound as monotone everywhere."""
     def bound_at(M):
         ac = bf.a_coeffs(M, K)
         v = ac[0] * chi2_1
@@ -341,9 +341,9 @@ def test_required_N_matches_brute_force(K, chi2_1, r1, target):
         # the premise of the bisection: non-increasing from K^2 - 1 on
         tail = vals[max(K, K * K - 1) - K:]
         assert all(b <= a * (1 + 1e-12) for a, b in zip(tail, tail[1:]))
-        # agrees with the old bisection when the crossing is above K^2 - 1
+        # agrees with plain bisection when the crossing is above K^2 - 1
         if name != "m1" and ans > K * K - 1:
-            assert _old_required_M(K, chi2_1, r1, target, name == "r1") == ans
+            assert _plain_bisection(K, chi2_1, r1, target, name == "r1") == ans
 
 
 def test_required_N_leading_at_K_when_nothing_is_ruled_out():

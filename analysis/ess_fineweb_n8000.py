@@ -6,9 +6,9 @@ the weights plm^(1/T)/q for N=4000 (each half) and N=8000 (merged)
 next to N=400 (pool 0), the cross/within collision ratio between the halves, and
 the bound on the KL at N in {400, 4000, 8000} from the per-question bound rows
 (bound_raw_fineweb.json), median over questions:
-  "bound_m1|{setting}" (new, primary): second-moment hybrid
+  "bound_m1|{setting}" (primary): second-moment hybrid
       log(1 + a_1 chi2_1 + sum_{c>=2} a_c ((K^c/(K)_c)^2 m_1^c - 1)), m_1 = 1 + chi2_1;
-  "cert|{setting}" (secondary, meaning unchanged): r_1 hybrid
+  "cert|{setting}" (secondary): r_1 hybrid
       log(1 + a_1 chi2_1 + sum_{c>=2} a_c (K^c/(K)_c r_1^c - 1)).
 Formulas in bound_formulas.py.
 

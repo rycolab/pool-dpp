@@ -1,9 +1,8 @@
 """
 Closed-form pieces of the bound on KL(P || pi_bar) (thm:zfree, cor:certificates)
 =================================================================================
-One copy of the formulas that bound_empirical.py, bound_required_n.py,
-bound_tables.py, gsm8k_n2500.py, plot_ndial.py and the ess_*.py scripts used to
-repeat. Notation: N = pool size, K = set size, q = proposal, P = target K-DPP.
+The formulas that bound_empirical.py, bound_required_n.py, bound_tables.py,
+gsm8k_n2500.py, plot_ndial.py and the ess_*.py scripts share. Notation: N = pool size, K = set size, q = proposal, P = target K-DPP.
 
     Var(Zhat)/Z^2 = sum_{c=1}^K a_c Var_{q^c}(u_c),
     a_c(N) = C(K,c) C(N-K,K-c) / C(N,K),
@@ -31,9 +30,6 @@ and the two routes from it to Var(u_c) are:
       Closed form (the paper's thm:zfree), theta = K^2 m_1 / (N - K + 1):
           KL <= log(e^theta - 1 + a_0) <= theta.
       kl_closed_m1 returns the middle expression and kl_theta_m1 returns theta.
-      The first commit of this change returned theta from kl_closed_m1 (key
-      bound_simple_m1_KL); that key now holds log(e^theta - 1 + a_0) and theta
-      has its own key, bound_theta_m1.
 
   sup (secondary, kept for the paper's footnote). Var(u_c) <= sup u_c - 1:
           Var(u_c) <= alpha_c r_1^c - 1,   r_1 = sup_y u_1(y).
@@ -63,15 +59,11 @@ form (<= theta) is never larger than the r_1 closed form. The HYBRIDS ARE NOT OR
 second-moment tail squares alpha_c, so when u_1 is nearly constant (r_1 close to
 m_1) the second-moment hybrid is the larger of the two. It is the smaller one
 only when r_1/m_1 exceeds a threshold that depends on K, N and Var_q(u_1)
-(about 1.05 to 1.9 at the paper's K and N). bound_empirical.py and
-bound_tables.py report, per setting, the fraction of prompts where the
-second-moment hybrid is the larger; tests/test_bounds_m1.py has an instance
-where it is.
+(about 1.05 to 1.9 at the paper's K and N). tests/test_bounds_m1.py has an
+instance where the second-moment hybrid is the larger.
 
-Input checks (no clamping). The old scripts wrapped each c >= 2 tail term in
-max(., 0). For valid inputs (r_1 >= 1, m_1 >= 1, alpha_c > 1 for c >= 2) no
-term is negative, so that clamp never fired; it is replaced by explicit checks
-that raise ValueError when Var_q(u_1) < 0 or r_1 < 1 beyond rounding (relative
+Input checks (no clamping). For valid inputs (r_1 >= 1, m_1 >= 1, alpha_c > 1
+for c >= 2) no c >= 2 tail term is negative. Explicit checks raise ValueError when Var_q(u_1) < 0 or r_1 < 1 beyond rounding (relative
 tolerance INPUT_RTOL), since either one means P(y in S) does not sum to K.
 A tail term a_c(...) is skipped only when a_c = 0 exactly (c overlaps are
 impossible at this N), which is exact, not an approximation.
@@ -249,8 +241,6 @@ def kl_closed_m1(N, K, m1):
         integers) and rounded once; the second is a series. Both brackets are
         >= 0 (1 - a_0 = P(overlap >= 1) <= E[overlap] = K^2/N < theta).
       theta > 1: theta + log1p(-(1 - a_0) e^-theta), which does not overflow.
-    The first commit of this change returned theta here; theta is now
-    kl_theta_m1.
     """
     theta = kl_theta_m1(N, K, m1)
     N, K = int(N), int(K)
@@ -273,9 +263,8 @@ def m1_of_row(row, rtol=1e-9):
     """m_1 = E_q[u_1^2] for a per-prompt bound row.
 
     Rows store chi2_1 = E_q[u_1^2] - 1 (bound_empirical.py computes it as
-    sum_y pi_1(y)^2/q(y) - 1), so m_1 = 1 + chi2_1 by definition. That makes
-    bound_raw files written before the key ``m1`` existed usable unchanged.
-    When the row also stores ``m1``, the two are checked to agree.
+    sum_y pi_1(y)^2/q(y) - 1), so m_1 = 1 + chi2_1 by definition. When the row
+    also stores ``m1``, the two are checked to agree.
     """
     m1 = 1.0 + float(row["chi2_1"])
     if "m1" in row and not math.isclose(float(row["m1"]), m1, rel_tol=rtol):
@@ -298,13 +287,7 @@ def required_N(bound_fn, K, target, N_hi=10 ** 9):
     K^2 - 1, walk down N by N while it stays <= target. A result of K means
     the bound rules out no pool size.
 
-    The old code bisected on [2K, N_hi] as if the bound were monotone
-    everywhere, so its smallest possible answer was 2K+1. Its answers agree
-    with this function whenever the crossing is above K^2 - 1.
-
-    Raises ValueError when the bound is still above target at N_hi (the old
-    code returned None there and the caller dropped the prompt from the
-    median).
+    Raises ValueError when the bound is still above target at N_hi.
     """
     N0 = max(K, K * K - 1)
     if N_hi < N0:

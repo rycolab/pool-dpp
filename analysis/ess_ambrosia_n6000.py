@@ -6,11 +6,11 @@ N=6000 of the PoolDPP-Samp weights plm^(1/T)/q at sT=1.0 and of the PoolDPP-MAP
 weights plm^(1/T) at sT=1.5, and the bound on the KL at
 N=200 and N=6000 from the per-question bound rows (bound_raw_ambrosia.json),
 median over questions:
-  "bound_m1|{setting}": median_bound_m1_N200, median_bound_m1_N6000 (new,
-      primary): second-moment hybrid
+  "bound_m1|{setting}": median_bound_m1_N200, median_bound_m1_N6000 (primary):
+      second-moment hybrid
       log(1 + a_1 chi2_1 + sum_{c>=2} a_c ((K^c/(K)_c)^2 m_1^c - 1)), m_1 = 1 + chi2_1;
-  "cert|{setting}": median_cert_N200, median_cert_N6000 (secondary, meaning
-      unchanged): r_1 hybrid log(1 + a_1 chi2_1 + sum_{c>=2} a_c (K^c/(K)_c r_1^c - 1)).
+  "cert|{setting}": median_cert_N200, median_cert_N6000 (secondary):
+      r_1 hybrid log(1 + a_1 chi2_1 + sum_{c>=2} a_c (K^c/(K)_c r_1^c - 1)).
 Formulas in bound_formulas.py.
 
 Output: analysis/ess_ambrosia_n6000.json

@@ -25,55 +25,45 @@ chi2_*. Corollaries (formulas in bound_formulas.py):
     and KL <= K^2 r_1/(N-K+1).
 Both use negative association, u_c <= K^c/(K)_c prod_i u_1(y_i). m_1 <= r_1, so
 the second-moment closed form is never the larger one; the two hybrids are not
-ordered (see bound_formulas.py), so the summary reports how often the
-second-moment hybrid is the larger.
+ordered (see bound_formulas.py).
 
-Code note: this file predates the switch to the paper's symbols, so the pool
-size is spelled M/M_exp/M_grid here; it is the paper's N throughout. The JSON
-keys cert_* predate the second-moment bound and hold the r_1 (sup) versions;
-their meaning is unchanged.
+Code note: the pool size is spelled M/M_exp/M_grid here; it is the paper's N
+throughout. The JSON keys cert_* hold the r_1 (sup) versions.
 
 Per-prompt row keys (bound_raw_{task}.json, analyze stage):
   chi2_1               Var_q(u_1) = E_q[u_1^2] - 1 = sum_y pi_1^2/q - 1
-  m1                   E_q[u_1^2] = 1 + chi2_1                       (new)
+  m1                   E_q[u_1^2] = 1 + chi2_1
   r1                   sup_y u_1(y)                                  (secondary)
-  lower_hoeffding      (K^2/N) chi2_1, lower bound on Var(Zhat)/Z^2   (new, primary)
+  lower_hoeffding      (K^2/N) chi2_1, lower bound on Var(Zhat)/Z^2   (primary)
   a1, leading          a_1(N), exact leading term a_1 chi2_1          (secondary lower bound)
-  na_tail_m1           sum_{c>=2} a_c ((K^c/(K)_c)^2 m_1^c - 1)        (new)
-  bound_hybrid_m1_KL   log(1 + leading + na_tail_m1)                 (new, primary)
-  bound_simple_m1_KL   log(e^theta - 1 + a_0), theta = K^2 m_1/(N-K+1) (new, primary;
-                       the first commit of this change stored theta here)
-  bound_theta_m1       theta = K^2 m_1/(N-K+1)                       (new)
+  na_tail_m1           sum_{c>=2} a_c ((K^c/(K)_c)^2 m_1^c - 1)
+  bound_hybrid_m1_KL   log(1 + leading + na_tail_m1)                 (primary)
+  bound_simple_m1_KL   log(e^theta - 1 + a_0), theta = K^2 m_1/(N-K+1) (primary)
+  bound_theta_m1       theta = K^2 m_1/(N-K+1)
   na_tail              sum_{c>=2} a_c (K^c/(K)_c r_1^c - 1)            (secondary)
   cert_hybrid_KL       log(1 + leading + na_tail)                    (secondary)
   cert_simple_KL       K^2 r_1/(N-K+1)                               (secondary)
-  pred_lower_hoeffding_by_m  {m: (K^2/m) chi2_1}, lower bound on Var(Zhat)/Z^2 (new, primary)
+  pred_lower_hoeffding_by_m  {m: (K^2/m) chi2_1}, lower bound on Var(Zhat)/Z^2 (primary)
   pred_leading_by_m    {m: a_1(m) chi2_1}, exact lower bound on Var(Zhat)/Z^2 (secondary)
-  pred_upper_m1_by_m   {m: second-moment upper bound on Var(Zhat)/Z^2}   (new)
+  pred_upper_m1_by_m   {m: second-moment upper bound on Var(Zhat)/Z^2}
   pred_upper_by_m      {m: r_1 upper bound on Var(Zhat)/Z^2}         (secondary)
   log10_covered_mass   log10 sum_y q(y) over the prompt's distinct observed
                        strings: the exact proposal mass the pool-built
-                       instance covers (see "Covered proposal mass")  (new)
+                       instance covers (see "Covered proposal mass")
   covered_mass         10**log10_covered_mass; underflows to 0.0 when the
-                       strings are long, so read the log10 value      (new)
-  missing_mass         Good-Turing ESTIMATE of the uncovered mass, (#strings
-                       seen once)/(#draws); kept so earlier outputs stay
-                       comparable; superseded by 1 - covered_mass   (unchanged)
-  others (mc_*, measured_relvar, sub_*, iid, ...) unchanged.
+                       strings are long, so read the log10 value
+  missing_mass         Good-Turing estimate of the uncovered mass, (#strings
+                       seen once)/(#draws); the exact value is 1 - covered_mass
+  mc_*, measured_relvar, sub_*, iid, ...   Monte Carlo and block diagnostics
 Summary keys (bound_empirical_{task}_{stage}.json, "{task}|summary"): the
 medians of the above (median_m1, median_lower_hoeffding,
 median_bound_hybrid_m1_KL, median_bound_simple_m1_KL, median_bound_theta_m1,
-median_log10_covered_mass, median_covered_mass are new; median_missing_mass is
-still the Good-Turing estimate; median_r1, median_cert_* are the r_1 versions),
-median_lower_hoeffding_over_mc (new) next to median_leading_over_mc,
-predicted_lower_hoeffding_by_m (new) next to predicted_leading_by_m (a_1),
-predicted_upper_m1_by_m (new) next to predicted_upper_by_m (r_1),
-frac_below_hoeffding_lower_bound (new) next to frac_below_exact_lower_bound
-(a_1; both should be 0 up to block-estimate noise),
-frac_hybrid_m1_above_r1 (new: fraction of prompts where bound_hybrid_m1_KL >
-cert_hybrid_KL), and frac_above_upper_m1_bound (new: fraction of prompts whose
-block relvar at m exceeds the second-moment upper bound; nonzero values come
-from Monte Carlo noise in the block estimate or a broken bound).
+median_log10_covered_mass, median_covered_mass; median_missing_mass is the
+Good-Turing estimate; median_r1, median_cert_* are the r_1 versions),
+median_lower_hoeffding_over_mc next to median_leading_over_mc,
+predicted_lower_hoeffding_by_m next to predicted_leading_by_m (a_1),
+predicted_upper_m1_by_m next to predicted_upper_by_m (r_1), and
+frac_below_exact_lower_bound (a_1; should be 0 up to block-estimate noise).
 
 Three tests, all on the real caches at the experimental K, D and pool size:
 
@@ -759,8 +749,8 @@ def analyze_prompt(job):
         pred_hi_m1[m] = bf.relvar_bound_m1(m, K, chi2_1)    # upper, primary
         pred_hi[m] = bf.relvar_bound_r1(m, K, chi2_1, r1)   # upper, secondary
 
-    # Good-Turing ESTIMATE of the missing mass, (#seen once)/(#draws). Kept so
-    # earlier outputs stay comparable; the exact value is 1 - covered_mass below.
+    # Good-Turing estimate of the missing mass, (#seen once)/(#draws); the exact
+    # value is 1 - covered_mass below.
     singles = float((tot == 1).sum())
     miss = singles / float(tot.sum())
 
@@ -850,19 +840,6 @@ def summarize(per_setting):
         below = {m: float(np.mean([r["sub_relvar"][m] < r["pred_leading_by_m"][m]
                                    for r in rows if m in r["sub_relvar"]]))
                  for m in sub_med}
-        # same for the (larger) Hoeffding lower bound (K^2/m) chi2_1
-        below_h = {m: float(np.mean([r["sub_relvar"][m] < r["pred_lower_hoeffding_by_m"][m]
-                                     for r in rows if m in r["sub_relvar"]]))
-                   for m in sub_med}
-        # ... and above the second-moment UPPER bound (impossible for the true
-        # value; nonzero means block-estimate noise or a broken bound)
-        above_m1 = {m: float(np.mean([r["sub_relvar"][m] > r["pred_upper_m1_by_m"][m]
-                                      for r in rows if m in r["sub_relvar"]]))
-                    for m in sub_med}
-        # the two hybrids are not ordered (bound_formulas.py): how often is the
-        # second-moment one the larger?
-        frac_m1_above = float(np.mean([r["bound_hybrid_m1_KL"] > r["cert_hybrid_KL"]
-                                       for r in rows]))
         iid_med = {k: float(np.median([r["iid"][k] for r in rows
                                        if r["iid"].get(k) is not None]))
                    for k in ("obs_collisions", "pred_collisions",
@@ -891,7 +868,6 @@ def summarize(per_setting):
             median_bound_theta_m1=med(lambda r: r["bound_theta_m1"]),
             median_cert_hybrid_KL=med(lambda r: r["cert_hybrid_KL"]),
             median_cert_simple_KL=med(lambda r: r["cert_simple_KL"]),
-            frac_hybrid_m1_above_r1=frac_m1_above,
             block_relvar_median=sub_med,
             block_nblocks=({m: int(np.median([r["sub_nblocks"][m] for r in rows
                                               if m in r["sub_nblocks"]]))
@@ -900,9 +876,7 @@ def summarize(per_setting):
             predicted_leading_by_m=pred_med,
             predicted_upper_m1_by_m=pred_hi_m1_med,
             predicted_upper_by_m=pred_hi_med,
-            frac_below_hoeffding_lower_bound=below_h,
             frac_below_exact_lower_bound=below,
-            frac_above_upper_m1_bound=above_m1,
             median_mc_se=med(lambda r: r["mc_se"]),
             iid_diagnostics_median=iid_med,
         )
@@ -930,8 +904,6 @@ def summarize(per_setting):
               f"theta=K^2 m1/(M-K+1)={g(s['median_bound_theta_m1'])}")
         print(f"  bound on the KL (r1, secondary): hybrid={g(s['median_cert_hybrid_KL'])}  "
               f"closed form K^2 r1/(M-K+1)={g(s['median_cert_simple_KL'])}")
-        print(f"  fraction of prompts with m1 hybrid > r1 hybrid: "
-              f"{g(s['frac_hybrid_m1_above_r1'], '.3f')}")
         print("  i.i.d. diagnostics (LM log-probs vs pools): "
               f"within-pool collisions obs={g(iid_med.get('obs_collisions'), '.3g')} "
               f"pred={g(iid_med.get('pred_collisions'), '.3g')}; "
@@ -947,9 +919,7 @@ def summarize(per_setting):
                   f"{g(pred_hi_m1_med.get(m))}] (a1: {g(pred_med.get(m))}, "
                   f"r1: {g(pred_hi_med.get(m))})  "
                   f"obs*m={g(sub_med[m]*m, '.3g')}  "
-                  f"frac prompts below Hoeffding lower bd={g(below_h[m], '.2f')} "
-                  f"(a1: {g(below[m], '.2f')})  "
-                  f"above m1 upper bd={g(above_m1[m], '.2f')}")
+                  f"frac prompts below a1 lower bd={g(below[m], '.2f')}")
     return summ
 
 

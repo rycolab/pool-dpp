@@ -5,7 +5,7 @@ Tables for the Z-free bound test (tab:zfree-certificates, reads bound_raw_*.json
          of Var(Zhat)/Z^2, the bound on the KL, and tightness vs the exact
          reduced quantity
   Tab B  M-sweep on the true instance (disjoint within-pool blocks) against the
-         bracket [(K^2/m) chi2_1, m_1 upper bound] (primary) and the earlier
+         bracket [(K^2/m) chi2_1, m_1 upper bound] (primary) and
          [a_1(m) chi2_1, r_1 upper bound] (secondary)
   Tab C  independence diagnostics for the pools
 
@@ -21,40 +21,31 @@ Two bounds on the KL (formulas in bound_formulas.py):
 Two lower bounds on Var(Zhat)/Z^2: (K^2/N) chi2_1 (Hoeffding 1948, Thm 5.2;
 primary) and the exact leading term a_1 chi2_1 (secondary).
 The m_1 and Hoeffding quantities are recomputed here from chi2_1 (m_1 = 1 + chi2_1 by the
-definition of chi2_1), so bound_raw files written before the m1 keys existed
-give the same tables; when a row stores m1 it is checked against 1 + chi2_1.
+definition of chi2_1), so rows without the m1 keys give the same tables; when a
+row stores m1 it is checked against 1 + chi2_1.
 
 Output keys (analysis/bound_tables.json), per setting:
-  missing_mass                                 median Good-Turing ESTIMATE of the
-                                               proposal mass no pool drew (unchanged)
-  log10_covered_mass, covered_mass             (new) median exact proposal mass
-                                               sum_y q(y) of the distinct observed
-                                               strings, as log10 and as a value
-                                               (bound_empirical.py, "Covered proposal
-                                               mass"); None, and printed as missing,
-                                               for bound_raw files written before
-                                               these keys existed
-  m1 [median, q25, q75]                        (new)
-  lower_hoeffding, lower_hoeffding_over_mc     (new, primary) median (K^2/N) chi2_1 and
+  missing_mass                                 median Good-Turing estimate of the
+                                               proposal mass no pool drew
+  log10_covered_mass, covered_mass             median exact proposal mass sum_y q(y)
+                                               of the distinct observed strings, as
+                                               log10 and as a value (bound_empirical.py,
+                                               "Covered proposal mass"); None, and
+                                               printed as missing, for bound_raw files
+                                               without these keys
+  m1 [median, q25, q75]
+  lower_hoeffding, lower_hoeffding_over_mc     (primary) median (K^2/N) chi2_1 and
                                                its median ratio to the MC relvar
-  leading, leading_over_mc                     (secondary lower bound; meaning unchanged)
-  bound_hybrid_m1, bound_simple_m1             (new, primary) medians; bound_simple_m1 is
-                                               log(e^theta - 1 + a_0) (it was theta in the
-                                               first commit of this change)
-  bound_theta_m1                               (new) median theta = K^2 m_1/(N-K+1)
-  tightness_m1_over_actual                     (new) median bound_hybrid_m1 / log(1 + MC relvar)
-  frac_hybrid_m1_above_r1                      (new) fraction of prompts where the
-                                               m_1 hybrid exceeds the r_1 hybrid
+  leading, leading_over_mc                     (secondary lower bound)
+  bound_hybrid_m1, bound_simple_m1             (primary) medians; bound_simple_m1 is
+                                               log(e^theta - 1 + a_0)
+  bound_theta_m1                               median theta = K^2 m_1/(N-K+1)
+  tightness_m1_over_actual                     median bound_hybrid_m1 / log(1 + MC relvar)
   r1, cert_hybrid, cert_simple,
-  tightness_cert_over_actual                   (secondary, r_1; meaning unchanged)
-  sweep[m].lower_hoeffding, upper_m1           (new) primary bracket, medians
-  sweep[m].frac_in_bracket_m1                  (new) fraction in [lower_hoeffding, upper_m1]
-                                               (in the first commit of this change the
-                                               lower end was a_1 chi2_1)
-  sweep[m].frac_below_lower_hoeffding          (new) fraction below (K^2/m) chi2_1
+  tightness_cert_over_actual                   (secondary, r_1)
+  sweep[m].lower_hoeffding, upper_m1           primary bracket, medians
   sweep[m].lower, upper, frac_in_bracket,
-  frac_below_lower                             (a_1 lower, r_1 upper; meaning unchanged)
-  all other keys unchanged.
+  frac_below_lower                             (a_1 lower, r_1 upper)
 
 Usage: python analysis/bound_tables.py
 """
@@ -125,7 +116,6 @@ def main():
                     if stored is not None and not math.isclose(new_v, stored, rel_tol=1e-9):
                         raise ValueError(f"{key}: stored {name}={stored!r} but the "
                                          f"formula at K={K}, N={M_exp} gives {new_v!r}")
-            frac_m1_above = float(np.mean([h > c for h, c in zip(hyb_m1, cert)]))
             # exact KL implied by the honest MC value of the reduced quantity
             kl_mc = [math.log1p(x) for x in mc if np.isfinite(x)]
             tight_m1 = [h / math.log1p(r["mc_relvar"]) for h, r in zip(hyb_m1, rows)
@@ -158,23 +148,16 @@ def main():
                 # Hoeffding lower (K^2/m) chi2_1 and second-moment upper bound
                 lo_h = [bf.lower_hoeffding(m, K, r["chi2_1"]) for r in rows]
                 hi_m1 = [bf.relvar_bound_m1(m, K, r["chi2_1"]) for r in rows]
-                inb, inb_m1, below_h = [], [], []
-                for r, lv_h, hv_m1 in zip(rows, lo_h, hi_m1):
+                inb = []
+                for r in rows:
                     ov = r["sub_relvar"].get(str(m), r["sub_relvar"].get(m))
                     lv = r["pred_leading_by_m"].get(str(m), r["pred_leading_by_m"].get(m))
                     hv = r["pred_upper_by_m"].get(str(m), r["pred_upper_by_m"].get(m))
-                    if ov is not None:
-                        inb_m1.append(lv_h <= ov <= hv_m1)
-                        below_h.append(ov < lv_h)
                     if ov is not None and lv is not None and hv is not None:
                         inb.append(lv <= ov <= hv)
                 sweep[m] = dict(obs=med(o), lower_hoeffding=med(lo_h), lower=med(lo),
                                 upper_m1=med(hi_m1), upper=med(hi),
                                 obs_times_m=med(o) * m,
-                                frac_in_bracket_m1=(float(np.mean(inb_m1))
-                                                    if inb_m1 else None),
-                                frac_below_lower_hoeffding=(float(np.mean(below_h))
-                                                            if below_h else None),
                                 frac_in_bracket=float(np.mean(inb)) if inb else None,
                                 frac_below_lower=float(np.mean(
                                     [not b for b in inb])) if inb else None,
@@ -182,9 +165,8 @@ def main():
 
             iid = {k: med([r["iid"][k] for r in rows]) for k in rows[0]["iid"]}
 
-            # exact covered proposal mass (absent from bound_raw files written
-            # before bound_empirical.py stored it; a file with it on some rows
-            # only is corrupt)
+            # exact covered proposal mass (a bound_raw file may lack it; a file
+            # with it on some rows only is corrupt)
             has_cov = ["log10_covered_mass" in r for r in rows]
             if all(has_cov):
                 log10_cov = med([r["log10_covered_mass"] for r in rows])
@@ -214,7 +196,6 @@ def main():
                 bound_hybrid_m1=med(hyb_m1), bound_simple_m1=med(simple_m1),
                 bound_theta_m1=med(theta_m1),
                 tightness_m1_over_actual=med(tight_m1),
-                frac_hybrid_m1_above_r1=frac_m1_above,
                 cert_hybrid=med(cert),
                 cert_simple=med(simple),
                 tightness_cert_over_actual=med(tight),
@@ -256,19 +237,18 @@ def main():
             print(f"  r_1 versions (secondary): hybrid     {s['cert_hybrid']:.4f}")
             print(f"                     K^2 r_1/(M-K+1)   {s['cert_simple']:.4f}")
             print(f"                     hybrid / actual   {s['tightness_cert_over_actual']:.2f}x")
-            print(f"  prompts with m_1 hybrid > r_1 hybrid {s['frac_hybrid_m1_above_r1']:.3f}")
             print(f"  across-pool measurement        {s['measured_across_pool']:.5f}")
             print(f"  honest / across-pool measurement     {s['inflation_mc_over_measured']:.1f}x")
             print("  M-sweep on the true instance (disjoint within-pool blocks):")
             print(f"    {'m':>5} {'observed':>10} {'lower (K^2/m)':>14} {'lower (a_1)':>12} "
                   f"{'upper (m_1)':>12} {'upper (r_1)':>12} {'obs*m':>8} "
-                  f"{'in primary bracket':>19} {'(a_1, r_1)':>11}")
+                  f"{'in (a_1, r_1)':>14}")
             for m, v in s["sweep"].items():
                 print(f"    {m:>5} {v['obs']:>10.4f} {v['lower_hoeffding']:>14.4f} "
                       f"{v['lower']:>12.4f} "
                       f"{v['upper_m1']:>12.4f} {v['upper']:>12.4f} "
                       f"{v['obs_times_m']:>8.2f} "
-                      f"{v['frac_in_bracket_m1']:>19.2f} {v['frac_in_bracket']:>11.2f}")
+                      f"{v['frac_in_bracket']:>14.2f}")
             print("  pool independence diagnostics (per pair of pools):")
             print(f"    within-pool collisions   obs {s['iid']['obs_collisions']:.3g}  "
                   f"pred(LM) {s['iid']['pred_collisions']:.3g}")

@@ -10,10 +10,10 @@ Reports:
   - the bound on the KL at N in {100, 1250, 2500} from the per-question bound rows
     of the same T (bound_raw_gsm8k.json, built from the N=100 pools;
     chi2_1 = Var_q(u_1) and r_1 do not depend on N), median over questions:
-      key "bound_m1|{setting}" (new, primary): second-moment hybrid
+      key "bound_m1|{setting}" (primary): second-moment hybrid
           log(1 + a_1 chi2_1 + sum_{c>=2} a_c ((K^c/(K)_c)^2 m_1^c - 1)),
           m_1 = 1 + chi2_1;
-      key "cert|{setting}" (secondary, meaning unchanged): r_1 hybrid
+      key "cert|{setting}" (secondary): r_1 hybrid
           log(1 + a_1 chi2_1 + sum_{c>=2} a_c (K^c/(K)_c r_1^c - 1));
     formulas in bound_formulas.py. These values come from the bound rows, not
     from the N=2,500 pools;

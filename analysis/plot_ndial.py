@@ -9,24 +9,23 @@ the N=100 pools); we sweep N and take the median over prompts. Holding chi2_1
 fixed while N grows is the extrapolation: it treats the instance (q and the
 target) as fixed and only the number of draws as changing.
 
-The r_1 hybrid of the earlier version,
+The r_1 hybrid,
     KL <= log(1 + a_1(N) chi2_1 + sum_{c>=2} a_c(N) (K^c/(K)_c r_1^c - 1)),
-is no longer plotted; its medians are still written to the JSON as a
+is not plotted; its medians are written to the JSON as a
 secondary output (the paper keeps r_1 in a footnote). Formulas in
 bound_formulas.py.
 
 The dot at N=2,500 is the value gsm8k_n2500.py wrote under "bound_m1|{setting}".
 That script computes it from the same bound_raw rows with the same formula, so
 the dot checks that the two scripts agree; it is not an independent
-measurement on the N=2,500 pools. (The earlier docstring called it a
-cross-check against the fresh N=2,500 run.)
+measurement on the N=2,500 pools.
 
 Inputs: analysis/bound_raw_gsm8k.json at T=1 and T=1.05.
 
 Output: --out (default analysis/ndial_gsm8k.pdf) + the table
 values on stdout and in analysis/ndial_gsm8k.json, with keys
-  median_bound_KL_m1   {setting: {N: median second-moment hybrid}}  (new, primary)
-  median_certified_KL  {setting: {N: median r_1 hybrid}}  (secondary; meaning unchanged)
+  median_bound_KL_m1   {setting: {N: median second-moment hybrid}}  (primary)
+  median_certified_KL  {setting: {N: median r_1 hybrid}}  (secondary)
 """
 import argparse
 import json
