@@ -72,7 +72,10 @@ def fmt(x):
 
 COLORS = {"Ancestral": "#1f77b4", "$k$-Means": "#9467bd",
           "PoolDPP-Samp": "#ff7f0e", "PoolDPP-MAP": "#d62728"}
-# Every point has the same small marker, drawn under its interval, so short intervals stay visible.
+# Curves differ by color and line style, the same for a method in every figure. Every point has the
+# same small marker, drawn under its interval, so short intervals stay visible.
+LINESTYLES = {"Ancestral": "-", "$k$-Means": (0, (6, 2)), "Naive-DPP": (0, (6, 2, 1, 2, 1, 2)),
+              "PoolDPP-Samp": (0, (3, 1, 1, 1)), "PoolDPP-MAP": (0, (1, 1))}
 
 DF = load_ambrosia_df(AMBROSIA_CSV)
 
@@ -216,8 +219,8 @@ def plot_curve(ax, name, pts, annotate=True, label_fn=str):
     ys = np.array([pts[k]["y_mean"] for k in keys])
     xe = np.array([pts[k]["x_ci"] for k in keys])
     ye = np.array([pts[k]["y_ci"] for k in keys])
-    ax.errorbar(xs, ys, xerr=xe, yerr=ye, color=COLORS[name], linewidth=1.5, marker="o", markersize=2.5,
-                capsize=2.5, capthick=0.8, elinewidth=0.8, barsabove=True, label=name)
+    ax.errorbar(xs, ys, xerr=xe, yerr=ye, color=COLORS[name], linestyle=LINESTYLES[name], linewidth=1.5,
+                marker="o", markersize=2.5, capsize=2.5, capthick=0.8, elinewidth=0.8, barsabove=True, label=name)
     if annotate and len(keys) <= 10:
         for x, y, k in zip(xs, ys, keys):
             ax.annotate(label_fn(k), (x, y), textcoords="offset points",
@@ -259,7 +262,7 @@ def main(n_pools, ci_mode, out=None, points_out=None, knob="T"):
     ax.set_xlabel(r"Recall: Golden Query Coverage $\longrightarrow$")
     ax.set_ylabel(r"Precision: Golden Accuracy $\longrightarrow$")
     ax.grid(True, alpha=0.3)
-    ax.legend(loc="upper right" if knob == "T" else "lower right", frameon=True, framealpha=0.9)
+    ax.legend(loc="upper right" if knob == "T" else "lower right", frameon=True, framealpha=0.9, handlelength=5)
     fig.tight_layout(pad=0.4)
 
     output_path = out or os.path.join(SCRIPT_DIR, "ambrosia_plot.pdf")

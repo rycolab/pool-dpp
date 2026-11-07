@@ -70,7 +70,14 @@ def fmt(x):
 
 COLORS = {"Ancestral": "#1f77b4", "$k$-Means": "#9467bd", "Naive-DPP": "#2ca02c",
           "PoolDPP-Samp": "#ff7f0e", "PoolDPP-MAP": "#d62728"}
-# Every point has the same small marker, drawn under its interval, so short intervals stay visible.
+# Curves differ by color and line style, the same for a method in every figure. Every point has the
+# same small marker, drawn under its interval, so short intervals stay visible.
+LINESTYLES = {"Ancestral": "-", "$k$-Means": (0, (6, 2)), "Naive-DPP": (0, (6, 2, 1, 2, 1, 2)),
+              "PoolDPP-Samp": (0, (3, 1, 1, 1)), "PoolDPP-MAP": (0, (1, 1))}
+# Labels go above their points, except in the crowded top left (offsets in points).
+LABEL_OFFSETS = {("Ancestral", 0.8): (0, -9), ("$k$-Means", 1.0): (8, -8.5),
+                 ("PoolDPP-Samp", 0.428571): (-17, -2), ("PoolDPP-Samp", 0.666667): (0, -8.5),
+                 ("PoolDPP-Samp", 0.818182): (0, -8.5)}
 
 
 # ---------------------------------------------------------------------------
@@ -197,12 +204,12 @@ def plot_curve(ax, name, pts, annotate=True, label_fn=str):
     else:
         xerr = np.array([ci95(pts[k]["x_std"], pts[k]["n"]) for k in keys])
         yerr = np.array([ci95(pts[k]["y_std"], pts[k]["n"]) for k in keys])
-    ax.errorbar(xs, ys, xerr=xerr, yerr=yerr, color=COLORS[name], linewidth=1.5, marker="o", markersize=2.5,
-                capsize=2.5, capthick=0.8, elinewidth=0.8, barsabove=True, label=name)
+    ax.errorbar(xs, ys, xerr=xerr, yerr=yerr, color=COLORS[name], linestyle=LINESTYLES[name], linewidth=1.5,
+                marker="o", markersize=2.5, capsize=2.5, capthick=0.8, elinewidth=0.8, barsabove=True, label=name)
     if annotate and len(keys) <= 10:
         for x, y, k in zip(xs, ys, keys):
             ax.annotate(label_fn(k), (x, y), textcoords="offset points",
-                        xytext=(0, 5), ha="center", fontsize=6, color=COLORS[name])
+                        xytext=LABEL_OFFSETS.get((name, k), (0, 5)), ha="center", fontsize=6, color=COLORS[name])
 
 
 # ---------------------------------------------------------------------------
@@ -244,8 +251,9 @@ def main(est_dirs=None, ci_mode=None, out=None, points_out=None, knob="T"):
 
     ax.set_xlabel(r"Diversity (log-determinant of Gram matrix) $\longrightarrow$")
     ax.set_ylabel(r"Quality (mean log-probability) $\longrightarrow$")
+    ax.margins(y=0.07)  # room for the labels above the top points
     ax.grid(True, alpha=0.3)
-    ax.legend(loc="lower left", frameon=True, framealpha=0.9)
+    ax.legend(loc="lower left", frameon=True, framealpha=0.9, handlelength=5)
     fig.tight_layout(pad=0.4)
 
     output_path = out or os.path.join(SCRIPT_DIR, "intrinsic_plot.pdf")
