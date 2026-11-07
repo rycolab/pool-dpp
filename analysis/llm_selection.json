@@ -1,0 +1,79 @@
+{
+  "model": "Qwen/Qwen3-8B",
+  "k": 10,
+  "n_show": 40,
+  "sT": 1.0,
+  "map_T": 50,
+  "pools": [
+    "cache-fineweb",
+    "cache-fineweb-pools/pool1",
+    "cache-fineweb-pools/pool2",
+    "cache-fineweb-pools/pool3",
+    "cache-fineweb-pools/pool4",
+    "cache-fineweb-pools/pool5",
+    "cache-fineweb-pools/pool6",
+    "cache-fineweb-pools/pool7",
+    "cache-fineweb-pools/pool8",
+    "cache-fineweb-pools/pool9"
+  ],
+  "n_cells": 500,
+  "unparsed_replies": 0,
+  "first_replies": [
+    "[0, 1, 2, 5, 7, 11, 17, 19, 24, 29]",
+    "[1, 5, 6, 10, 13, 17, 20, 25, 27, 32]",
+    "[0, 2, 7, 13, 15, 24, 27, 31, 35, 38]",
+    "[1, 3, 6, 10, 12, 14, 17, 22, 27, 30]",
+    "[0, 1, 4, 5, 13, 15, 19, 23, 27, 34]"
+  ],
+  "results": {
+    "LLM": {
+      "quality": -71.49296555660911,
+      "quality_ci": 0.322805981069451,
+      "logdet": -6.163039575114685,
+      "logdet_ci": 0.10239186721516223,
+      "n_pools": 10
+    },
+    "k-Means, full pool": {
+      "quality": -40.32551423118573,
+      "quality_ci": 0.32174323599071,
+      "logdet": -4.674093478230825,
+      "logdet_ci": 0.07420825613423973,
+      "n_pools": 10
+    },
+    "k-Means, same 40": {
+      "quality": -69.44736945970642,
+      "quality_ci": 1.0308765387517138,
+      "logdet": -3.5792386968445404,
+      "logdet_ci": 0.057232949748946674,
+      "n_pools": 10
+    },
+    "PoolDPP-MAP, full pool": {
+      "quality": -40.019498621642626,
+      "quality_ci": 0.3871402883667288,
+      "logdet": -2.363983739792203,
+      "logdet_ci": 0.04364176409213348,
+      "n_pools": 10
+    },
+    "PoolDPP-MAP, same 40": {
+      "quality": -56.4915358213082,
+      "quality_ci": 0.33379160973643784,
+      "logdet": -3.690428857176289,
+      "logdet_ci": 0.057204984155681475,
+      "n_pools": 10
+    },
+    "Random, full pool": {
+      "quality": -82.32739434715884,
+      "quality_ci": 0.3771076748413153,
+      "logdet": -5.013848384647882,
+      "logdet_ci": 0.08495798456379618,
+      "n_pools": 10
+    },
+    "Random, same 40": {
+      "quality": -82.97307550020734,
+      "quality_ci": 0.48127276787253875,
+      "logdet": -4.8514766237756834,
+      "logdet_ci": 0.060468469585469316,
+      "n_pools": 10
+    }
+  }
+}
