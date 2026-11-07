@@ -1,0 +1,478 @@
+{
+  "matched_note": "All PoolDPP variants are anchored at sT=1.2, so every comparison against a baseline at sT=1.2 is exactly matched in sampling temperature.",
+  "per_method_knob": {
+    "Ancestral|0.5": {
+      "set_metric": 0.8629333333333334,
+      "item_metric": 0.7460866666666666,
+      "n_cells": 1500
+    },
+    "Ancestral|0.8": {
+      "set_metric": 0.8814666666666665,
+      "item_metric": 0.73642,
+      "n_cells": 1500
+    },
+    "Ancestral|1.0": {
+      "set_metric": 0.8995333333333333,
+      "item_metric": 0.7271466666666667,
+      "n_cells": 1500
+    },
+    "Ancestral|1.2": {
+      "set_metric": 0.9259333333333334,
+      "item_metric": 0.6817733333333333,
+      "n_cells": 1500
+    },
+    "k-Means|0.5": {
+      "set_metric": 0.8659333333333334,
+      "item_metric": 0.7373266666666668,
+      "n_cells": 1500
+    },
+    "k-Means|0.8": {
+      "set_metric": 0.877,
+      "item_metric": 0.7233066666666667,
+      "n_cells": 1500
+    },
+    "k-Means|1.0": {
+      "set_metric": 0.8903333333333333,
+      "item_metric": 0.69468,
+      "n_cells": 1500
+    },
+    "k-Means|1.2": {
+      "set_metric": 0.9057333333333333,
+      "item_metric": 0.5374266666666666,
+      "n_cells": 1500
+    },
+    "Naive-DPP|0.5": {
+      "set_metric": 0.8658,
+      "item_metric": 0.7300466666666666,
+      "n_cells": 1500
+    },
+    "Naive-DPP|0.8": {
+      "set_metric": 0.8882666666666668,
+      "item_metric": 0.7164666666666667,
+      "n_cells": 1500
+    },
+    "Naive-DPP|1.0": {
+      "set_metric": 0.9049333333333333,
+      "item_metric": 0.6928866666666667,
+      "n_cells": 1500
+    },
+    "PoolDPP-Samp|0.428571": {
+      "set_metric": 0.891,
+      "item_metric": 0.7329533333333332,
+      "n_cells": 1500
+    },
+    "PoolDPP-Samp|0.666667": {
+      "set_metric": 0.8904666666666667,
+      "item_metric": 0.7298133333333333,
+      "n_cells": 1500
+    },
+    "PoolDPP-Samp|0.818182": {
+      "set_metric": 0.8939333333333334,
+      "item_metric": 0.7229533333333333,
+      "n_cells": 1500
+    },
+    "PoolDPP-Samp|1": {
+      "set_metric": 0.9088666666666668,
+      "item_metric": 0.6949933333333334,
+      "n_cells": 1500
+    },
+    "PoolDPP-Samp|1.03": {
+      "set_metric": 0.9154666666666665,
+      "item_metric": 0.6574133333333333,
+      "n_cells": 1500
+    },
+    "PoolDPP-Samp|1.05": {
+      "set_metric": 0.9208000000000001,
+      "item_metric": 0.5578266666666667,
+      "n_cells": 1500
+    },
+    "PoolDPP-Samp|1.07": {
+      "set_metric": 0.9121333333333332,
+      "item_metric": 0.49512000000000006,
+      "n_cells": 1500
+    },
+    "PoolDPP-Samp|1.1": {
+      "set_metric": 0.9097333333333334,
+      "item_metric": 0.46238666666666667,
+      "n_cells": 1500
+    },
+    "PoolDPP-Samp|1.22222": {
+      "set_metric": 0.9049333333333334,
+      "item_metric": 0.4514999999999999,
+      "n_cells": 1500
+    },
+    "PoolDPP-MAP|2.5": {
+      "set_metric": 0.894,
+      "item_metric": 0.7236,
+      "n_cells": 1500
+    },
+    "PoolDPP-MAP|5": {
+      "set_metric": 0.892,
+      "item_metric": 0.7112666666666667,
+      "n_cells": 1500
+    },
+    "PoolDPP-MAP|10": {
+      "set_metric": 0.8966666666666666,
+      "item_metric": 0.6886666666666666,
+      "n_cells": 1500
+    },
+    "PoolDPP-MAP|15": {
+      "set_metric": 0.898,
+      "item_metric": 0.6695333333333334,
+      "n_cells": 1500
+    },
+    "PoolDPP-MAP|20": {
+      "set_metric": 0.9006666666666666,
+      "item_metric": 0.6538,
+      "n_cells": 1500
+    },
+    "PoolDPP-MAP|25": {
+      "set_metric": 0.906,
+      "item_metric": 0.6393333333333333,
+      "n_cells": 1500
+    },
+    "PoolDPP-MAP|50": {
+      "set_metric": 0.9133333333333333,
+      "item_metric": 0.5887333333333333,
+      "n_cells": 1500
+    },
+    "PoolDPP-MAP|100": {
+      "set_metric": 0.9173333333333333,
+      "item_metric": 0.5464666666666667,
+      "n_cells": 1500
+    },
+    "PoolDPP-MAP|500": {
+      "set_metric": 0.9093333333333333,
+      "item_metric": 0.4532,
+      "n_cells": 1500
+    }
+  },
+  "tests": {
+    "Samp(T=1.05) vs Ancestral(sT=1.2) [matched sT=1.2]": {
+      "question_level|set_metric": {
+        "n": 50,
+        "mean_diff": -0.005133333333333326,
+        "ci_lo": -0.016799999999999995,
+        "ci_hi": 0.008266666666666669,
+        "p": 0.48223,
+        "p_at_resolution_floor": false,
+        "n_perm": 100000
+      },
+      "question_level|item_metric": {
+        "n": 50,
+        "mean_diff": -0.12394666666666669,
+        "ci_lo": -0.14567366666666667,
+        "ci_hi": -0.10321233333333335,
+        "p": 1e-05,
+        "p_at_resolution_floor": true,
+        "n_perm": 100000
+      },
+      "pool_level|set_metric": {
+        "n": 30,
+        "mean_diff": -0.005133333333333346,
+        "ci_lo": -0.011200000000000017,
+        "ci_hi": 0.000733333333333312,
+        "p": 0.11815,
+        "p_at_resolution_floor": false,
+        "n_perm": 100000
+      },
+      "pool_level|item_metric": {
+        "n": 30,
+        "mean_diff": -0.12394666666666666,
+        "ci_lo": -0.12842016666666667,
+        "ci_hi": -0.11938666666666667,
+        "p": 1e-05,
+        "p_at_resolution_floor": true,
+        "n_perm": 100000
+      }
+    },
+    "Samp(T=1) vs Ancestral(sT=1.2) [matched sT=1.2]": {
+      "question_level|set_metric": {
+        "n": 50,
+        "mean_diff": -0.017066666666666654,
+        "ci_lo": -0.03473333333333332,
+        "ci_hi": -0.002865000000000014,
+        "p": 0.0515,
+        "p_at_resolution_floor": false,
+        "n_perm": 100000
+      },
+      "question_level|item_metric": {
+        "n": 50,
+        "mean_diff": 0.01322000000000001,
+        "ci_lo": 0.0027598333333333463,
+        "ci_hi": 0.024447166666666652,
+        "p": 0.0213,
+        "p_at_resolution_floor": false,
+        "n_perm": 100000
+      },
+      "pool_level|set_metric": {
+        "n": 30,
+        "mean_diff": -0.01706666666666667,
+        "ci_lo": -0.021866666666666697,
+        "ci_hi": -0.012466666666666681,
+        "p": 1e-05,
+        "p_at_resolution_floor": true,
+        "n_perm": 100000
+      },
+      "pool_level|item_metric": {
+        "n": 30,
+        "mean_diff": 0.01321999999999998,
+        "ci_lo": 0.00919999999999999,
+        "ci_hi": 0.01730016666666664,
+        "p": 1e-05,
+        "p_at_resolution_floor": true,
+        "n_perm": 100000
+      }
+    },
+    "Samp(T=1.05) vs k-Means(sT=1.2) [matched sT=1.2]": {
+      "question_level|set_metric": {
+        "n": 50,
+        "mean_diff": 0.015066666666666662,
+        "ci_lo": -0.00226833333333334,
+        "ci_hi": 0.03526666666666666,
+        "p": 0.13256,
+        "p_at_resolution_floor": false,
+        "n_perm": 100000
+      },
+      "question_level|item_metric": {
+        "n": 50,
+        "mean_diff": 0.020400000000000005,
+        "ci_lo": -0.001022333333333331,
+        "ci_hi": 0.04004783333333333,
+        "p": 0.06078,
+        "p_at_resolution_floor": false,
+        "n_perm": 100000
+      },
+      "pool_level|set_metric": {
+        "n": 30,
+        "mean_diff": 0.015066666666666654,
+        "ci_lo": 0.00859999999999999,
+        "ci_hi": 0.021799999999999983,
+        "p": 9e-05,
+        "p_at_resolution_floor": false,
+        "n_perm": 100000
+      },
+      "pool_level|item_metric": {
+        "n": 30,
+        "mean_diff": 0.020400000000000026,
+        "ci_lo": 0.01556666666666672,
+        "ci_hi": 0.02547333333333335,
+        "p": 1e-05,
+        "p_at_resolution_floor": true,
+        "n_perm": 100000
+      }
+    },
+    "MAP(T=500) vs Ancestral(sT=1.2) [matched sT=1.2]": {
+      "question_level|set_metric": {
+        "n": 50,
+        "mean_diff": -0.016599999999999983,
+        "ci_lo": -0.02840166666666666,
+        "ci_hi": -0.006333333333333323,
+        "p": 0.00369,
+        "p_at_resolution_floor": false,
+        "n_perm": 100000
+      },
+      "question_level|item_metric": {
+        "n": 50,
+        "mean_diff": -0.22857333333333338,
+        "ci_lo": -0.26159333333333334,
+        "ci_hi": -0.19554616666666672,
+        "p": 1e-05,
+        "p_at_resolution_floor": true,
+        "n_perm": 100000
+      },
+      "pool_level|set_metric": {
+        "n": 30,
+        "mean_diff": -0.01659999999999999,
+        "ci_lo": -0.022266666666666646,
+        "ci_hi": -0.010799999999999992,
+        "p": 1e-05,
+        "p_at_resolution_floor": false,
+        "n_perm": 100000
+      },
+      "pool_level|item_metric": {
+        "n": 30,
+        "mean_diff": -0.22857333333333332,
+        "ci_lo": -0.23464033333333334,
+        "ci_hi": -0.22249283333333333,
+        "p": 1e-05,
+        "p_at_resolution_floor": true,
+        "n_perm": 100000
+      }
+    },
+    "MAP(T=500) vs k-Means(sT=1.2) [matched sT=1.2]": {
+      "question_level|set_metric": {
+        "n": 50,
+        "mean_diff": 0.0036000000000000064,
+        "ci_lo": -0.010199999999999996,
+        "ci_hi": 0.01866666666666667,
+        "p": 0.64861,
+        "p_at_resolution_floor": false,
+        "n_perm": 100000
+      },
+      "question_level|item_metric": {
+        "n": 50,
+        "mean_diff": -0.08422666666666669,
+        "ci_lo": -0.1051601666666667,
+        "ci_hi": -0.06352650000000003,
+        "p": 1e-05,
+        "p_at_resolution_floor": true,
+        "n_perm": 100000
+      },
+      "pool_level|set_metric": {
+        "n": 30,
+        "mean_diff": 0.0036000000000000107,
+        "ci_lo": -0.003066666666666666,
+        "ci_hi": 0.010266666666666683,
+        "p": 0.31742,
+        "p_at_resolution_floor": false,
+        "n_perm": 100000
+      },
+      "pool_level|item_metric": {
+        "n": 30,
+        "mean_diff": -0.08422666666666666,
+        "ci_lo": -0.08894016666666668,
+        "ci_hi": -0.07953999999999996,
+        "p": 1e-05,
+        "p_at_resolution_floor": true,
+        "n_perm": 100000
+      }
+    },
+    "MAP(T=10) vs Ancestral(sT=1.2) [matched sT=1.2]": {
+      "question_level|set_metric": {
+        "n": 50,
+        "mean_diff": -0.02926666666666665,
+        "ci_lo": -0.05646666666666664,
+        "ci_hi": -0.007666666666666664,
+        "p": 0.01553,
+        "p_at_resolution_floor": false,
+        "n_perm": 100000
+      },
+      "question_level|item_metric": {
+        "n": 50,
+        "mean_diff": 0.006893333333333269,
+        "ci_lo": -0.011060166666666761,
+        "ci_hi": 0.025147166666666578,
+        "p": 0.4727,
+        "p_at_resolution_floor": false,
+        "n_perm": 100000
+      },
+      "pool_level|set_metric": {
+        "n": 30,
+        "mean_diff": -0.029266666666666656,
+        "ci_lo": -0.03619999999999998,
+        "ci_hi": -0.021933333333333374,
+        "p": 1e-05,
+        "p_at_resolution_floor": true,
+        "n_perm": 100000
+      },
+      "pool_level|item_metric": {
+        "n": 30,
+        "mean_diff": 0.006893333333333322,
+        "ci_lo": 0.002473166666666636,
+        "ci_hi": 0.011373499999999977,
+        "p": 0.00505,
+        "p_at_resolution_floor": false,
+        "n_perm": 100000
+      }
+    },
+    "MAP(T=10) vs k-Means(sT=1.2) [matched sT=1.2]": {
+      "question_level|set_metric": {
+        "n": 50,
+        "mean_diff": -0.009066666666666662,
+        "ci_lo": -0.023133333333333336,
+        "ci_hi": 0.0023333333333333418,
+        "p": 0.20838,
+        "p_at_resolution_floor": false,
+        "n_perm": 100000
+      },
+      "question_level|item_metric": {
+        "n": 50,
+        "mean_diff": 0.15123999999999996,
+        "ci_lo": 0.12393966666666661,
+        "ci_hi": 0.1785199999999999,
+        "p": 1e-05,
+        "p_at_resolution_floor": true,
+        "n_perm": 100000
+      },
+      "pool_level|set_metric": {
+        "n": 30,
+        "mean_diff": -0.009066666666666657,
+        "ci_lo": -0.014533333333333303,
+        "ci_hi": -0.003598333333333339,
+        "p": 0.00419,
+        "p_at_resolution_floor": false,
+        "n_perm": 100000
+      },
+      "pool_level|item_metric": {
+        "n": 30,
+        "mean_diff": 0.15123999999999999,
+        "ci_lo": 0.14573333333333333,
+        "ci_hi": 0.15679350000000003,
+        "p": 1e-05,
+        "p_at_resolution_floor": true,
+        "n_perm": 100000
+      }
+    },
+    "MAP(T=500) vs MAP(T=10)": {
+      "question_level|set_metric": {
+        "n": 50,
+        "mean_diff": 0.012666666666666668,
+        "ci_lo": -0.0073333333333333315,
+        "ci_hi": 0.03733333333333332,
+        "p": 0.34673,
+        "p_at_resolution_floor": false,
+        "n_perm": 100000
+      },
+      "question_level|item_metric": {
+        "n": 50,
+        "mean_diff": -0.23546666666666666,
+        "ci_lo": -0.2758,
+        "ci_hi": -0.19439833333333334,
+        "p": 1e-05,
+        "p_at_resolution_floor": true,
+        "n_perm": 100000
+      },
+      "pool_level|set_metric": {
+        "n": 30,
+        "mean_diff": 0.012666666666666666,
+        "ci_lo": 0.003999999999999992,
+        "ci_hi": 0.021333333333333336,
+        "p": 0.0169,
+        "p_at_resolution_floor": false,
+        "n_perm": 100000
+      },
+      "pool_level|item_metric": {
+        "n": 30,
+        "mean_diff": -0.23546666666666666,
+        "ci_lo": -0.24293333333333333,
+        "ci_hi": -0.22840000000000005,
+        "p": 1e-05,
+        "p_at_resolution_floor": true,
+        "n_perm": 100000
+      }
+    }
+  },
+  "best_knob": {
+    "Naive-DPP": [
+      "Naive-DPP",
+      "1.0"
+    ],
+    "PoolDPP-Samp": [
+      "PoolDPP-Samp",
+      "1.05"
+    ],
+    "PoolDPP-MAP": [
+      "PoolDPP-MAP",
+      "100"
+    ],
+    "k-Means": [
+      "k-Means",
+      "1.2"
+    ],
+    "Ancestral": [
+      "Ancestral",
+      "1.2"
+    ]
+  }
+}

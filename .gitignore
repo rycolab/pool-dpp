@@ -12,7 +12,6 @@ logs/
 ambrosia.csv
 
 # outputs of analysis/
-analysis/*.json
 analysis/*.pkl
 analysis/*.pdf
 analysis/bound_work/

@@ -1,0 +1,112 @@
+{
+  "gsm8k_sT1.2_correct": {
+    "correct_by_length_quintile": [
+      0.6365417956656347,
+      0.7231076957098628,
+      0.7151158752884692,
+      0.7124407814273342,
+      0.6295143610013174
+    ],
+    "mean_chars_by_quintile": [
+      217.73655696594426,
+      304.7442394220652,
+      363.2844441424805,
+      430.9849881651544,
+      644.9399533785055
+    ],
+    "auc_logp_full_pool": 0.6696914279369277,
+    "auc_logp_shortest_half": 0.6590340165130945,
+    "n_prompts_auc_full": 495,
+    "n_prompts_auc_short": 477,
+    "spearman_logp_length_full": -0.3383705209927425,
+    "spearman_logp_length_shortest_half": -0.01411567714789134
+  },
+  "ambrosia_sT1.0_runnable": {
+    "runnable_by_length_quintile": [
+      0.9101437003191839,
+      0.9240666940667698,
+      0.9159348426176194,
+      0.9080828211234091,
+      0.869779017874429
+    ],
+    "mean_chars_by_quintile": [
+      150.95300749265397,
+      173.73815398637035,
+      189.62145190565158,
+      206.48162941317347,
+      247.74969923208764
+    ],
+    "auc_logp_full_pool": 0.7968978928079659,
+    "auc_logp_shortest_half": 0.786656936559492,
+    "n_prompts_auc_full": 884,
+    "n_prompts_auc_short": 742,
+    "spearman_logp_length_full": -0.25224557621500027,
+    "spearman_logp_length_shortest_half": -0.061278305872871565
+  },
+  "ambrosia_sT1.0_golden": {
+    "golden_by_length_quintile": [
+      0.30817979303626736,
+      0.38946911411270946,
+      0.42928176009016794,
+      0.42266382197275254,
+      0.382919056749545
+    ],
+    "mean_chars_by_quintile": [
+      150.95300749265397,
+      173.73815398637035,
+      189.62145190565158,
+      206.48162941317347,
+      247.74969923208764
+    ],
+    "auc_logp_full_pool": 0.5789878104136151,
+    "auc_logp_shortest_half": 0.598419531325687,
+    "n_prompts_auc_full": 710,
+    "n_prompts_auc_short": 612,
+    "spearman_logp_length_full": -0.25224557621500027,
+    "spearman_logp_length_shortest_half": -0.061278305872871565
+  },
+  "ambrosia_sT1.5_runnable": {
+    "runnable_by_length_quintile": [
+      0.7122654115672933,
+      0.6720602289747865,
+      0.4822958921090293,
+      0.18131632986846802,
+      0.005238249610861305
+    ],
+    "mean_chars_by_quintile": [
+      155.14423379585168,
+      202.78846072408527,
+      347.6190352194889,
+      1070.8563077668696,
+      2730.0003812095097
+    ],
+    "auc_logp_full_pool": 0.966040730947278,
+    "auc_logp_shortest_half": 0.9084957345041016,
+    "n_prompts_auc_full": 1000,
+    "n_prompts_auc_short": 1000,
+    "spearman_logp_length_full": -0.815047826452307,
+    "spearman_logp_length_shortest_half": -0.26036089316355904
+  },
+  "ambrosia_sT1.5_golden": {
+    "golden_by_length_quintile": [
+      0.2630143831668339,
+      0.31492910566497595,
+      0.25989770615174074,
+      0.1034410433985784,
+      0.003567117920376246
+    ],
+    "mean_chars_by_quintile": [
+      155.14423379585168,
+      202.78846072408527,
+      347.6190352194889,
+      1070.8563077668696,
+      2730.0003812095097
+    ],
+    "auc_logp_full_pool": 0.8565920974118533,
+    "auc_logp_shortest_half": 0.749391971524985,
+    "n_prompts_auc_full": 740,
+    "n_prompts_auc_short": 708,
+    "spearman_logp_length_full": -0.815047826452307,
+    "spearman_logp_length_shortest_half": -0.26036089316355904
+  }
+}

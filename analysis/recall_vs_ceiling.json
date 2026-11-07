@@ -1,0 +1,220 @@
+{
+  "Ancestral": [
+    {
+      "knob": 0.6,
+      "sT": 0.6,
+      "n_pools": 99,
+      "selected_recall": 0.22342760942760942,
+      "selected_recall_ci95": 0.0006228956228956223,
+      "pool_ceiling": 0.318989898989899,
+      "recall_vs_ceiling": 0.5974210423665666,
+      "recall_vs_ceiling_ci95": 0.003219751450252273
+    },
+    {
+      "knob": 0.7,
+      "sT": 0.7,
+      "n_pools": 99,
+      "selected_recall": 0.22582996632996635,
+      "selected_recall_ci95": 0.0006742424242423967,
+      "pool_ceiling": 0.3335858585858585,
+      "recall_vs_ceiling": 0.5665962191711089,
+      "recall_vs_ceiling_ci95": 0.002498618312529066
+    },
+    {
+      "knob": 1.0,
+      "sT": 1.0,
+      "n_pools": 99,
+      "selected_recall": 0.23305555555555554,
+      "selected_recall_ci95": 0.0006582912457912676,
+      "pool_ceiling": 0.383905723905724,
+      "recall_vs_ceiling": 0.5074636048809679,
+      "recall_vs_ceiling_ci95": 0.0029741188677586128
+    },
+    {
+      "knob": 1.2,
+      "sT": 1.2,
+      "n_pools": 99,
+      "selected_recall": 0.23216329966329965,
+      "selected_recall_ci95": 0.000716329966329976,
+      "pool_ceiling": 0.41292929292929287,
+      "recall_vs_ceiling": 0.4671025901351139,
+      "recall_vs_ceiling_ci95": 0.0019469617248225046
+    },
+    {
+      "knob": 1.25,
+      "sT": 1.25,
+      "n_pools": 99,
+      "selected_recall": 0.22987542087542087,
+      "selected_recall_ci95": 0.0008021885521885541,
+      "pool_ceiling": 0.4163468013468014,
+      "recall_vs_ceiling": 0.4613054652713751,
+      "recall_vs_ceiling_ci95": 0.003461471875129435
+    },
+    {
+      "knob": 1.3,
+      "sT": 1.3,
+      "n_pools": 99,
+      "selected_recall": 0.22655387205387206,
+      "selected_recall_ci95": 0.0008678661616162014,
+      "pool_ceiling": 0.4176094276094276,
+      "recall_vs_ceiling": 0.44706362642129444,
+      "recall_vs_ceiling_ci95": 0.0019303927673930132
+    }
+  ],
+  "k-Means": [
+    {
+      "knob": 0.6,
+      "sT": 0.6,
+      "n_pools": 99,
+      "selected_recall": 0.23835858585858585,
+      "selected_recall_ci95": 0.0009571548821549064,
+      "pool_ceiling": 0.318989898989899,
+      "recall_vs_ceiling": 0.6396733015120939,
+      "recall_vs_ceiling_ci95": 0.003014196597358576
+    },
+    {
+      "knob": 0.7,
+      "sT": 0.7,
+      "n_pools": 99,
+      "selected_recall": 0.2385993265993266,
+      "selected_recall_ci95": 0.0008114478114477908,
+      "pool_ceiling": 0.3335858585858585,
+      "recall_vs_ceiling": 0.6013522411674118,
+      "recall_vs_ceiling_ci95": 0.002192192525071801
+    },
+    {
+      "knob": 1.0,
+      "sT": 1.0,
+      "n_pools": 99,
+      "selected_recall": 0.23956060606060606,
+      "selected_recall_ci95": 0.0008182239057239471,
+      "pool_ceiling": 0.383905723905724,
+      "recall_vs_ceiling": 0.521350090736266,
+      "recall_vs_ceiling_ci95": 0.0021244981487972825
+    },
+    {
+      "knob": 1.2,
+      "sT": 1.2,
+      "n_pools": 99,
+      "selected_recall": 0.2398888888888889,
+      "selected_recall_ci95": 0.0009234427609427637,
+      "pool_ceiling": 0.41292929292929287,
+      "recall_vs_ceiling": 0.4811853752920775,
+      "recall_vs_ceiling_ci95": 0.001731828672840191
+    },
+    {
+      "knob": 1.25,
+      "sT": 1.25,
+      "n_pools": 99,
+      "selected_recall": 0.2390791245791246,
+      "selected_recall_ci95": 0.0011220959595959618,
+      "pool_ceiling": 0.4163468013468014,
+      "recall_vs_ceiling": 0.4769518050057037,
+      "recall_vs_ceiling_ci95": 0.002082595473003185
+    },
+    {
+      "knob": 1.3,
+      "sT": 1.3,
+      "n_pools": 99,
+      "selected_recall": 0.23326430976430976,
+      "selected_recall_ci95": 0.001255092592592627,
+      "pool_ceiling": 0.4176094276094276,
+      "recall_vs_ceiling": 0.4592195366421323,
+      "recall_vs_ceiling_ci95": 0.002284373157249442
+    }
+  ],
+  "PoolDPP-Samp": [
+    {
+      "knob": "0.428571",
+      "sT": 1.0,
+      "n_pools": 99,
+      "selected_recall": 0.2338063973063973,
+      "selected_recall_ci95": 0.0006725589225589079,
+      "pool_ceiling": 0.383905723905724,
+      "recall_vs_ceiling": 0.5072370089153965,
+      "recall_vs_ceiling_ci95": 0.00135788526812064
+    },
+    {
+      "knob": "0.538462",
+      "sT": 1.0,
+      "n_pools": 99,
+      "selected_recall": 0.2371969696969697,
+      "selected_recall_ci95": 0.0007011784511784525,
+      "pool_ceiling": 0.383905723905724,
+      "recall_vs_ceiling": 0.5137244652979095,
+      "recall_vs_ceiling_ci95": 0.001370131458500401
+    },
+    {
+      "knob": "0.666667",
+      "sT": 1.0,
+      "n_pools": 99,
+      "selected_recall": 0.24130303030303038,
+      "selected_recall_ci95": 0.0006127946127946066,
+      "pool_ceiling": 0.383905723905724,
+      "recall_vs_ceiling": 0.5212472089366073,
+      "recall_vs_ceiling_ci95": 0.0011681660285718931
+    },
+    {
+      "knob": "0.818182",
+      "sT": 1.0,
+      "n_pools": 99,
+      "selected_recall": 0.2444107744107744,
+      "selected_recall_ci95": 0.0006557659932660276,
+      "pool_ceiling": 0.383905723905724,
+      "recall_vs_ceiling": 0.5278525903365618,
+      "recall_vs_ceiling_ci95": 0.0019065337527973125
+    },
+    {
+      "knob": "1",
+      "sT": 1.0,
+      "n_pools": 99,
+      "selected_recall": 0.2444680134680135,
+      "selected_recall_ci95": 0.0008560816498316415,
+      "pool_ceiling": 0.383905723905724,
+      "recall_vs_ceiling": 0.5304548780379934,
+      "recall_vs_ceiling_ci95": 0.002311827999330218
+    }
+  ],
+  "PoolDPP-MAP": [
+    {
+      "knob": "10",
+      "sT": 1.5,
+      "n_pools": 99,
+      "selected_recall": 0.25077441077441076,
+      "selected_recall_ci95": 0.0018434343434343414,
+      "pool_ceiling": 0.39094276094276115,
+      "recall_vs_ceiling": 0.5167066255443391,
+      "recall_vs_ceiling_ci95": 0.003978617693700448
+    },
+    {
+      "knob": "7.5",
+      "sT": 1.5,
+      "n_pools": 99,
+      "selected_recall": 0.24966329966329967,
+      "selected_recall_ci95": 0.0018855218855218792,
+      "pool_ceiling": 0.39094276094276115,
+      "recall_vs_ceiling": 0.5152658141767135,
+      "recall_vs_ceiling_ci95": 0.0042439371411917
+    },
+    {
+      "knob": "3",
+      "sT": 1.5,
+      "n_pools": 99,
+      "selected_recall": 0.2432996632996633,
+      "selected_recall_ci95": 0.0019781144781144677,
+      "pool_ceiling": 0.39094276094276115,
+      "recall_vs_ceiling": 0.5043075487662714,
+      "recall_vs_ceiling_ci95": 0.0043454248580399035
+    },
+    {
+      "knob": "1",
+      "sT": 1.5,
+      "n_pools": 99,
+      "selected_recall": 0.2375420875420875,
+      "selected_recall_ci95": 0.0014814814814814448,
+      "pool_ceiling": 0.39094276094276115,
+      "recall_vs_ceiling": 0.4927614439077047,
+      "recall_vs_ceiling_ci95": 0.00291104975847295
+    }
+  ]
+}

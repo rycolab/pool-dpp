@@ -1,0 +1,149 @@
+{
+  "pool_length_vs_logp": {
+    "fineweb|sT=0.6": {
+      "n": 19674,
+      "pearson_r": -0.1464934487133692,
+      "pearson_p": 8.27355080314523e-95,
+      "spearman_rho": -0.07274291839396262,
+      "spearman_p": 1.6795832229416024e-24,
+      "mean_chars": 225.1503507166819
+    },
+    "fineweb|sT=0.8": {
+      "n": 19824,
+      "pearson_r": -0.18583752979468543,
+      "pearson_p": 1.6024709692419566e-153,
+      "spearman_rho": -0.10078969097332593,
+      "spearman_p": 6.292218952506795e-46,
+      "mean_chars": 226.7409200968523
+    },
+    "fineweb|sT=1.0": {
+      "n": 19903,
+      "pearson_r": -0.1748189988575069,
+      "pearson_p": 2.3893782651645667e-136,
+      "spearman_rho": -0.10316430144567214,
+      "spearman_p": 3.146665388867391e-48,
+      "mean_chars": 230.0004521931367
+    },
+    "fineweb|sT=1.2": {
+      "n": 19978,
+      "pearson_r": -0.09167840708883121,
+      "pearson_p": 1.4943781381681285e-38,
+      "spearman_rho": -0.05413500423708522,
+      "spearman_p": 1.9066820090355692e-14,
+      "mean_chars": 237.17083792171388
+    },
+    "fineweb|sT=1.5": {
+      "n": 20000,
+      "pearson_r": 0.07424067338359501,
+      "pearson_p": 7.520471901450759e-26,
+      "spearman_rho": 0.2053217996641307,
+      "spearman_p": 2.5137926191889687e-189,
+      "mean_chars": 238.4901
+    },
+    "ambrosia|sT=0.6": {
+      "n": 8053,
+      "pearson_r": -0.37356715005066543,
+      "pearson_p": 4.068671198745955e-265,
+      "spearman_rho": -0.2963983512705702,
+      "spearman_p": 5.2421243595716686e-163,
+      "mean_chars": 210.9567862908233
+    },
+    "ambrosia|sT=0.7": {
+      "n": 10115,
+      "pearson_r": -0.3455703003275498,
+      "pearson_p": 1.2220070704510356e-281,
+      "spearman_rho": -0.26484477672863926,
+      "spearman_p": 5.927133781636951e-162,
+      "mean_chars": 208.81937716262976
+    },
+    "ambrosia|sT=1.0": {
+      "n": 15045,
+      "pearson_r": -0.35344110758056385,
+      "pearson_p": 0.0,
+      "spearman_rho": -0.2505071264682029,
+      "spearman_p": 5.1458927271369594e-214,
+      "mean_chars": 205.72190096377534
+    },
+    "ambrosia|sT=1.2": {
+      "n": 17252,
+      "pearson_r": -0.43912898640434633,
+      "pearson_p": 0.0,
+      "spearman_rho": -0.27059243509784825,
+      "spearman_p": 3.3378260956248514e-287,
+      "mean_chars": 207.23261071180153
+    },
+    "ambrosia|sT=1.25": {
+      "n": 17614,
+      "pearson_r": -0.5253813926853719,
+      "pearson_p": 0.0,
+      "spearman_rho": -0.2919282797287333,
+      "spearman_p": 0.0,
+      "mean_chars": 210.6620302032474
+    },
+    "ambrosia|sT=1.3": {
+      "n": 17981,
+      "pearson_r": -0.830417516398603,
+      "pearson_p": 0.0,
+      "spearman_rho": -0.3405215795697973,
+      "spearman_p": 0.0,
+      "mean_chars": 223.78950002780712
+    },
+    "ambrosia|sT=1.5": {
+      "n": 19150,
+      "pearson_r": -0.9938497905041048,
+      "pearson_p": 0.0,
+      "spearman_rho": -0.8181379320604356,
+      "spearman_p": 0.0,
+      "mean_chars": 921.3331592689295
+    },
+    "gsm8k|sT=0.5": {
+      "n": 4545,
+      "pearson_r": -0.6005004566776901,
+      "pearson_p": 0.0,
+      "spearman_rho": -0.5705977278227563,
+      "spearman_p": 0.0,
+      "mean_chars": 356.9865786578658
+    },
+    "gsm8k|sT=0.8": {
+      "n": 4937,
+      "pearson_r": -0.54561091179261,
+      "pearson_p": 0.0,
+      "spearman_rho": -0.5321233219152495,
+      "spearman_p": 0.0,
+      "mean_chars": 354.6084666801701
+    },
+    "gsm8k|sT=1.0": {
+      "n": 4994,
+      "pearson_r": -0.49618210105620925,
+      "pearson_p": 9.83921279255667e-309,
+      "spearman_rho": -0.4909444485806798,
+      "spearman_p": 2.553696250830447e-301,
+      "mean_chars": 356.8338005606728
+    },
+    "gsm8k|sT=1.2": {
+      "n": 4999,
+      "pearson_r": -0.7295920925067001,
+      "pearson_p": 0.0,
+      "spearman_rho": -0.44978448443797403,
+      "spearman_p": 1.3714004070443426e-247,
+      "mean_chars": 389.7081416283257
+    }
+  },
+  "length_only_baseline_fineweb": {
+    "length-topk": {
+      "quality_mean_logp": -91.66731581336592,
+      "kernel_logdet_minilm": -5.515818957388913,
+      "n_prompts": 50
+    },
+    "length-kmeans": {
+      "quality_mean_logp": -41.79975006574269,
+      "kernel_logdet_minilm": -4.5864086024324395,
+      "n_prompts": 50
+    },
+    "quality-topk": {
+      "quality_mean_logp": -33.07214685633217,
+      "kernel_logdet_minilm": -10.198338277096884,
+      "n_prompts": 50
+    }
+  }
+}

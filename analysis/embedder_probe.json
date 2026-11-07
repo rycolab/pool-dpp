@@ -1,0 +1,105 @@
+{
+  "n_gsm8k": 582,
+  "n_sql": 468,
+  "results": {
+    "MiniLM-L6-v2": {
+      "gsm8k": {
+        "a1_answer_flip": {
+          "auc_vs_surface": 0.002471038367520459,
+          "auc_ci95": [
+            0.0011127791358155903,
+            0.004156924221490062
+          ],
+          "n_paired": 582,
+          "n_questions": 582
+        },
+        "a2_operator_flip": {
+          "auc_vs_surface": 0.11144289501361973,
+          "auc_ci95": [
+            0.09323061303711666,
+            0.1308948045958706
+          ],
+          "n_paired": 549,
+          "n_questions": 582
+        }
+      },
+      "ambrosia_sql": {
+        "a_semantic": {
+          "auc_vs_surface": 1.0,
+          "auc_ci95": [
+            1.0,
+            1.0
+          ],
+          "n_paired": 468,
+          "n_questions": 468
+        }
+      }
+    },
+    "Qwen3-Embedding-0.6B": {
+      "gsm8k": {
+        "a1_answer_flip": {
+          "auc_vs_surface": 0.05124821388505096,
+          "auc_ci95": [
+            0.03972371311155986,
+            0.06279323283853519
+          ],
+          "n_paired": 582,
+          "n_questions": 582
+        },
+        "a2_operator_flip": {
+          "auc_vs_surface": 0.3526929240447112,
+          "auc_ci95": [
+            0.3213154568166661,
+            0.3835966038599739
+          ],
+          "n_paired": 549,
+          "n_questions": 582
+        }
+      },
+      "ambrosia_sql": {
+        "a_semantic": {
+          "auc_vs_surface": 0.7402796040616554,
+          "auc_ci95": [
+            0.7083505688874279,
+            0.7702475527796041
+          ],
+          "n_paired": 468,
+          "n_questions": 468
+        }
+      }
+    },
+    "Qwen3-Embedding-0.6B instructed": {
+      "gsm8k": {
+        "a1_answer_flip": {
+          "auc_vs_surface": 0.15131641100128718,
+          "auc_ci95": [
+            0.12960887772936078,
+            0.17480518799966935
+          ],
+          "n_paired": 582,
+          "n_questions": 582
+        },
+        "a2_operator_flip": {
+          "auc_vs_surface": 0.8424125998254817,
+          "auc_ci95": [
+            0.8184610369574089,
+            0.8657681129126977
+          ],
+          "n_paired": 549,
+          "n_questions": 582
+        }
+      },
+      "ambrosia_sql": {
+        "a_semantic": {
+          "auc_vs_surface": 0.8920346628679962,
+          "auc_ci95": [
+            0.8677413205858718,
+            0.9170238193074731
+          ],
+          "n_paired": 468,
+          "n_questions": 468
+        }
+      }
+    }
+  }
+}
