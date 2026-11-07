@@ -18,7 +18,7 @@ Usage:
     python analysis/length_cap.py probe --csv-path ambrosia.csv
     python analysis/length_cap.py stored --root DIR
 
-DIR holds cache-{fineweb,ambrosia,gsm8k}/pool*/google__gemma-2-9b-it.pkl.
+DIR holds the pools as scripts/run_{fineweb,ambrosia,gsm8k}.sh write them.
 """
 
 import argparse
@@ -55,6 +55,14 @@ def save(section, value):
     with open(OUT, "w") as f:
         json.dump(out, f, indent=1)
     print(f"Saved {OUT}:{section}", flush=True)
+
+
+def pool_paths(root, task):
+    """FineWeb's pool 0 sits in cache-fineweb, its other pools in cache-fineweb-pools."""
+    if task == "fineweb":
+        return [os.path.join(root, "cache-fineweb", RAW_PKL),
+                *sorted(glob.glob(os.path.join(root, "cache-fineweb-pools", "pool*", RAW_PKL)))]
+    return sorted(glob.glob(os.path.join(root, f"cache-{task}", "pool*", RAW_PKL)))
 
 
 def prompt_ids(tok, prompt, chat):
@@ -114,7 +122,7 @@ def cap(a):
     for task in TASKS:
         cells, plen = defaultdict(Counter), {}
         per_pool = defaultdict(list)
-        paths = sorted(glob.glob(os.path.join(a.root, f"cache-{task}", "pool*", RAW_PKL)))
+        paths = pool_paths(a.root, task)
         for path in paths:
             with open(path, "rb") as f:
                 raw = pickle.load(f)
@@ -247,7 +255,7 @@ def stored(a):
     rng = random.Random(0)
     out = {"stop_token_ids": stop_token_ids(tok)}
     for task, sT in (("fineweb", 1.0), ("ambrosia", 1.0), ("gsm8k", 1.0), ("gsm8k", 1.2)):
-        with open(os.path.join(a.root, f"cache-{task}", "pool0", RAW_PKL), "rb") as f:
+        with open(pool_paths(a.root, task)[0], "rb") as f:
             per_prompt = pickle.load(f)[sT]
         groups = {"ended": [], "capped": []}
         for prompt, (sents, _, lp1, lengths) in per_prompt.items():
