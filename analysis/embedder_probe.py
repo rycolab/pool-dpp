@@ -33,6 +33,12 @@ cannot tell the two apart; the kernel geometry then does not track correctness.
 Embedders: MiniLM and Qwen3-Embedding-0.6B, plain and instructed, on one item set,
 with 2,000-resample bootstrap CIs over paired items.
 
+Items come from pool0 at sT=1.0, at most 40 strings per GSM8K prompt and 6 per Ambrosia prompt, until
+n_items items per task. A candidate string is left out when its edits cannot be verified as above;
+"filters" in the output counts each reason. n_questions counts distinct prompts. A pool without sT=1.0,
+an Ambrosia prompt whose question is not in ambrosia.csv or whose database dump does not load, or an
+empty comparison stops the run with an error.
+
 Usage: python analysis/embedder_probe.py [--n-items 600] [--device cuda]
 Output: analysis/embedder_probe.json
 """
@@ -44,6 +50,7 @@ import pickle
 import random
 import re
 import sqlite3
+from collections import Counter
 
 import numpy as np
 
@@ -226,12 +233,20 @@ def edit_sql_surface(q, rng):
 # ---------------------------------------------------------------------------
 # Build the paired datasets
 # ---------------------------------------------------------------------------
-def build_gsm8k_pairs(n_items, rng):
+def require_sT(raw, sT, path):
+    if sT not in raw:
+        raise ValueError(f"{path}: no draws at sT={sT} (has {sorted(raw)})")
+    return sT
+
+
+def build_gsm8k_pairs(n_items, rng, filters=None):
+    """Paired GSM8K items; filters (a Counter) counts the candidates left out, by reason."""
+    filters = Counter() if filters is None else filters
     path = os.path.join(ROOT_DIR, "cache-gsm8k", "pool0",
                         "google__gemma-2-9b-it.pkl")
     with open(path, "rb") as f:
         raw = pickle.load(f)
-    sT = 1.0 if 1.0 in raw else sorted(raw.keys())[0]
+    sT = require_sT(raw, 1.0, path)
     pairs = []
     for prompt, entry in raw[sT].items():
         for s in entry[0][:40]:
@@ -239,20 +254,27 @@ def build_gsm8k_pairs(n_items, rng):
                 break
             base = s.strip()
             if gsm_answer(base) is None or not EQ_RE.search(base):
+                filters["no_answer_or_no_arithmetic"] += 1
                 continue
             a1 = edit_answer_flip(base)
             a2 = edit_operator_flip(base)
             b = edit_surface(base, rng)
-            if b is None or (a1 is None and a2 is None):
+            if b is None:
+                filters["surface_edit_not_verified"] += 1
+                continue
+            if a1 is None and a2 is None:
+                filters["no_correctness_edit"] += 1
                 continue
             pairs.append({"base": base, "a1_answer_flip": a1,
-                          "a2_operator_flip": a2, "b_surface": b})
+                          "a2_operator_flip": a2, "b_surface": b, "prompt": prompt})
         if len(pairs) >= n_items:
             break
     return pairs
 
 
-def build_sql_pairs(n_items, rng):
+def build_sql_pairs(n_items, rng, filters=None):
+    """Paired SQL items; filters (a Counter) counts the candidates left out, by reason."""
+    filters = Counter() if filters is None else filters
     from lm_dpp.utils.ambrosia_utils import load_ambrosia_df
     df = load_ambrosia_df(os.path.join(ROOT_DIR, "ambrosia.csv"))
     by_q = {str(r["question"]).strip(): r for _, r in df.iterrows()}
@@ -260,7 +282,7 @@ def build_sql_pairs(n_items, rng):
                         "google__gemma-2-9b-it.pkl")
     with open(path, "rb") as f:
         raw = pickle.load(f)
-    sT = 1.0 if 1.0 in raw else sorted(raw.keys())[0]
+    sT = require_sT(raw, 1.0, path)
 
     def parse_question(pt):
         s = pt.find("and the following question:\n")
@@ -275,20 +297,20 @@ def build_sql_pairs(n_items, rng):
         q = parse_question(prompt)
         row = by_q.get(q) if q else None
         if row is None:
-            continue
+            raise ValueError(f"{path}: prompt {prompt[:60]!r} has no question in ambrosia.csv")
         conn = sqlite3.connect(":memory:")
         cur = conn.cursor()
         try:
             cur.executescript(row["db_dump"])
-        except Exception:
-            conn.close()
-            continue
+        except Exception as e:
+            raise RuntimeError(f"ambrosia question {q!r}: the database dump does not load: {e}") from e
         for s in entry[0][:6]:
             if len(pairs) >= n_items:
                 break
             base = s.strip().replace("```sql\n", "").replace("\n```", "")
             base_sig = sql_sig(cur, base)
             if base_sig is None:
+                filters["base_not_runnable"] += 1
                 continue                      # base must run
             sem = edit_sql_semantic(base, rng)
             sur = edit_sql_surface(base, rng)
@@ -301,9 +323,13 @@ def build_sql_pairs(n_items, rng):
                 sig = sql_sig(cur, sur)
                 if sig is not None and sig == base_sig:
                     sur_ok = sur              # verified: result IDENTICAL
-            if sem_ok and sur_ok:
+            if not sem_ok:
+                filters["semantic_edit_not_verified"] += 1
+            elif not sur_ok:
+                filters["surface_edit_not_verified"] += 1
+            else:
                 pairs.append({"base": base, "a_semantic": sem_ok,
-                              "b_surface": sur_ok})
+                              "b_surface": sur_ok, "prompt": prompt})
         conn.close()
         if len(pairs) >= n_items:
             break
@@ -330,7 +356,7 @@ def auc(pos, neg):
     """P(pos > neg) with ties counted as half."""
     pos, neg = np.asarray(pos), np.asarray(neg)
     if len(pos) == 0 or len(neg) == 0:
-        return float("nan")
+        raise ValueError(f"AUC of {len(pos)} correctness-edit and {len(neg)} surface-edit distances")
     order = np.argsort(np.concatenate([pos, neg]), kind="mergesort")
     ranks = np.empty(len(order), dtype=np.float64)
     ranks[order] = np.arange(1, len(order) + 1)
@@ -346,8 +372,9 @@ def auc(pos, neg):
 
 def main(n_items, device):
     rng = random.Random(0)
-    gsm = build_gsm8k_pairs(n_items, rng)
-    sql = build_sql_pairs(n_items, rng)
+    filters = {"gsm8k": Counter(), "ambrosia_sql": Counter()}
+    gsm = build_gsm8k_pairs(n_items, rng, filters["gsm8k"])
+    sql = build_sql_pairs(n_items, rng, filters["ambrosia_sql"])
     print(f"{len(gsm)} GSM8K items, {len(sql)} SQL items", flush=True)
     tasks = {"gsm8k": (gsm, ["a1_answer_flip", "a2_operator_flip", "b_surface"], GSM_INSTR),
              "ambrosia_sql": (sql, ["a_semantic", "b_surface"], SQL_INSTR)}
@@ -390,7 +417,9 @@ def main(n_items, device):
             per_task[tname] = aucs
         results[label] = per_task
     dest = os.path.join(SCRIPT_DIR, "embedder_probe.json")
-    json.dump({"n_gsm8k": len(gsm), "n_sql": len(sql), "results": results}, open(dest, "w"), indent=2)
+    json.dump({"n_gsm8k": len(gsm), "n_sql": len(sql),
+               "filters": {t: dict(c) for t, c in filters.items()}, "results": results},
+              open(dest, "w"), indent=2)
     print("Saved", dest)
 
 

@@ -11,6 +11,9 @@ Times, on synthetic pools over an (N, D) grid and one CPU thread:
                the experiments use
   greedy MAP   lm_dpp.estimation.greedy_map
 
+A timed draw of the stable sampler or of greedy MAP that returns other than K strings stops the
+run with an error, and each setting reads the grid row of its own N (the grid must contain it).
+
 Usage:
     OPENBLAS_NUM_THREADS=1 python analysis/dual_vs_primal.py
 Output: analysis/dual_vs_primal.json
@@ -96,6 +99,13 @@ def make_pool(N, D, seed=0):
     return E, lp
 
 
+def full(sel, what, D, N):
+    """sel, after checking that it has K items: a short draw would time less work."""
+    if len(sel) != K:
+        raise RuntimeError(f"{what} at D={D}, N={N} returned {len(sel)} items, expected K={K}")
+    return sel
+
+
 def timed(f):
     t0 = time.perf_counter()
     f()
@@ -114,15 +124,20 @@ def main():
             row = {"D": D, "N": N,
                    "dual_ms": float(np.median([timed(lambda: dual_draw(B, K)) for _ in range(r)])),
                    "primal_eigh_ms": float(np.median([timed(lambda: np.linalg.eigh(B @ B.T)) for _ in range(r)])),
-                   "stable_ms": float(np.median([timed(lambda: StableKDPP(log_s, E, K).sample()) for _ in range(r)])),
-                   "greedy_map_ms": float(np.median([timed(lambda: greedy_map(log_s, E, K)) for _ in range(r)]))}
+                   "stable_ms": float(np.median([timed(lambda: full(StableKDPP(log_s, E, K).sample(), "stable", D, N))
+                                                 for _ in range(r)])),
+                   "greedy_map_ms": float(np.median([timed(lambda: full(greedy_map(log_s, E, K), "greedy MAP", D, N))
+                                                     for _ in range(r)]))}
             rows.append(row)
             print(f"{D:>6} {N:>6} {row['dual_ms']:>10.2f} {row['primal_eigh_ms']:>12.2f} "
                   f"{row['stable_ms']:>10.2f} {row['greedy_map_ms']:>11.2f}", flush=True)
 
     settings = {}
     for name, key, D, N in SETTINGS:
-        r = min((x for x in rows if x["D"] == D), key=lambda x: abs(x["N"] - N))
+        match = [x for x in rows if x["D"] == D and x["N"] == N]
+        if len(match) != 1:
+            raise ValueError(f"{name}: the grid has {len(match)} rows at D={D}, N={N}")
+        r = match[0]
         settings[key] = {"D": D, "N": N, "measured": r,
                          "dual_over_primal_eigh": r["dual_ms"] / r["primal_eigh_ms"]}
         print(f"{name:<20s} D={D:<5d} N={N:<5d} dual / primal eigh = "

@@ -4,7 +4,8 @@ Instructed-kernel embeddings for GSM8K (tab:gsm8k-kernels, tab:significance)
 Qwen3-Embedding-0.6B with a task-instruction prefix. Writes per pool
 google__gemma-2-9b-it_qwenins_embeddings.pkl with the same
 {sT: {prompt: {u_sents, counts, logps, logps_t1, embeddings}}} structure as the
-plain qwen file (all fields copied, embeddings recomputed).
+plain qwen file (all fields copied, embeddings recomputed). A pool whose plain qwen file lacks one of
+the temperatures stops the run with an error.
 
 Usage (one shard per GPU):
   CUDA_VISIBLE_DEVICES=0 python analysis/embed_instructed.py --pool-start 0 --pool-end 100
@@ -48,7 +49,9 @@ def main():
         emb = pickle.load(open(os.path.join(pdir, BASE), "rb"))
         changed = False
         for sT in TEMPS:
-            if sT in out or sT not in emb:
+            if sT not in emb:
+                raise ValueError(f"pool{pi}: no sT={sT} in {os.path.join(pdir, BASE)}")
+            if sT in out:   # done by an earlier run
                 continue
             out[sT] = {}
             for pt, d in emb[sT].items():

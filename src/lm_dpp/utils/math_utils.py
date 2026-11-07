@@ -6,14 +6,14 @@ def load_gsm8k_dataset(split="test"):
     """
     Loads the GSM8K dataset from huggingface.
     Returns a pandas DataFrame with 'question' and 'answer' columns.
+    Raises if the dataset cannot be loaded (it used to print the error and return an empty
+    DataFrame, which made every caller run on zero questions).
     """
-    try:
-        dataset = load_dataset("gsm8k", "main", split=split)
-        df = pd.DataFrame(dataset)
-        return df
-    except Exception as e:
-        print(f"Error loading GSM8K dataset: {e}")
-        return pd.DataFrame()
+    dataset = load_dataset("gsm8k", "main", split=split)
+    df = pd.DataFrame(dataset)
+    if df.empty:
+        raise ValueError(f"GSM8K split {split!r} loaded with no rows")
+    return df
 
 def extract_model_num(completion: str) -> str:
     text = str(completion)

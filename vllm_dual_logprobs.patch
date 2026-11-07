@@ -102,13 +102,15 @@
  
              # Detokenize (non-incrementally).
              decoded_tokens = NONES if self.tokenizer is None else (
-@@ -77,7 +80,9 @@
- 
+@@ -78,6 +81,11 @@
              # Sampler puts the sampled logprob in first.
              sampled_token_logprob = logprobs[0]
-+            sampled_token_logprob_at_temperature = logprobs_t[0] if logprobs_t is not None else 0.0
              self.cumulative_logprob += sampled_token_logprob
-+            self.cumulative_logprob_at_temperature += sampled_token_logprob_at_temperature
++            # A step without an at-temperature log-prob makes the total unknown: None, never + 0.0.
++            if logprobs_t is None or self.cumulative_logprob_at_temperature is None:
++                self.cumulative_logprob_at_temperature = None
++            else:
++                self.cumulative_logprob_at_temperature += logprobs_t[0]
  
              # Update with the Logprob dictionary for this pos.
              self.logprobs.append(
@@ -203,7 +205,17 @@
  
 --- a/vllm/v1/sample/ops/topk_topp_sampler.py
 +++ b/vllm/v1/sample/ops/topk_topp_sampler.py
-@@ -91,7 +91,7 @@
+@@ -34,7 +34,8 @@
+         self.logprobs_mode = logprobs_mode
+         # flashinfer optimization does not apply if intermediate
+         # logprobs/logits after top_k/top_p need to be returned
+-        if logprobs_mode not in ("processed_logits", "processed_logprobs"
++        if logprobs_mode not in ("processed_logits", "processed_logprobs",
++                                 "raw_processed_logprobs"
+                                  ) and current_platform.is_cuda():
+             if is_flashinfer_available:
+                 flashinfer_version = flashinfer.__version__
+@@ -91,7 +92,7 @@
          logits_to_return = None
          if self.logprobs_mode == "processed_logits":
              logits_to_return = logits
@@ -212,3 +224,12 @@
              logits_to_return = logits.log_softmax(dim=-1, dtype=torch.float32)
          probs = logits.softmax(dim=-1, dtype=torch.float32)
          return random_sample(probs, generators), logits_to_return
+@@ -137,7 +138,7 @@
+         logits_to_return = None
+         if self.logprobs_mode == "processed_logits":
+             logits_to_return = logits
+-        elif self.logprobs_mode == "processed_logprobs":
++        elif self.logprobs_mode == "processed_logprobs" or self.logprobs_mode == "raw_processed_logprobs":
+             logits_to_return = logits.log_softmax(dim=-1, dtype=torch.float32)
+ 
+         # Note: this is a workaround for

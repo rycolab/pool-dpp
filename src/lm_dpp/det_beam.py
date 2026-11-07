@@ -57,10 +57,15 @@ def greedy_map_logdet(L: np.ndarray, k: int) -> list[int]:
     sel: list[int] = []
     for step in range(k):
         j = int(np.argmax(d2))
+        if not d2[j] > 0:
+            # was clamped to 1e-300, which kept selecting from a set with zero determinant
+            raise RuntimeError(f"greedy MAP: largest residual {d2[j]!r} at step {step} of k={k} over {N} "
+                               f"candidates, so L has rank < k on them; DetBS needs k candidates with "
+                               f"independent rows (check for weights D that underflow to 0)")
         sel.append(j)
         if step == k - 1:
             break
-        dj = math.sqrt(max(d2[j], 1e-300))
+        dj = math.sqrt(d2[j])
         eis = (L[j] - cis[:step].T @ cis[:step, j]) / dj
         cis[step] = eis
         d2 = d2 - eis ** 2

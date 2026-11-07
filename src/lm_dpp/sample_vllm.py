@@ -1,7 +1,17 @@
 #!/usr/bin/env python3
+"""dpp-sample: draw pools with vLLM and store, per draw, the string, its cumulative log-prob at
+the local sampling temperature sT (the proposal q), at T=1 (plm), and its token count.
+
+The at-temperature log-prob needs vllm_dual_logprobs.patch (README). A completion without it
+stops the run: the attribute is missing (patch not applied), None (a decoding step returned no
+at-temperature log-prob, so the patched vLLM marks the total unknown instead of adding 0.0), or
+not finite. A request that returns a different number of finished completions than it asked
+for also stops the run. Nothing is stored for such a request.
+"""
 import argparse
 import asyncio
 import hashlib
+import math
 import time
 from pathlib import Path
 from uuid import uuid4
@@ -40,10 +50,33 @@ def derive_request_seed(base_seed: int | None, prompt_text: str, T: float, offse
     return int.from_bytes(h, "little") >> 1  # 63-bit non-negative
 
 
+def at_temperature_logprob(c) -> float:
+    """Cumulative log-prob of completion c at the sampling temperature, from the patched vLLM.
+    Raises RuntimeError when it is missing, None or not finite; no default is stored."""
+    if not hasattr(c, "cumulative_logprob_at_temperature"):
+        raise RuntimeError("vLLM completion has no cumulative_logprob_at_temperature: apply "
+                           "vllm_dual_logprobs.patch to the installed vllm==0.11.0 (README, Install)")
+    v = c.cumulative_logprob_at_temperature
+    if v is None:
+        raise RuntimeError("a decoding step returned no at-temperature log-prob, so the patched vLLM "
+                           "left cumulative_logprob_at_temperature unknown (None): run with "
+                           "logprobs_mode='raw_processed_logprobs' and logprobs=1, and check that the "
+                           "patch's topk_topp_sampler hunks applied")
+    v = float(v)
+    if not math.isfinite(v):
+        raise RuntimeError(f"cumulative_logprob_at_temperature = {v!r}: q(y) must be a positive "
+                           f"probability for a drawn string; check the sampling parameters")
+    return v
+
+
 def extract_results(outputs: list) -> tuple[list[str], list[float], list[float], list[int]]:
     texts = [c.text for c in outputs]
     t1_lps = [float(c.cumulative_logprob) for c in outputs]
-    lps = [float(getattr(c, "cumulative_logprob_at_temperature", float("nan"))) for c in outputs]
+    bad = [v for v in t1_lps if not math.isfinite(v)]
+    if bad:
+        raise RuntimeError(f"{len(bad)} of {len(outputs)} completions have a non-finite T=1 "
+                           f"cumulative log-prob (first: {bad[0]!r}); plm(y) must be positive")
+    lps = [at_temperature_logprob(c) for c in outputs]
     comp_ids_list = [list(c.token_ids) for c in outputs]
     lengths = [len(ids) for ids in comp_ids_list]
     return texts, t1_lps, lps, lengths
@@ -217,7 +250,14 @@ async def async_main() -> None:
             elapsed = time.perf_counter() - t0
             sampling_active -= 1
 
-        texts, t1_lps, lps, lengths = extract_results(outputs)
+        if len(outputs) != remaining:
+            raise RuntimeError(f"T={T} prompt {pid}: vLLM returned {len(outputs)} finished completions "
+                               f"for a request of n={remaining}; nothing stored. Rerun dpp-sample (it "
+                               f"resumes); if it repeats, the vLLM version streams completions differently")
+        try:
+            texts, t1_lps, lps, lengths = extract_results(outputs)
+        except RuntimeError as e:
+            raise RuntimeError(f"T={T} prompt {pid}: {e}") from e
 
         temp_bucket = results[T]
         entry = temp_bucket.get(prompt_text)

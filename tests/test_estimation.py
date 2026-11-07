@@ -190,9 +190,20 @@ def test_cli_end_to_end(tmp_path):
     assert sorted(os.listdir(out)) == ["0", "1"]
     run0 = out / "0"
     assert sorted(os.listdir(run0)) == sorted(f"{MODEL}-{m}" for m in ["samp", "map", "ancestral", "naive", "kmeans"])
-    assert sorted(os.listdir(run0 / f"{MODEL}-samp")) == ["T0.5_s1.pkl", "tau0.03_s1.pkl", "tau1_s1.pkl"]
-    assert sorted(os.listdir(run0 / f"{MODEL}-map")) == ["T10_s1.pkl", "tau0.03_s1.pkl"]
-    assert os.listdir(run0 / f"{MODEL}-ancestral") == ["s1.pkl"]
+    def files(method):
+        return sorted(os.listdir(run0 / f"{MODEL}-{method}"))
+
+    def with_sidecars(*stems):
+        return sorted([f"{s}.pkl" for s in stems] + [f"{s}.redraws.json" for s in stems])
+
+    assert files("samp") == with_sidecars("T0.5_s1", "tau0.03_s1", "tau1_s1")
+    assert files("map") == with_sidecars("T10_s1", "tau0.03_s1")
+    assert files("naive") == with_sidecars("s1")
+    assert files("ancestral") == ["s1.pkl"]
+    side = json.load(open(run0 / f"{MODEL}-samp" / "T0.5_s1.redraws.json"))
+    assert (side["n_prompts"], side["n_redrawn"], side["k"]) == (4, 0, 5)
+    assert side["sampler"]["n_flat"] + side["sampler"]["n_drop"] + side["sampler"]["n_tiered"] == 4
+    assert json.load(open(run0 / f"{MODEL}-map" / "T10_s1.redraws.json"))["sampler"] is None
     assert not (out / "1" / f"{MODEL}-map").exists()
 
     data = pickle.load(open(run0 / f"{MODEL}-samp" / "tau1_s1.pkl", "rb"))

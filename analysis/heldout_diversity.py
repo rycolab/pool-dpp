@@ -21,6 +21,18 @@ Cosine diversity under the SAME embedder would not fix the circularity, so it
 is deliberately not the headline here; the MiniLM log-det is reported only as
 the reference column that the circularity charge is about.
 
+Inputs are pool 0 (cache-fineweb/est10minilm). Failures stop the run with an
+error; nothing is skipped. A missing selection file raises FileNotFoundError (a
+stochastic method must exist in every run dir 0..N-1, PoolDPP-MAP in run dir 0).
+A selection file without exactly the 50 FineWeb prompts, a record that is not
+(prompt, sents, logps_t1, embs), a set of other than K=10 strings, a selected
+string with no held-out Qwen embedding (n_sets_missing_heldout is therefore
+always 0), a set with no n-grams for distinct-n, a pair of strings that are
+both empty after whitespace tokenization (Jaccard undefined), or a non-finite
+metric (e.g. a log-det whose Gram matrix plus 1e-6 I is not positive definite)
+raises ValueError. The log-det adds 1e-6 * I and the cosine adds 1e-12 to row
+norms (existing approximations, kept as is).
+
 Usage:
     OPENBLAS_NUM_THREADS=1 python analysis/heldout_diversity.py
 """
@@ -28,6 +40,7 @@ Usage:
 import json
 import os
 import pickle
+import sys
 from collections import defaultdict
 from itertools import combinations
 
@@ -35,6 +48,10 @@ import numpy as np
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(SCRIPT_DIR)
+sys.path.insert(0, SCRIPT_DIR)
+from baselines import check_selections, finite_mean, logdet, selection_files  # noqa: E402
+
+K = 10
 EST_DIR = os.path.join(ROOT_DIR, "cache-fineweb", "est10minilm")
 MODEL = "google__gemma-2-9b-it_minilm"
 QWEN_EMB = os.path.join(ROOT_DIR, "cache-fineweb",
@@ -66,35 +83,36 @@ def toks(s):
 
 
 def distinct_n(sents, n):
+    """Fraction of distinct n-grams; raises ValueError if the set has no n-gram."""
     grams = []
     for s in sents:
         t = toks(s)
         grams.extend(tuple(t[i:i + n]) for i in range(len(t) - n + 1))
-    return len(set(grams)) / len(grams) if grams else float("nan")
+    if not grams:
+        raise ValueError(f"distinct-{n} is undefined: none of the {len(sents)} strings has "
+                         f"{n} whitespace tokens (first: {sents[0][:60]!r})" if sents
+                         else f"distinct-{n} of an empty set")
+    return len(set(grams)) / len(grams)
 
 
 def mean_pairwise_jaccard(sents):
     sets = [set(toks(s)) for s in sents]
+    if len(sets) < 2:
+        raise ValueError(f"pairwise Jaccard of a set of {len(sets)} strings")
     vals = []
     for a, b in combinations(sets, 2):
         u = len(a | b)
-        vals.append(len(a & b) / u if u else 0.0)
-    return float(np.mean(vals)) if vals else float("nan")
-
-
-def logdet(F):
-    F = np.asarray(F, dtype=np.float64)
-    if len(F) < 2:
-        return np.nan
-    G = F @ F.T + 1e-6 * np.eye(len(F))
-    s, ld = np.linalg.slogdet(G)
-    return ld if s > 0 else np.nan
+        if not u:
+            raise ValueError("pairwise Jaccard is undefined for two strings that are both "
+                             "empty after whitespace tokenization")
+        vals.append(len(a & b) / u)
+    return float(np.mean(vals))
 
 
 def mean_pairwise_cosdist(F):
     F = np.asarray(F, dtype=np.float64)
     if len(F) < 2:
-        return np.nan
+        raise ValueError(f"pairwise cosine distance of a set of {len(F)} strings")
     nrm = F / (np.linalg.norm(F, axis=1, keepdims=True) + 1e-12)
     S = nrm @ nrm.T
     iu = np.triu_indices(len(F), 1)
@@ -113,26 +131,18 @@ def main():
                 lookup.setdefault(s, v)
     print(f"  {len(lookup)} unique sentences with held-out embeddings", flush=True)
 
-    runs = sorted([d for d in os.listdir(EST_DIR)
-                   if d.isdigit() and os.path.isdir(os.path.join(EST_DIR, d))],
-                  key=int)
+    from lm_dpp.utils.fineweb_prompts import prompts as fineweb_prompts
+    expected = set(fineweb_prompts)
     out = {}
     for name, knob, sub, fname in METHODS:
         key = f"{name}|{knob}"
         acc = defaultdict(list)
         n_sets, n_missing = 0, 0
-        for r in runs:
-            p = os.path.join(EST_DIR, r, sub, fname)
-            if not os.path.exists(p):
-                continue
+        for p in selection_files(EST_DIR, sub, fname, deterministic=(name == "PoolDPP-MAP")):
             with open(p, "rb") as f:
                 items = pickle.load(f)
-            for item in items:
-                if len(item) != 4:
-                    continue
-                _, sents, lp, emb_minilm = item
-                if len(sents) < 2:
-                    continue
+            check_selections(items, p, expected, K)
+            for pt, sents, lp, emb_minilm in items:
                 n_sets += 1
                 # quality axis, identical to analysis/plot_intrinsic.py
                 acc["quality_mean_logp"].append(float(np.mean(lp)))
@@ -141,22 +151,22 @@ def main():
                 acc["distinct_3"].append(distinct_n(sents, 3))
                 acc["pairwise_jaccard"].append(mean_pairwise_jaccard(sents))
                 acc["kernel_logdet_minilm"].append(logdet(emb_minilm))
-                qv = [lookup[s] for s in sents if s in lookup]
-                if len(qv) == len(sents):
-                    acc["heldout_logdet_qwen"].append(logdet(qv))
-                    acc["heldout_cosdist_qwen"].append(mean_pairwise_cosdist(qv))
-                else:
-                    n_missing += 1
-        if not n_sets:
-            continue
-        out[key] = {k: float(np.nanmean(v)) for k, v in acc.items()}
+                absent = [s for s in sents if s not in lookup]
+                if absent:
+                    raise ValueError(f"{p}: prompt {pt[:60]!r}: {len(absent)} selected strings "
+                                     f"have no held-out embedding in {QWEN_EMB} "
+                                     f"(first: {absent[0][:60]!r})")
+                qv = [lookup[s] for s in sents]
+                acc["heldout_logdet_qwen"].append(logdet(qv))
+                acc["heldout_cosdist_qwen"].append(mean_pairwise_cosdist(qv))
+        out[key] = {k: finite_mean(v, f"{key} {k}") for k, v in acc.items()}
         out[key]["n_sets"] = n_sets
         out[key]["n_sets_missing_heldout"] = n_missing
         print(f"  {key:<24s} n={n_sets:<5d} d1={out[key]['distinct_1']:.4f} "
               f"d2={out[key]['distinct_2']:.4f} "
               f"jac={out[key]['pairwise_jaccard']:.4f} "
               f"kernel_ld={out[key]['kernel_logdet_minilm']:+.2f} "
-              f"heldout_ld={out[key].get('heldout_logdet_qwen', float('nan')):+.2f}",
+              f"heldout_ld={out[key]['heldout_logdet_qwen']:+.2f}",
               flush=True)
 
     dest = os.path.join(SCRIPT_DIR, "heldout_diversity.json")
@@ -165,7 +175,7 @@ def main():
 
     # rank agreement: does the kernel metric order methods the same way the
     # non-kernel metrics do?
-    keys = [k for k in out if np.isfinite(out[k].get("heldout_logdet_qwen", np.nan))]
+    keys = list(out)
     if len(keys) >= 3:
         from scipy.stats import spearmanr
         kern = [out[k]["kernel_logdet_minilm"] for k in keys]
@@ -196,13 +206,7 @@ def main():
                      ("distinct_1", +1.0), ("distinct_2", +1.0),
                      ("pairwise_jaccard", -1.0)]:
         pts = [(k, out[k]["quality_mean_logp"], sign * out[k][dm])
-               for k in out
-               if not k.startswith("_")
-               and isinstance(out[k], dict)
-               and isinstance(out[k].get(dm), float)
-               and isinstance(out[k].get("quality_mean_logp"), float)
-               and np.isfinite(out[k][dm])
-               and np.isfinite(out[k]["quality_mean_logp"])]
+               for k in out if not k.startswith("_")]
         front = []
         for k, q, d in pts:
             dominated = any((q2 >= q and d2 >= d) and (q2 > q or d2 > d)

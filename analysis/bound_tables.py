@@ -46,6 +46,13 @@ Output keys (analysis/bound_tables.json), per setting:
   sweep[m].lower_hoeffding, upper_m1           primary bracket, medians
   sweep[m].lower, upper, frac_in_bracket,
   frac_below_lower                             (a_1 lower, r_1 upper)
+  n_prompts_measured_across_pool               prompts with a measured across-pool relvar
+                                               (bound_empirical needs >= 10 pools)
+
+A None, NaN or inf value in a median or quantile, or an MC relvar that is not finite and
+positive, stops the script. Only the
+measured across-pool relvar may be None (fewer than 10 pools), and its median is over the
+prompts that have it (n_prompts_measured_across_pool).
 
 Usage: python analysis/bound_tables.py
 """
@@ -69,8 +76,12 @@ TASK_PARAMS = {"ambrosia": (3, 200), "fineweb": (10, 400), "gsm8k": (10, 100)}
 
 
 def q(vals, p):
-    v = [x for x in vals if x is not None and np.isfinite(x)]
-    return float(np.quantile(v, p)) if v else float("nan")
+    """p-quantile; raises on an empty list or a None, NaN or inf value."""
+    v = list(vals)
+    if not v or any(x is None for x in v) or not np.isfinite(v).all():
+        raise ValueError(f"quantile of {len(v)} values with {sum(x is None for x in v)} None and "
+                         f"{sum(x is not None and not np.isfinite(x) for x in v)} non-finite")
+    return float(np.quantile(v, p))
 
 
 def med(vals):
@@ -97,7 +108,11 @@ def main():
 
             lead = [r["leading"] for r in rows]
             mc = [r["mc_relvar"] for r in rows]
-            meas = [r["measured_relvar"] for r in rows]
+            if not (np.isfinite(mc).all() and min(mc) > 0):
+                raise ValueError(f"{key} in {path}: the MC relvar is not finite and positive for "
+                                 f"{sum(not (np.isfinite(x) and x > 0) for x in mc)} of {len(mc)} prompts; "
+                                 f"rerun bound_empirical.py, which now stops on such values")
+            meas = [r["measured_relvar"] for r in rows if r["measured_relvar"] is not None]
             # primary: second-moment bound, from chi2_1 (m_1 = 1 + chi2_1)
             m1 = [bf.m1_of_row(r) for r in rows]
             hyb_m1 = [bf.kl_hybrid_m1(M_exp, K, r["chi2_1"]) for r in rows]
@@ -117,20 +132,13 @@ def main():
                         raise ValueError(f"{key}: stored {name}={stored!r} but the "
                                          f"formula at K={K}, N={M_exp} gives {new_v!r}")
             # exact KL implied by the honest MC value of the reduced quantity
-            kl_mc = [math.log1p(x) for x in mc if np.isfinite(x)]
-            tight_m1 = [h / math.log1p(r["mc_relvar"]) for h, r in zip(hyb_m1, rows)
-                        if r["mc_relvar"] and np.isfinite(r["mc_relvar"])]
-            tight = [r["cert_hybrid_KL"] / math.log1p(r["mc_relvar"])
-                     for r in rows if r["mc_relvar"] and np.isfinite(r["mc_relvar"])]
-            lead_frac = [r["leading"] / r["mc_relvar"] for r in rows
-                         if r["mc_relvar"] and np.isfinite(r["mc_relvar"]) and r["mc_relvar"] > 0]
-            lower_h_frac = [lh / r["mc_relvar"] for lh, r in zip(lower_h, rows)
-                            if r["mc_relvar"] and np.isfinite(r["mc_relvar"])
-                            and r["mc_relvar"] > 0]
-            # ratio of the honest value to the across-pool measurement
-            infl = [r["mc_relvar"] / r["measured_relvar"] for r in rows
-                    if r.get("measured_relvar") and r["measured_relvar"] > 0
-                    and np.isfinite(r["mc_relvar"])]
+            kl_mc = [math.log1p(x) for x in mc]
+            tight_m1 = [h / math.log1p(r["mc_relvar"]) for h, r in zip(hyb_m1, rows)]
+            tight = [r["cert_hybrid_KL"] / math.log1p(r["mc_relvar"]) for r in rows]
+            lead_frac = [r["leading"] / r["mc_relvar"] for r in rows]
+            lower_h_frac = [lh / r["mc_relvar"] for lh, r in zip(lower_h, rows)]
+            # ratio of the honest value to the across-pool measurement, where there is one
+            infl = [r["mc_relvar"] / r["measured_relvar"] for r in rows if r["measured_relvar"] is not None]
 
             Ms = sorted({int(m) for r in rows for m in r["sub_relvar"]})
             sweep = {}
@@ -199,8 +207,9 @@ def main():
                 cert_hybrid=med(cert),
                 cert_simple=med(simple),
                 tightness_cert_over_actual=med(tight),
-                measured_across_pool=med(meas),
-                inflation_mc_over_measured=med(infl),
+                measured_across_pool=med(meas) if meas else None,
+                n_prompts_measured_across_pool=len(meas),
+                inflation_mc_over_measured=med(infl) if infl else None,
                 sweep=sweep, iid=iid,
             )
 

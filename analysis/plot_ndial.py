@@ -20,7 +20,9 @@ That script computes it from the same bound_raw rows with the same formula, so
 the dot checks that the two scripts agree; it is not an independent
 measurement on the N=2,500 pools.
 
-Inputs: analysis/bound_raw_gsm8k.json at T=1 and T=1.05.
+Inputs: analysis/bound_raw_gsm8k.json at T=1 and T=1.05, and analysis/gsm8k_n2500.json for the
+dot. The script stops if either file or setting is missing (it used to drop the curve or the dot
+with a printed note), or if a row's chi2_1 is not finite.
 
 Output: --out (default analysis/ndial_gsm8k.pdf) + the table
 values on stdout and in analysis/ndial_gsm8k.json, with keys
@@ -65,7 +67,8 @@ def main():
     with open(os.path.join(SCRIPT_DIR, raw_name)) as f:
         raw = json.load(f)
     n2500_path = os.path.join(SCRIPT_DIR, "gsm8k_n2500.json")
-    n2500 = json.load(open(n2500_path)) if os.path.exists(n2500_path) else {}
+    with open(n2500_path) as f:   # run gsm8k_n2500.py first (make_figures.sh: ndial)
+        n2500 = json.load(f)
 
     Ns = np.unique(np.round(np.logspace(2, math.log10(4000), 25)).astype(int))
     fig, ax = plt.subplots(figsize=(4.6, 3.0))
@@ -74,11 +77,14 @@ def main():
     table, table_r1 = {}, {}
     for key, color, label in curves:
         if key not in raw:
-            print(f"[skip] {key} not in {raw_name}")
-            continue
+            raise KeyError(f"{key} not in {raw_name}")
         rows = raw[key]
+        if not rows:
+            raise ValueError(f"{key}: no rows in {raw_name}")
         for r in rows:
             bf.m1_of_row(r)  # rows that store m1 must have m1 = 1 + chi2_1
+            if not math.isfinite(r["chi2_1"]):
+                raise ValueError(f"{key}: chi2_1 = {r['chi2_1']} in {raw_name}")
         med = [float(np.median([bound_m1(int(N), r["chi2_1"]) for r in rows]))
                for N in Ns]
         ax.plot(Ns, med, color=color, label=label)
@@ -90,10 +96,9 @@ def main():
                          for N in [100, 500, 1000, 2500]}
         # consistency dot: gsm8k_n2500.py's value from the same rows and formula
         v = n2500.get(f"bound_m1|{key}", {}).get("2500")
-        if v is not None:
-            ax.plot([2500], [v], "o", color=color, markersize=5)
-        else:
-            print(f"[note] no bound_m1|{key} at N=2500 in {n2500_path}; dot not drawn")
+        if v is None:
+            raise KeyError(f"no bound_m1|{key} at N=2500 in {n2500_path}")
+        ax.plot([2500], [v], "o", color=color, markersize=5)
 
     ax.axhline(0.1, color="gray", lw=0.8, ls="--")
     ax.text(N_EXPERIMENTS * 1.25, 0.115, r"KL $\leq$ 0.1", fontsize=8, color="gray")
