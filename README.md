@@ -65,6 +65,10 @@ resumes where it stopped.
 | Prompts with Zhat = 0 and the redraw rule | `zhat_zero_counts.py` |
 | GSM8K pools from different runs, embedding batch size | `pool_checks.py`, `embed_batch_check.py` |
 
+## Lean proofs
+
+`lean/` has machine-checked Lean 4 proofs of the paper's variance-bias bound, finite-sample bound, and sharper KL bound. See `lean/README.md` to build and check them.
+
 ## Pools
 
 Ambrosia and GSM8K use 100 pools and FineWeb uses 10, with the pool index as the seed. At 10 pools, FineWeb's largest
