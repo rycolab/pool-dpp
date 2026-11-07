@@ -25,6 +25,15 @@ definition of chi2_1), so bound_raw files written before the m1 keys existed
 give the same tables; when a row stores m1 it is checked against 1 + chi2_1.
 
 Output keys (analysis/bound_tables.json), per setting:
+  missing_mass                                 median Good-Turing ESTIMATE of the
+                                               proposal mass no pool drew (unchanged)
+  log10_covered_mass, covered_mass             (new) median exact proposal mass
+                                               sum_y q(y) of the distinct observed
+                                               strings, as log10 and as a value
+                                               (bound_empirical.py, "Covered proposal
+                                               mass"); None, and printed as missing,
+                                               for bound_raw files written before
+                                               these keys existed
   m1 [median, q25, q75]                        (new)
   lower_hoeffding, lower_hoeffding_over_mc     (new, primary) median (K^2/N) chi2_1 and
                                                its median ratio to the MC relvar
@@ -173,10 +182,24 @@ def main():
 
             iid = {k: med([r["iid"][k] for r in rows]) for k in rows[0]["iid"]}
 
+            # exact covered proposal mass (absent from bound_raw files written
+            # before bound_empirical.py stored it; a file with it on some rows
+            # only is corrupt)
+            has_cov = ["log10_covered_mass" in r for r in rows]
+            if all(has_cov):
+                log10_cov = med([r["log10_covered_mass"] for r in rows])
+                cov = med([r["covered_mass"] for r in rows])
+            elif not any(has_cov):
+                log10_cov = cov = None
+            else:
+                raise ValueError(f"{key}: log10_covered_mass is on {sum(has_cov)} of "
+                                 f"{len(rows)} rows of {path}")
+
             out[key] = dict(
                 n_prompts=len(rows), K=K, M_exp=M_exp,
                 n_uniq=med([r["n_uniq"] for r in rows]),
-                missing_mass=med([r["missing_mass"] for r in rows]),
+                missing_mass=med([r["missing_mass"] for r in rows]),   # Good-Turing estimate
+                log10_covered_mass=log10_cov, covered_mass=cov,          # exact
                 chi2_1=[med([r["chi2_1"] for r in rows]),
                         q([r["chi2_1"] for r in rows], .25),
                         q([r["chi2_1"] for r in rows], .75)],
@@ -204,7 +227,15 @@ def main():
             print(f"\n{'='*78}\n{key}   (K={K}, M_exp={M_exp}, "
                   f"{s['n_prompts']} prompts)\n{'='*78}")
             print(f"  ground set |Y| (median)              {s['n_uniq']:.0f}")
-            print(f"  Good-Turing missing mass             {s['missing_mass']:.4f}")
+            print(f"  Good-Turing missing mass (estimate)  {s['missing_mass']:.4f}")
+            if s["log10_covered_mass"] is None:
+                print("  exact covered proposal mass          not in this bound_raw file "
+                      "(rerun bound_empirical.py)")
+            else:
+                print(f"  exact covered proposal mass (log10, median)  "
+                      f"{s['log10_covered_mass']:.4g}")
+                print(f"  exact covered proposal mass (median)         "
+                      f"{s['covered_mass']:.4g}")
             print(f"  E[Zhat]/Z from MC (must be 1)        {s['unbiasedness_EZ_over_Z']:.4f}")
             print(f"  chi2(pi_1||q)  median [IQR]          {s['chi2_1'][0]:.3f} "
                   f"[{s['chi2_1'][1]:.3f}, {s['chi2_1'][2]:.3f}]")

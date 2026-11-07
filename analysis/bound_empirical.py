@@ -51,11 +51,20 @@ Per-prompt row keys (bound_raw_{task}.json, analyze stage):
   pred_leading_by_m    {m: a_1(m) chi2_1}, exact lower bound on Var(Zhat)/Z^2 (secondary)
   pred_upper_m1_by_m   {m: second-moment upper bound on Var(Zhat)/Z^2}   (new)
   pred_upper_by_m      {m: r_1 upper bound on Var(Zhat)/Z^2}         (secondary)
+  log10_covered_mass   log10 sum_y q(y) over the prompt's distinct observed
+                       strings: the exact proposal mass the pool-built
+                       instance covers (see "Covered proposal mass")  (new)
+  covered_mass         10**log10_covered_mass; underflows to 0.0 when the
+                       strings are long, so read the log10 value      (new)
+  missing_mass         Good-Turing ESTIMATE of the uncovered mass, (#strings
+                       seen once)/(#draws); kept so earlier outputs stay
+                       comparable; superseded by 1 - covered_mass   (unchanged)
   others (mc_*, measured_relvar, sub_*, iid, ...) unchanged.
 Summary keys (bound_empirical_{task}_{stage}.json, "{task}|summary"): the
 medians of the above (median_m1, median_lower_hoeffding,
-median_bound_hybrid_m1_KL, median_bound_simple_m1_KL, median_bound_theta_m1
-are new; median_r1, median_cert_* are the r_1 versions),
+median_bound_hybrid_m1_KL, median_bound_simple_m1_KL, median_bound_theta_m1,
+median_log10_covered_mass, median_covered_mass are new; median_missing_mass is
+still the Good-Turing estimate; median_r1, median_cert_* are the r_1 versions),
 median_lower_hoeffding_over_mc (new) next to median_leading_over_mc,
 predicted_lower_hoeffding_by_m (new) next to predicted_leading_by_m (a_1),
 predicted_upper_m1_by_m (new) next to predicted_upper_by_m (r_1),
@@ -96,6 +105,25 @@ log w = logp_t1 / T - logp.
 All quantities in the bound are invariant to the global scale of kappa; we fix
 the gauge E_q[rho] = 1 (so kappa_Sigma = 1).
 
+Covered proposal mass. The T2 instance replaces the proposal by the empirical
+frequencies of the strings it saw, so it leaves out every string no pool drew.
+How much proposal mass that is needs no estimator: logps is log q(y) for each
+distinct observed string (one entry per column of Cnt), where q is the proposal
+the pools were drawn from, i.e. the sampler's log-probabilities at the local
+sampling temperature sT (lm_dpp/sample_vllm.py stores vLLM's processed,
+at-temperature cumulative log-prob, EOS token included), the same q as in
+log_w. So the covered mass is exactly sum_y q(y) = exp(logsumexp(logps)), and
+the missing mass is exactly 1 minus it. Three caveats, all unmeasured: logps is
+the log-prob of the token sequence first drawn for a string, so a string the
+LM can also tokenize another way has q(string) >= exp(logps), which makes the
+covered mass a lower bound in that case; a string drawn by several pools
+keeps the logps of the first pool that drew it (extract); and a generation cut
+off at max_new_tokens has the log-prob of its prefix, so it covers every
+string that extends that prefix. The analysis stops
+with an error if a log q(y) is not finite, or if the sum exceeds 1 (checked
+without tolerance), since then logps are not log-probabilities of distinct
+strings under one proposal.
+
 Pools. ambrosia/gsm8k read {cache}/pool{i}/; fineweb reads the flat
 {cache}/ pool plus every cache-fineweb-pools/pool*/ (independent seeds) when
 present. --pool-files overrides. Extracted ground sets are cached under
@@ -120,6 +148,7 @@ import sys
 from collections import defaultdict
 
 import numpy as np
+from scipy.special import logsumexp
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(SCRIPT_DIR)
@@ -322,6 +351,34 @@ def pool_logzhat(Phi, rho, cnt_row, K):
     if not np.isfinite(log_eK):
         return None
     return log_eK + log_alpha(int(M), K)
+
+
+def log_covered_mass(logps, Cnt, pools, where):
+    """Natural log of sum_y q(y) over the distinct observed strings, from their
+    log q(y) (rec["logps"], one entry per column of Cnt): the exact proposal
+    mass the pool-built instance covers (module docstring, "Covered proposal
+    mass"). Raises ValueError, naming `where` and the pools that drew the
+    offending string, if a log q(y) is not finite (-inf: q(y) = 0 for a string
+    that was drawn; NaN: the sampler reported no at-temperature log-prob) or if
+    the sum exceeds 1 (no tolerance)."""
+    logps = np.asarray(logps, dtype=np.float64)
+    if logps.shape != (Cnt.shape[1],):
+        raise ValueError(f"{where}: {logps.shape[0]} log-probs for {Cnt.shape[1]} distinct strings")
+    bad = np.flatnonzero(~np.isfinite(logps))
+    if bad.size:
+        j = int(bad[0])
+        drew = [pools[r] for r in np.flatnonzero(Cnt[:, j])]
+        raise ValueError(
+            f"{where}: {bad.size} of {logps.size} distinct strings have a non-finite "
+            f"log q(y) (first: string {j}, log q = {float(logps[j])!r}, drawn by pool(s) {drew}); "
+            f"the covered proposal mass and the importance weights are undefined")
+    lse = float(logsumexp(logps))
+    if lse > 0.0:
+        raise ValueError(
+            f"{where}: the distinct observed strings have total proposal mass "
+            f"exp({lse:.6g}) > 1, so logps are not log-probabilities of distinct "
+            f"strings under one proposal")
+    return lse
 
 
 def iid_diagnostics(Cnt, logps):
@@ -653,6 +710,10 @@ def analyze_prompt(job):
     rec = _POOLED[pt]
     Phi, Cnt = rec["Phi"], rec["Cnt"]
     tot = Cnt.sum(0)
+    # exact proposal mass covered by the distinct observed strings (raises on a
+    # non-finite log q, before the weights are formed from it)
+    log_cov = log_covered_mass(rec["logps"], Cnt, rec["pools"],
+                               f"[{setting_key(task, T)}] prompt {ip} ({pt[:60]!r})")
     q, rho, kappa = build_instance(Phi, tot, rec["logps"], rec["logps_t1"], T)
     tgt = exact_target(Phi, kappa, K)
     if tgt is None:
@@ -698,13 +759,15 @@ def analyze_prompt(job):
         pred_hi_m1[m] = bf.relvar_bound_m1(m, K, chi2_1)    # upper, primary
         pred_hi[m] = bf.relvar_bound_r1(m, K, chi2_1, r1)   # upper, secondary
 
-    # missing-mass diagnostic (Good-Turing) for the surrogate caveat
+    # Good-Turing ESTIMATE of the missing mass, (#seen once)/(#draws). Kept so
+    # earlier outputs stay comparable; the exact value is 1 - covered_mass below.
     singles = float((tot == 1).sum())
     miss = singles / float(tot.sum())
 
     row = dict(
         prompt_hash=abs(hash(pt)) % 10**8, n_uniq=int(rec["n_uniq"]),
         N_total=int(tot.sum()), missing_mass=miss,
+        log10_covered_mass=log_cov / math.log(10), covered_mass=math.exp(log_cov),
         logZ=logZ, sumP1=tgt["sumP1"], chi2_1=chi2_1, m1=m1, r1=r1,
         lower_hoeffding=lower_h,
         a1=float(ac[0]), leading=lead,
@@ -809,7 +872,9 @@ def summarize(per_setting):
         summ[key] = dict(
             n_prompts=len(rows),
             median_n_uniq=med(lambda r: r["n_uniq"]),
-            median_missing_mass=med(lambda r: r["missing_mass"]),
+            median_missing_mass=med(lambda r: r["missing_mass"]),      # Good-Turing estimate
+            median_log10_covered_mass=med(lambda r: r["log10_covered_mass"]),  # exact
+            median_covered_mass=med(lambda r: r["covered_mass"]),              # exact
             median_sumP1_minus_K=med(lambda r: r["sumP1"]),
             median_chi2_1=med(lambda r: r["chi2_1"]),
             median_m1=med(lambda r: r["m1"]),
@@ -844,7 +909,10 @@ def summarize(per_setting):
         s = summ[key]
         print(f"\n=== {key} ===")
         print(f"  prompts={s['n_prompts']} median |Y|={g(s['median_n_uniq'], '.0f')} "
-              f"missing mass={g(s['median_missing_mass'], '.3f')}")
+              f"Good-Turing missing mass (estimate)={g(s['median_missing_mass'], '.3f')}")
+        print(f"  exact covered proposal mass sum_y q(y), median over prompts: "
+              f"log10={g(s['median_log10_covered_mass'], '.4g')} "
+              f"value={g(s['median_covered_mass'], '.4g')}")
         print(f"  sum P1 (should = K): {g(s['median_sumP1_minus_K'], '.8f')}")
         print(f"  E[Zhat]/Z (MC, should = 1): {g(s['median_mc_mean_ratio'], '.4f')}")
         print(f"  chi2(pi_1||q)={g(s['median_chi2_1'])}  "
