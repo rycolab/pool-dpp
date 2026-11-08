@@ -12,14 +12,15 @@ level of HuggingFaceH4/MATH-500, 10 pools of N=100.
   score   runs selection with the functions of the main experiments (10 runs per cell, one for greedy
           MAP) and writes pass@10, distinct answers, and log-determinant per method, with question-paired
           and pool-paired sign-flip tests against ancestral sampling at local sampling temperature 1.2,
-          per-level differences, the pool ceiling, and the figure.
+          per-level differences, the pool ceiling, and the figure. Each PoolDPP setting is also tested
+          against k-means at its local sampling temperature with the highest pass@10 (vs_kmeans).
+  report  rebuilds math500.json and the figure from math500_cells.pkl, without rescoring.
 
-PoolDPP-Samp and PoolDPP-MAP both use w = plm^(1/T) here, with no division by the proposal. The pools behind
-app:math500 were drawn with one raw seed per pool and share 53% of their unique strings. This script seeds each
-request separately, so it draws different pools.
+The kernels are those of the main experiments: PoolDPP-Samp uses w = plm^(1/T) / q and PoolDPP-MAP uses
+w = plm^(1/T), both at local sampling temperature 1.2.
 
 Usage: bash scripts/run_math500.sh, or one stage at a time:
-  python analysis/math500.py {sample,verify,embed,score}
+  python analysis/math500.py {sample,verify,embed,score,report}
 Output: cache-math500/, analysis/math500.json, analysis/math500_cells.pkl, analysis/math500_plot.pdf
 """
 
@@ -43,7 +44,8 @@ TEMPS = [0.5, 0.8, 1.2]
 N_PER_LEVEL = 20
 K = 10
 ANCHOR_ST = 1.2
-TARGET_TS = [500, 100, 50, 25, 10, 5]
+SAMP_TS = [0.428571, 0.666667, 0.818182, 1, 1.03, 1.05, 1.07, 1.1, 1.22222]
+MAP_TS = [500, 100, 50, 25, 10, 5]
 N_RUNS = 10
 
 PROMPT = ("Solve the following math problem. Think step by step, then write your final answer on the "
@@ -293,26 +295,26 @@ _shared = {}
 
 def _score_pool(item):
     """Rows (method, knob, (pool, sT, qid), metrics) for one pool."""
-    from lm_dpp.estimation import ancestral_draw, greedy_map, quality_log_scales, sample_dpp, sample_kmeans_for_prompt
+    from lm_dpp.estimation import (ancestral_draw, greedy_map, quality_log_scales, sample_dpp,
+                                   sample_kmeans_for_prompt, target_log_scales)
 
     pool, raw = item
     by_prompt, verdicts, emb = _shared["by_prompt"], _shared["verdicts"], _shared["emb"]
     np.random.seed(1000 + pool)
     rows = []
     for sT in sorted(raw):
-        for p, (sents, _, lps_t1, _) in raw[sT].items():
+        for p, (sents, lps, lps_t1, _) in raw[sT].items():
             qid = by_prompt[p]["unique_id"]
             unique = {}
-            for s, lp in zip(sents, lps_t1):
-                e = unique.setdefault(hashlib.md5(s.encode()).hexdigest(), [s, lp, 0])
-                e[1] = max(e[1], lp)
-                e[2] += 1
+            for s, lq, lp in zip(sents, lps, lps_t1):  # log-probs of each string's first draw, as embeddings.py
+                unique.setdefault(hashlib.md5(s.encode()).hexdigest(), [s, lq, lp, 0])[3] += 1
             hashes = list(unique)
             n = len(hashes)
             if n < K:
                 continue
-            lp1 = np.array([unique[h][1] for h in hashes])
-            counts = np.array([unique[h][2] for h in hashes])
+            lq = np.array([unique[h][1] for h in hashes])
+            lp1 = np.array([unique[h][2] for h in hashes])
+            counts = np.array([unique[h][3] for h in hashes])
             E = unit(np.stack([emb[h] for h in hashes]))
             judged = [verdicts[(qid, extract_answer(unique[h][0]))] for h in hashes]
             correct = np.array([v["correct"] for v in judged], dtype=float)
@@ -330,14 +332,14 @@ def _score_pool(item):
             for run in range(N_RUNS):
                 add("Ancestral", sT, ancestral_draw(counts, K))
                 add("$k$-Means", sT, sample_kmeans_for_prompt(E, lp1, K, random_state=run))
-            for sel in sample_dpp(np.zeros(n), E, K, N=N_RUNS):
+            for sel in sample_dpp(quality_log_scales(lp1, 0.0, counts), E, K, N=N_RUNS):
                 if sel:
                     add("Naive-DPP", sT, sel)
             if abs(sT - ANCHOR_ST) < 1e-9:
-                for T in TARGET_TS:
-                    log_s = quality_log_scales(lp1, 1.0 / (2.0 * T))
-                    add("PoolDPP-MAP", T, greedy_map(log_s, E, K))
-                    for sel in sample_dpp(log_s, E, K, N=N_RUNS):
+                for T in MAP_TS:
+                    add("PoolDPP-MAP", T, greedy_map(quality_log_scales(lp1, 1.0 / (2.0 * T)), E, K))
+                for T in SAMP_TS:
+                    for sel in sample_dpp(target_log_scales(lq, lp1, counts, T), E, K, N=N_RUNS):
                         if sel:
                             add("PoolDPP-Samp", T, sel)
     print(f"pool{pool} scored", flush=True)
@@ -361,7 +363,7 @@ def _plot(cells, a):
                          "axes.labelsize": 9, "xtick.labelsize": 8, "ytick.labelsize": 8,
                          "legend.fontsize": 8, "figure.dpi": 300})
     fig, ax = plt.subplots(figsize=(5.0, 3.0))
-    for name in ("Ancestral", "Naive-DPP", "$k$-Means", "PoolDPP-Samp", "PoolDPP-MAP"):
+    for name in ("Ancestral", "$k$-Means", "PoolDPP-Samp", "PoolDPP-MAP"):
         pts = []
         for knob, by_cell in cells[name].items():
             per_pool = defaultdict(list)
@@ -375,13 +377,14 @@ def _plot(cells, a):
         ax.errorbar(x, y, xerr=xerr, yerr=yerr, color=COLORS[name], marker=MARKERS[name], markersize=4, capsize=2,
                     capthick=0.5, elinewidth=0.6, linewidth=1.2, label=name)
         for xi, yi, knob in zip(x, y, knobs):
-            ax.annotate(f"{knob:g}", (xi, yi), textcoords="offset points", xytext=(0, 5), ha="center", fontsize=6,
-                        color=COLORS[name])
+            right = name == "PoolDPP-Samp" and knob > 1  # the steep end of the curve has no room above
+            offset = (5, -2) if right else (0, -9) if name == "$k$-Means" else (0, 5)
+            ax.annotate(f"{knob:.3g}", (xi, yi), textcoords="offset points", xytext=offset,
+                        ha="left" if right else "center", fontsize=6, color=COLORS[name])
     ax.set_xlabel("Diversity (log-determinant of Gram matrix)")
     ax.set_ylabel(f"Accuracy (pass@$K{{=}}{K}$)")
-    ax.set_title(f"MATH-500 subset (gemma-2-9b-it, instructed Qwen3-0.6B kernel, {a.n_pools} pools)")
     ax.grid(True, alpha=0.3)
-    ax.legend(loc="lower left", frameon=True, framealpha=0.9)
+    ax.legend(loc="upper left", frameon=True, framealpha=0.9)
     fig.tight_layout(pad=0.4)
     path = os.path.join(a.out_dir, "math500_plot.pdf")
     fig.savefig(path, bbox_inches="tight")
@@ -391,7 +394,6 @@ def _plot(cells, a):
 def cmd_score(a):
     problems = math500_problems(a.n_problems)
     _shared["by_prompt"] = {build_prompt(ex): ex for ex in problems}
-    level_of = {ex["unique_id"]: ex["level"] for ex in problems}
     with open(os.path.join(a.cache, "verify_cache.pkl"), "rb") as f:
         _shared["verdicts"] = pickle.load(f)
     _shared["emb"] = {}
@@ -412,22 +414,35 @@ def cmd_score(a):
     for rows in results:
         for method, knob, cell, metrics in rows:
             cells[method][knob][cell].append(metrics)
+    cells = {m: {k: dict(v) for k, v in kn.items()} for m, kn in cells.items()}
     with open(os.path.join(a.out_dir, "math500_cells.pkl"), "wb") as f:
-        pickle.dump({m: {k: dict(v) for k, v in kn.items()} for m, kn in cells.items()}, f)
+        pickle.dump(cells, f)
+    _report(cells, {ex["unique_id"]: ex["level"] for ex in problems}, a)
 
+
+def cmd_report(a):
+    with open(os.path.join(a.out_dir, "math500_cells.pkl"), "rb") as f:
+        cells = pickle.load(f)
+    _report(cells, {ex["unique_id"]: ex["level"] for ex in math500_problems(a.n_problems)}, a)
+
+
+def _report(cells, level_of, a):
     def cell_means(method, knob):
-        return {c: float(np.mean([d["pass"] for d in draws])) for c, draws in cells[method][knob].items()}
+        """Mean pass@10 per (pool, problem)."""
+        return {(pool, qid): float(np.mean([d["pass"] for d in draws]))
+                for (pool, _, qid), draws in cells[method][knob].items()}
 
     reference = cell_means("Ancestral", ANCHOR_ST)
+    km_knob = max(cells["$k$-Means"], key=lambda k: np.mean(list(cell_means("$k$-Means", k).values())))
+    km_reference = cell_means("$k$-Means", km_knob)
 
-    def paired(method_cells):
-        """Differences from ancestral sampling at the anchor temperature on the same pool and problem."""
+    def paired(method_cells, ref=reference):
+        """Differences from ref on the same pool and problem."""
         by_q, by_pool = defaultdict(list), defaultdict(list)
-        for (pool, _, qid), v in method_cells.items():
-            ref = reference.get((pool, ANCHOR_ST, qid))
-            if ref is not None:
-                by_q[qid].append(v - ref)
-                by_pool[pool].append(v - ref)
+        for (pool, qid), v in method_cells.items():
+            if (pool, qid) in ref:
+                by_q[qid].append(v - ref[(pool, qid)])
+                by_pool[pool].append(v - ref[(pool, qid)])
         dq = [np.mean(v) for v in by_q.values()]
         dp = [np.mean(v) for v in by_pool.values()]
         by_level = defaultdict(list)
@@ -447,6 +462,8 @@ def cmd_score(a):
             o["n_cells"] = len(draws)
             if method != "_ceiling" and not (method == "Ancestral" and knob == ANCHOR_ST):
                 o.update(paired(cell_means(method, knob)))
+            if method.startswith("PoolDPP"):
+                o["vs_kmeans"] = {"kmeans_sT": km_knob, **paired(cell_means(method, knob), km_reference)}
             out[f"{method}|{knob}"] = o
             nan = float("nan")
             print(f"{method:<16s} {knob:>6g} {o['pass']:>8.4f} {o['ukey']:>8.2f} {o['ld'] or nan:>8.2f} "
@@ -460,7 +477,7 @@ def cmd_score(a):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=("sample", "verify", "embed", "score"))
+    ap.add_argument("cmd", choices=("sample", "verify", "embed", "score", "report"))
     ap.add_argument("--cache", default=os.path.join(ROOT_DIR, "cache-math500"))
     ap.add_argument("--out-dir", default=SCRIPT_DIR)
     ap.add_argument("--n-pools", type=int, default=10)
@@ -473,7 +490,8 @@ def main():
     ap.add_argument("--nshards", type=int, default=1, help="embed")
     ap.add_argument("--workers", type=int, default=os.cpu_count() or 1, help="score")
     a = ap.parse_args()
-    {"sample": cmd_sample, "verify": cmd_verify, "embed": cmd_embed, "score": cmd_score}[a.cmd](a)
+    {"sample": cmd_sample, "verify": cmd_verify, "embed": cmd_embed, "score": cmd_score,
+     "report": cmd_report}[a.cmd](a)
 
 
 if __name__ == "__main__":
