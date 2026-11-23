@@ -34,7 +34,7 @@ from scipy.stats import spearmanr
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(SCRIPT_DIR)
-N_POOLS = 10
+N_POOLS = 100
 
 
 def auc(pos, neg):

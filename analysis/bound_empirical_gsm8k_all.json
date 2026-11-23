@@ -299,7 +299,7 @@
   ],
   "gsm8k|T=1": [
     {
-      "prompt_hash": 50738362,
+      "prompt_hash": 39369970,
       "n_uniq": 9988,
       "N_total": 10000,
       "missing_mass": 0.9977,
@@ -377,7 +377,7 @@
       }
     },
     {
-      "prompt_hash": 73645297,
+      "prompt_hash": 806877,
       "n_uniq": 10000,
       "N_total": 10000,
       "missing_mass": 1.0,
@@ -455,7 +455,7 @@
       }
     },
     {
-      "prompt_hash": 49827536,
+      "prompt_hash": 1534444,
       "n_uniq": 9921,
       "N_total": 10000,
       "missing_mass": 0.9863,
@@ -533,7 +533,7 @@
       }
     },
     {
-      "prompt_hash": 90281891,
+      "prompt_hash": 38052605,
       "n_uniq": 9987,
       "N_total": 10000,
       "missing_mass": 0.9974,
@@ -611,7 +611,7 @@
       }
     },
     {
-      "prompt_hash": 49675829,
+      "prompt_hash": 98003824,
       "n_uniq": 9999,
       "N_total": 10000,
       "missing_mass": 0.9998,
@@ -689,7 +689,7 @@
       }
     },
     {
-      "prompt_hash": 79864910,
+      "prompt_hash": 24708913,
       "n_uniq": 9989,
       "N_total": 10000,
       "missing_mass": 0.9983,
@@ -767,7 +767,7 @@
       }
     },
     {
-      "prompt_hash": 5971972,
+      "prompt_hash": 60557391,
       "n_uniq": 9592,
       "N_total": 10000,
       "missing_mass": 0.9365,
@@ -845,7 +845,7 @@
       }
     },
     {
-      "prompt_hash": 66667884,
+      "prompt_hash": 18151592,
       "n_uniq": 9999,
       "N_total": 10000,
       "missing_mass": 0.9998,
@@ -923,7 +923,7 @@
       }
     },
     {
-      "prompt_hash": 26195356,
+      "prompt_hash": 49389267,
       "n_uniq": 9998,
       "N_total": 10000,
       "missing_mass": 0.9997,
@@ -1001,7 +1001,7 @@
       }
     },
     {
-      "prompt_hash": 69470958,
+      "prompt_hash": 14821582,
       "n_uniq": 9987,
       "N_total": 10000,
       "missing_mass": 0.9984,
@@ -1079,7 +1079,7 @@
       }
     },
     {
-      "prompt_hash": 82798381,
+      "prompt_hash": 90976200,
       "n_uniq": 9995,
       "N_total": 10000,
       "missing_mass": 0.9992,
@@ -1157,7 +1157,7 @@
       }
     },
     {
-      "prompt_hash": 12591358,
+      "prompt_hash": 61795754,
       "n_uniq": 9985,
       "N_total": 10000,
       "missing_mass": 0.9979,
@@ -1235,7 +1235,7 @@
       }
     },
     {
-      "prompt_hash": 20050164,
+      "prompt_hash": 29065032,
       "n_uniq": 9983,
       "N_total": 10000,
       "missing_mass": 0.9979,
@@ -1313,7 +1313,7 @@
       }
     },
     {
-      "prompt_hash": 77569610,
+      "prompt_hash": 35654481,
       "n_uniq": 9993,
       "N_total": 10000,
       "missing_mass": 0.999,
@@ -1391,7 +1391,7 @@
       }
     },
     {
-      "prompt_hash": 63805496,
+      "prompt_hash": 35321366,
       "n_uniq": 9995,
       "N_total": 10000,
       "missing_mass": 0.9993,
@@ -1469,7 +1469,7 @@
       }
     },
     {
-      "prompt_hash": 36082974,
+      "prompt_hash": 40799917,
       "n_uniq": 9955,
       "N_total": 10000,
       "missing_mass": 0.992,
@@ -1547,7 +1547,7 @@
       }
     },
     {
-      "prompt_hash": 24507345,
+      "prompt_hash": 96015895,
       "n_uniq": 9996,
       "N_total": 10000,
       "missing_mass": 0.9995,
@@ -1625,7 +1625,7 @@
       }
     },
     {
-      "prompt_hash": 79029940,
+      "prompt_hash": 95886665,
       "n_uniq": 9993,
       "N_total": 10000,
       "missing_mass": 0.9987,
@@ -1703,7 +1703,7 @@
       }
     },
     {
-      "prompt_hash": 60172788,
+      "prompt_hash": 97297233,
       "n_uniq": 9988,
       "N_total": 10000,
       "missing_mass": 0.998,
@@ -1781,7 +1781,7 @@
       }
     },
     {
-      "prompt_hash": 80935274,
+      "prompt_hash": 90878284,
       "n_uniq": 9995,
       "N_total": 10000,
       "missing_mass": 0.9994,
@@ -1859,7 +1859,7 @@
       }
     },
     {
-      "prompt_hash": 97142032,
+      "prompt_hash": 23435246,
       "n_uniq": 9981,
       "N_total": 10000,
       "missing_mass": 0.9968,
@@ -1937,7 +1937,7 @@
       }
     },
     {
-      "prompt_hash": 17653597,
+      "prompt_hash": 68721037,
       "n_uniq": 9993,
       "N_total": 10000,
       "missing_mass": 0.999,
@@ -2015,7 +2015,7 @@
       }
     },
     {
-      "prompt_hash": 59376718,
+      "prompt_hash": 466752,
       "n_uniq": 9999,
       "N_total": 10000,
       "missing_mass": 0.9998,
@@ -2093,7 +2093,7 @@
       }
     },
     {
-      "prompt_hash": 39460039,
+      "prompt_hash": 38495446,
       "n_uniq": 9987,
       "N_total": 10000,
       "missing_mass": 0.9976,
@@ -2171,7 +2171,7 @@
       }
     },
     {
-      "prompt_hash": 44159413,
+      "prompt_hash": 86416793,
       "n_uniq": 9978,
       "N_total": 10000,
       "missing_mass": 0.9962,
@@ -2249,7 +2249,7 @@
       }
     },
     {
-      "prompt_hash": 46988115,
+      "prompt_hash": 79986795,
       "n_uniq": 9995,
       "N_total": 10000,
       "missing_mass": 0.9991,
@@ -2327,7 +2327,7 @@
       }
     },
     {
-      "prompt_hash": 75437782,
+      "prompt_hash": 55391138,
       "n_uniq": 9985,
       "N_total": 10000,
       "missing_mass": 0.9976,
@@ -2405,7 +2405,7 @@
       }
     },
     {
-      "prompt_hash": 57293027,
+      "prompt_hash": 33196130,
       "n_uniq": 9995,
       "N_total": 10000,
       "missing_mass": 0.9994,
@@ -2483,7 +2483,7 @@
       }
     },
     {
-      "prompt_hash": 55465086,
+      "prompt_hash": 56482562,
       "n_uniq": 9992,
       "N_total": 10000,
       "missing_mass": 0.999,
@@ -2561,7 +2561,7 @@
       }
     },
     {
-      "prompt_hash": 8952083,
+      "prompt_hash": 93690716,
       "n_uniq": 9994,
       "N_total": 10000,
       "missing_mass": 0.999,
@@ -2639,7 +2639,7 @@
       }
     },
     {
-      "prompt_hash": 49741336,
+      "prompt_hash": 53670056,
       "n_uniq": 9995,
       "N_total": 10000,
       "missing_mass": 0.9993,
@@ -2717,7 +2717,7 @@
       }
     },
     {
-      "prompt_hash": 96000541,
+      "prompt_hash": 87313603,
       "n_uniq": 9956,
       "N_total": 10000,
       "missing_mass": 0.9922,
@@ -2795,7 +2795,7 @@
       }
     },
     {
-      "prompt_hash": 68120386,
+      "prompt_hash": 31976571,
       "n_uniq": 9987,
       "N_total": 10000,
       "missing_mass": 0.9978,
@@ -2873,7 +2873,7 @@
       }
     },
     {
-      "prompt_hash": 21924420,
+      "prompt_hash": 46495351,
       "n_uniq": 9968,
       "N_total": 10000,
       "missing_mass": 0.9961,
@@ -2951,7 +2951,7 @@
       }
     },
     {
-      "prompt_hash": 8432974,
+      "prompt_hash": 80626698,
       "n_uniq": 9971,
       "N_total": 10000,
       "missing_mass": 0.9967,
@@ -3029,7 +3029,7 @@
       }
     },
     {
-      "prompt_hash": 43673403,
+      "prompt_hash": 39362225,
       "n_uniq": 9927,
       "N_total": 10000,
       "missing_mass": 0.9871,
@@ -3107,7 +3107,7 @@
       }
     },
     {
-      "prompt_hash": 98451219,
+      "prompt_hash": 2787995,
       "n_uniq": 9983,
       "N_total": 10000,
       "missing_mass": 0.998,
@@ -3185,7 +3185,7 @@
       }
     },
     {
-      "prompt_hash": 28671553,
+      "prompt_hash": 32016684,
       "n_uniq": 9994,
       "N_total": 10000,
       "missing_mass": 0.9991,
@@ -3263,7 +3263,7 @@
       }
     },
     {
-      "prompt_hash": 40644952,
+      "prompt_hash": 52505921,
       "n_uniq": 9998,
       "N_total": 10000,
       "missing_mass": 0.9996,
@@ -3341,7 +3341,7 @@
       }
     },
     {
-      "prompt_hash": 8098317,
+      "prompt_hash": 53766913,
       "n_uniq": 9978,
       "N_total": 10000,
       "missing_mass": 0.9973,
@@ -3419,7 +3419,7 @@
       }
     },
     {
-      "prompt_hash": 87228493,
+      "prompt_hash": 18112509,
       "n_uniq": 9864,
       "N_total": 10000,
       "missing_mass": 0.9786,
@@ -3497,7 +3497,7 @@
       }
     },
     {
-      "prompt_hash": 51219407,
+      "prompt_hash": 34930774,
       "n_uniq": 9995,
       "N_total": 10000,
       "missing_mass": 0.999,
@@ -3575,7 +3575,7 @@
       }
     },
     {
-      "prompt_hash": 29018162,
+      "prompt_hash": 5904710,
       "n_uniq": 8916,
       "N_total": 10000,
       "missing_mass": 0.8543,
@@ -3653,7 +3653,7 @@
       }
     },
     {
-      "prompt_hash": 34419945,
+      "prompt_hash": 90006009,
       "n_uniq": 9237,
       "N_total": 10000,
       "missing_mass": 0.8908,
@@ -3731,7 +3731,7 @@
       }
     },
     {
-      "prompt_hash": 82593275,
+      "prompt_hash": 43406172,
       "n_uniq": 9966,
       "N_total": 10000,
       "missing_mass": 0.996,
@@ -3809,7 +3809,7 @@
       }
     },
     {
-      "prompt_hash": 15890354,
+      "prompt_hash": 29113577,
       "n_uniq": 10000,
       "N_total": 10000,
       "missing_mass": 1.0,
@@ -3887,7 +3887,7 @@
       }
     },
     {
-      "prompt_hash": 77241357,
+      "prompt_hash": 61900394,
       "n_uniq": 9734,
       "N_total": 10000,
       "missing_mass": 0.9595,
@@ -3965,7 +3965,7 @@
       }
     },
     {
-      "prompt_hash": 8640428,
+      "prompt_hash": 60507149,
       "n_uniq": 9856,
       "N_total": 10000,
       "missing_mass": 0.9771,
@@ -4043,7 +4043,7 @@
       }
     },
     {
-      "prompt_hash": 7252861,
+      "prompt_hash": 2056748,
       "n_uniq": 9882,
       "N_total": 10000,
       "missing_mass": 0.9805,
@@ -4121,7 +4121,7 @@
       }
     },
     {
-      "prompt_hash": 47563941,
+      "prompt_hash": 62647855,
       "n_uniq": 9998,
       "N_total": 10000,
       "missing_mass": 0.9996,
@@ -4201,7 +4201,7 @@
   ],
   "gsm8k|T=1.05": [
     {
-      "prompt_hash": 50738362,
+      "prompt_hash": 39369970,
       "n_uniq": 9988,
       "N_total": 10000,
       "missing_mass": 0.9977,
@@ -4279,7 +4279,7 @@
       }
     },
     {
-      "prompt_hash": 73645297,
+      "prompt_hash": 806877,
       "n_uniq": 10000,
       "N_total": 10000,
       "missing_mass": 1.0,
@@ -4357,7 +4357,7 @@
       }
     },
     {
-      "prompt_hash": 49827536,
+      "prompt_hash": 1534444,
       "n_uniq": 9921,
       "N_total": 10000,
       "missing_mass": 0.9863,
@@ -4435,7 +4435,7 @@
       }
     },
     {
-      "prompt_hash": 90281891,
+      "prompt_hash": 38052605,
       "n_uniq": 9987,
       "N_total": 10000,
       "missing_mass": 0.9974,
@@ -4513,7 +4513,7 @@
       }
     },
     {
-      "prompt_hash": 49675829,
+      "prompt_hash": 98003824,
       "n_uniq": 9999,
       "N_total": 10000,
       "missing_mass": 0.9998,
@@ -4591,7 +4591,7 @@
       }
     },
     {
-      "prompt_hash": 79864910,
+      "prompt_hash": 24708913,
       "n_uniq": 9989,
       "N_total": 10000,
       "missing_mass": 0.9983,
@@ -4669,7 +4669,7 @@
       }
     },
     {
-      "prompt_hash": 5971972,
+      "prompt_hash": 60557391,
       "n_uniq": 9592,
       "N_total": 10000,
       "missing_mass": 0.9365,
@@ -4747,7 +4747,7 @@
       }
     },
     {
-      "prompt_hash": 66667884,
+      "prompt_hash": 18151592,
       "n_uniq": 9999,
       "N_total": 10000,
       "missing_mass": 0.9998,
@@ -4825,7 +4825,7 @@
       }
     },
     {
-      "prompt_hash": 26195356,
+      "prompt_hash": 49389267,
       "n_uniq": 9998,
       "N_total": 10000,
       "missing_mass": 0.9997,
@@ -4903,7 +4903,7 @@
       }
     },
     {
-      "prompt_hash": 69470958,
+      "prompt_hash": 14821582,
       "n_uniq": 9987,
       "N_total": 10000,
       "missing_mass": 0.9984,
@@ -4981,7 +4981,7 @@
       }
     },
     {
-      "prompt_hash": 82798381,
+      "prompt_hash": 90976200,
       "n_uniq": 9995,
       "N_total": 10000,
       "missing_mass": 0.9992,
@@ -5059,7 +5059,7 @@
       }
     },
     {
-      "prompt_hash": 12591358,
+      "prompt_hash": 61795754,
       "n_uniq": 9985,
       "N_total": 10000,
       "missing_mass": 0.9979,
@@ -5137,7 +5137,7 @@
       }
     },
     {
-      "prompt_hash": 20050164,
+      "prompt_hash": 29065032,
       "n_uniq": 9983,
       "N_total": 10000,
       "missing_mass": 0.9979,
@@ -5215,7 +5215,7 @@
       }
     },
     {
-      "prompt_hash": 77569610,
+      "prompt_hash": 35654481,
       "n_uniq": 9993,
       "N_total": 10000,
       "missing_mass": 0.999,
@@ -5293,7 +5293,7 @@
       }
     },
     {
-      "prompt_hash": 63805496,
+      "prompt_hash": 35321366,
       "n_uniq": 9995,
       "N_total": 10000,
       "missing_mass": 0.9993,
@@ -5371,7 +5371,7 @@
       }
     },
     {
-      "prompt_hash": 36082974,
+      "prompt_hash": 40799917,
       "n_uniq": 9955,
       "N_total": 10000,
       "missing_mass": 0.992,
@@ -5449,7 +5449,7 @@
       }
     },
     {
-      "prompt_hash": 24507345,
+      "prompt_hash": 96015895,
       "n_uniq": 9996,
       "N_total": 10000,
       "missing_mass": 0.9995,
@@ -5527,7 +5527,7 @@
       }
     },
     {
-      "prompt_hash": 79029940,
+      "prompt_hash": 95886665,
       "n_uniq": 9993,
       "N_total": 10000,
       "missing_mass": 0.9987,
@@ -5605,7 +5605,7 @@
       }
     },
     {
-      "prompt_hash": 60172788,
+      "prompt_hash": 97297233,
       "n_uniq": 9988,
       "N_total": 10000,
       "missing_mass": 0.998,
@@ -5683,7 +5683,7 @@
       }
     },
     {
-      "prompt_hash": 80935274,
+      "prompt_hash": 90878284,
       "n_uniq": 9995,
       "N_total": 10000,
       "missing_mass": 0.9994,
@@ -5761,7 +5761,7 @@
       }
     },
     {
-      "prompt_hash": 97142032,
+      "prompt_hash": 23435246,
       "n_uniq": 9981,
       "N_total": 10000,
       "missing_mass": 0.9968,
@@ -5839,7 +5839,7 @@
       }
     },
     {
-      "prompt_hash": 17653597,
+      "prompt_hash": 68721037,
       "n_uniq": 9993,
       "N_total": 10000,
       "missing_mass": 0.999,
@@ -5917,7 +5917,7 @@
       }
     },
     {
-      "prompt_hash": 59376718,
+      "prompt_hash": 466752,
       "n_uniq": 9999,
       "N_total": 10000,
       "missing_mass": 0.9998,
@@ -5995,7 +5995,7 @@
       }
     },
     {
-      "prompt_hash": 39460039,
+      "prompt_hash": 38495446,
       "n_uniq": 9987,
       "N_total": 10000,
       "missing_mass": 0.9976,
@@ -6073,7 +6073,7 @@
       }
     },
     {
-      "prompt_hash": 44159413,
+      "prompt_hash": 86416793,
       "n_uniq": 9978,
       "N_total": 10000,
       "missing_mass": 0.9962,
@@ -6151,7 +6151,7 @@
       }
     },
     {
-      "prompt_hash": 46988115,
+      "prompt_hash": 79986795,
       "n_uniq": 9995,
       "N_total": 10000,
       "missing_mass": 0.9991,
@@ -6229,7 +6229,7 @@
       }
     },
     {
-      "prompt_hash": 75437782,
+      "prompt_hash": 55391138,
       "n_uniq": 9985,
       "N_total": 10000,
       "missing_mass": 0.9976,
@@ -6307,7 +6307,7 @@
       }
     },
     {
-      "prompt_hash": 57293027,
+      "prompt_hash": 33196130,
       "n_uniq": 9995,
       "N_total": 10000,
       "missing_mass": 0.9994,
@@ -6385,7 +6385,7 @@
       }
     },
     {
-      "prompt_hash": 55465086,
+      "prompt_hash": 56482562,
       "n_uniq": 9992,
       "N_total": 10000,
       "missing_mass": 0.999,
@@ -6463,7 +6463,7 @@
       }
     },
     {
-      "prompt_hash": 8952083,
+      "prompt_hash": 93690716,
       "n_uniq": 9994,
       "N_total": 10000,
       "missing_mass": 0.999,
@@ -6541,7 +6541,7 @@
       }
     },
     {
-      "prompt_hash": 49741336,
+      "prompt_hash": 53670056,
       "n_uniq": 9995,
       "N_total": 10000,
       "missing_mass": 0.9993,
@@ -6619,7 +6619,7 @@
       }
     },
     {
-      "prompt_hash": 96000541,
+      "prompt_hash": 87313603,
       "n_uniq": 9956,
       "N_total": 10000,
       "missing_mass": 0.9922,
@@ -6697,7 +6697,7 @@
       }
     },
     {
-      "prompt_hash": 68120386,
+      "prompt_hash": 31976571,
       "n_uniq": 9987,
       "N_total": 10000,
       "missing_mass": 0.9978,
@@ -6775,7 +6775,7 @@
       }
     },
     {
-      "prompt_hash": 21924420,
+      "prompt_hash": 46495351,
       "n_uniq": 9968,
       "N_total": 10000,
       "missing_mass": 0.9961,
@@ -6853,7 +6853,7 @@
       }
     },
     {
-      "prompt_hash": 8432974,
+      "prompt_hash": 80626698,
       "n_uniq": 9971,
       "N_total": 10000,
       "missing_mass": 0.9967,
@@ -6931,7 +6931,7 @@
       }
     },
     {
-      "prompt_hash": 43673403,
+      "prompt_hash": 39362225,
       "n_uniq": 9927,
       "N_total": 10000,
       "missing_mass": 0.9871,
@@ -7009,7 +7009,7 @@
       }
     },
     {
-      "prompt_hash": 98451219,
+      "prompt_hash": 2787995,
       "n_uniq": 9983,
       "N_total": 10000,
       "missing_mass": 0.998,
@@ -7087,7 +7087,7 @@
       }
     },
     {
-      "prompt_hash": 28671553,
+      "prompt_hash": 32016684,
       "n_uniq": 9994,
       "N_total": 10000,
       "missing_mass": 0.9991,
@@ -7165,7 +7165,7 @@
       }
     },
     {
-      "prompt_hash": 40644952,
+      "prompt_hash": 52505921,
       "n_uniq": 9998,
       "N_total": 10000,
       "missing_mass": 0.9996,
@@ -7243,7 +7243,7 @@
       }
     },
     {
-      "prompt_hash": 8098317,
+      "prompt_hash": 53766913,
       "n_uniq": 9978,
       "N_total": 10000,
       "missing_mass": 0.9973,
@@ -7321,7 +7321,7 @@
       }
     },
     {
-      "prompt_hash": 87228493,
+      "prompt_hash": 18112509,
       "n_uniq": 9864,
       "N_total": 10000,
       "missing_mass": 0.9786,
@@ -7399,7 +7399,7 @@
       }
     },
     {
-      "prompt_hash": 51219407,
+      "prompt_hash": 34930774,
       "n_uniq": 9995,
       "N_total": 10000,
       "missing_mass": 0.999,
@@ -7477,7 +7477,7 @@
       }
     },
     {
-      "prompt_hash": 29018162,
+      "prompt_hash": 5904710,
       "n_uniq": 8916,
       "N_total": 10000,
       "missing_mass": 0.8543,
@@ -7555,7 +7555,7 @@
       }
     },
     {
-      "prompt_hash": 34419945,
+      "prompt_hash": 90006009,
       "n_uniq": 9237,
       "N_total": 10000,
       "missing_mass": 0.8908,
@@ -7633,7 +7633,7 @@
       }
     },
     {
-      "prompt_hash": 82593275,
+      "prompt_hash": 43406172,
       "n_uniq": 9966,
       "N_total": 10000,
       "missing_mass": 0.996,
@@ -7711,7 +7711,7 @@
       }
     },
     {
-      "prompt_hash": 15890354,
+      "prompt_hash": 29113577,
       "n_uniq": 10000,
       "N_total": 10000,
       "missing_mass": 1.0,
@@ -7789,7 +7789,7 @@
       }
     },
     {
-      "prompt_hash": 77241357,
+      "prompt_hash": 61900394,
       "n_uniq": 9734,
       "N_total": 10000,
       "missing_mass": 0.9595,
@@ -7867,7 +7867,7 @@
       }
     },
     {
-      "prompt_hash": 8640428,
+      "prompt_hash": 60507149,
       "n_uniq": 9856,
       "N_total": 10000,
       "missing_mass": 0.9771,
@@ -7945,7 +7945,7 @@
       }
     },
     {
-      "prompt_hash": 7252861,
+      "prompt_hash": 2056748,
       "n_uniq": 9882,
       "N_total": 10000,
       "missing_mass": 0.9805,
@@ -8023,7 +8023,7 @@
       }
     },
     {
-      "prompt_hash": 47563941,
+      "prompt_hash": 62647855,
       "n_uniq": 9998,
       "N_total": 10000,
       "missing_mass": 0.9996,

@@ -31,6 +31,7 @@ Code note: the pool size is spelled M/M_exp/M_grid here; it is the paper's N
 throughout. The JSON keys cert_* hold the r_1 (sup) versions.
 
 Per-prompt row keys (bound_raw_{task}.json, analyze stage):
+  prompt_hash          sha1 of the prompt text mod 10^8, the same in every run
   chi2_1               Var_q(u_1) = E_q[u_1^2] - 1 = sum_y pi_1^2/q - 1
   m1                   E_q[u_1^2] = 1 + chi2_1
   r1                   sup_y u_1(y)                                  (secondary)
@@ -754,7 +755,7 @@ def analyze_prompt(job):
     miss = singles / float(tot.sum())
 
     row = dict(
-        prompt_hash=abs(hash(pt)) % 10**8, n_uniq=int(rec["n_uniq"]),
+        prompt_hash=int(hashlib.sha1(pt.encode()).hexdigest(), 16) % 10**8, n_uniq=int(rec["n_uniq"]),
         N_total=int(tot.sum()), missing_mass=miss,
         log10_covered_mass=log_cov / math.log(10), covered_mass=math.exp(log_cov),
         logZ=logZ, sumP1=tgt["sumP1"], chi2_1=chi2_1, m1=m1, r1=r1,

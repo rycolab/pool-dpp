@@ -38,11 +38,25 @@ The Ambrosia experiments read `ambrosia.csv` from the repository root. Download 
 | MATH-500 pools, selections, and figure | `bash scripts/run_math500.sh` | GPU, then CPU |
 | Generation cap: stop token in the scores | `python analysis/length_cap.py stored`, then `probe --csv-path ambrosia.csv`, after the pools | GPU |
 | LLM-based selection | `python analysis/llm_selection.py`, after the FineWeb pools | GPU |
-| Pair judge | `GEMINI_API_KEY=... python analysis/pair_judge.py validate`, then `score`, after the GSM8K selections | Gemini API |
+| Pair judge on new selections | `GEMINI_API_KEY=... python analysis/pair_judge.py validate`, then `score`, after the GSM8K selections | Gemini API |
 | All other figures and tables | `bash scripts/make_figures.sh` | CPU |
 
 To rerun selection on existing pools, use `STAGES=estimate J=16 bash scripts/run_gsm8k.sh`. Every step
 resumes where it stopped.
+
+The pair table (tab:gsm8k-pairs) decomposes the sets selected on GSM8K pool 0 of the July pools, which predate the
+per-pool seeds and are kept as `cache-gsm8k-oldseeds`. This code does not regenerate them, and their selection files
+have the pre-release names. `analysis/pair_judge_verdicts.json` holds the judge's verdicts for these pairs, so the table needs no
+API key:
+
+```bash
+B=cache-gsm8k-oldseeds/pool0/est10qwenins/0/google__gemma-2-9b-it_qwenins
+python analysis/pair_judge.py score \
+    --selection "Ancestral sT=1.0" $B-ancestral/sample_t1.0.pkl \
+    --selection "k-Means sT=1.0" $B-kmeans/kmeans_t1.0.pkl \
+    --selection "PoolDPP-Samp tT=500" $B-pooldpp_b0.001/pooldpp_t1.2.pkl \
+    --selection "PoolDPP-MAP tT=500" $B-greedymap_b0.001/greedymap_t1.2.pkl
+```
 
 | Paper | Script in `analysis/` |
 |---|---|
