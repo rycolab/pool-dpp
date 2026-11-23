@@ -21,6 +21,8 @@ w = plm^(1/T), both at local sampling temperature 1.2.
 
 Usage: bash scripts/run_math500.sh, or one stage at a time:
   python analysis/math500.py {sample,verify,embed,score,report}
+k-means selections change with the OpenMP thread count. math500.json was scored with OMP_NUM_THREADS=10,
+which run_math500.sh sets.
 Output: cache-math500/, analysis/math500.json, analysis/math500_cells.pkl, analysis/math500_plot.pdf
 """
 
@@ -415,6 +417,7 @@ def cmd_score(a):
         for method, knob, cell, metrics in rows:
             cells[method][knob][cell].append(metrics)
     cells = {m: {k: dict(v) for k, v in kn.items()} for m, kn in cells.items()}
+    os.makedirs(a.out_dir, exist_ok=True)
     with open(os.path.join(a.out_dir, "math500_cells.pkl"), "wb") as f:
         pickle.dump(cells, f)
     _report(cells, {ex["unique_id"]: ex["level"] for ex in problems}, a)

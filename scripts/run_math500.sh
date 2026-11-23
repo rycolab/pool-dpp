@@ -6,6 +6,8 @@
 set -eu
 cd "$(dirname "$0")/.."
 export OPENBLAS_NUM_THREADS=${OPENBLAS_NUM_THREADS:-1}
+# k-means selections change with the OpenMP thread count. analysis/math500.json was scored with 10 threads.
+export OMP_NUM_THREADS=10
 
 for stage in ${STAGES:-sample verify embed score}; do
     python analysis/math500.py "$stage" --n-pools "${N_POOLS:-10}"
