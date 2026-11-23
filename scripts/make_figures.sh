@@ -30,10 +30,10 @@ ndial() {  # after bounds
     python analysis/gsm8k_n2500.py
     python analysis/plot_ndial.py
 }
-weights() {
+weights() {  # after bounds: reads bound_raw_*.json
     python analysis/weight_diagnostics.py
     python analysis/ess_fineweb_n8000.py
-    python analysis/ess_ambrosia_n6000.py
+    python analysis/ess_ambrosia_n6000.py --n-pools 100
 }
 significance() {  # after pools: reuses the execution table of pool_ceiling.py
     python analysis/significance.py --task ambrosia --phase collect --n-pools 100
@@ -43,7 +43,7 @@ significance() {  # after pools: reuses the execution table of pool_ceiling.py
     GSM_VARIANT=qwenins python analysis/significance.py --task gsm8k --phase collect --n-pools 100
     GSM_VARIANT=qwenins python analysis/significance.py --task gsm8k --phase analyze
 }
-baselines() {
+baselines() {  # after pools: reuses the execution table of pool_ceiling.py
     python analysis/baselines.py --task ambrosia --n-pools 100
     python analysis/baselines.py --task fineweb --fineweb-pools cache-fineweb \
         $(for i in $(seq 1 9); do echo "cache-fineweb-pools/pool$i"; done)
@@ -58,6 +58,7 @@ pools() {
     python analysis/pool_ceiling.py --part B --n-pools 100
     python analysis/length_stratified.py
     python analysis/length_analysis.py
+    python analysis/onehot_oracle.py --cache cache-gsm8k
     python analysis/length_cap.py cap
 }
 cost() { python analysis/dual_vs_primal.py; }
